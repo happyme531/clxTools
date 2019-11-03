@@ -26,7 +26,8 @@ const allKeys = [
     "桃花水面送归船",
     "佳节又重阳",
     //可能是新增的
-    "昨夜因何入梦来"
+    "昨夜因何入梦来",
+    "满园花菊郁金黄"
     
 ];
 
@@ -42,7 +43,7 @@ function tryKey(key) {
     sleep(300);
     click(confirmBtnPos[0],confirmBtnPos[1]);
     sleep(50);
-
+return 0;
 
 
 };
@@ -50,6 +51,7 @@ function tryKey(key) {
 for (var i = 0; i < allKeys.length; i++) {
     if (tryKey(allKeys[i])) {
         toastLog("破解成功，密令为:" + allKeys[i - 2]);  //脚本速度太快，
+        setClip(allKeys[i-2]);
         exit();
     };
 };

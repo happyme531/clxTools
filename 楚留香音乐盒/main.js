@@ -1,0 +1,271 @@
+var config = storages.create("hallo1_clxmidiplayer_config");
+const musicDir = "/sdcard/楚留香音乐盒数据目录/"
+//const midi=require("./dist/Midi.js");
+
+
+function getJsonLength(json) {
+    var jsonLength = 0;
+    for (var i in json) {
+        jsonLength++;
+    }
+    return jsonLength;
+};
+
+function getFileList() {
+    //遍历synth文件夹中所有文件，获得标题信息
+    let totalFiles = files.listDir(musicDir, function(name) {
+        return name.endsWith(".json") && files.isFile(files.join(musicDir, name));
+    });
+    let titles = new Array(totalFiles.length);
+    log(totalFiles);
+    for (let file in totalFiles) {
+        log(musicDir + totalFiles[file]);
+        //let tmp = files.read(musicDir + totalFiles[file]);
+        //tmp = JSON.parse(tmp);
+        //if (tmp.header.name != "") {
+        //    titles[file] = tmp.header.name;
+        //} else {
+        titles[file] = totalFiles[file].replace(".json", "");
+
+
+    };
+    return titles;
+};
+
+//将类似"C3"这样的音符名转换为音高
+function name2pitch(name) {
+    const toneNames = ["C", "D", "E", "F", "G", "A", "B"];
+    let pitch = -1;
+    let m = -majorPitchOffset + 3;
+    if (name.endsWith((m++).toString())) pitch += 0 + 1;
+    if (name.endsWith((m++).toString())) pitch += 7 + 1;
+    if (name.endsWith((m++).toString())) pitch += 14 + 1;
+    if (pitch == -1) { //结尾不是3,4,5
+        return 0;
+    };
+    m = minorPitchOffset;
+    for (let i in toneNames) {
+        if (name.charAt(0) === toneNames[i]) {
+
+            pitch += parseInt(i) + 1 + minorPitchOffset;
+            break;
+        };
+    };
+    if (pitch > 21 || pitch < 1) return 0;
+
+    return pitch;
+};
+
+function setConfigSafe(key, val) {
+    config.put(key, val);
+    if (config.get(key) == val) {
+        toast("设置保存成功");
+    } else {
+        toast("设置保存失败！");
+    };
+};
+
+function runSetup() {
+    let index = 0;
+    index = dialogs.singleChoice("选择一首乐曲..", fileList);
+    switch (dialogs.singleChoice("请选择一个设置，所有设置都会自动保存", ["查看使用帮助", "调整音高"])) {
+        case 0:
+            
+            break;
+        case 1:
+            setConfigSafe("majorPitchOffset", dialogs.singleChoice("调整音高1", ["降低一个八度", "默认", "升高一个八度"], config.get("majorPitchOffset") + 1) - 1);
+            setConfigSafe("minorPitchOffset", dialogs.singleChoice("调整音高2", ["降低2个音阶", "降低1个音阶", "默认", "升高1个音阶", "升高2个音阶"], config.get("minorPitchOffset") + 2) - 2);
+            break;
+
+    };
+};
+
+//toast(name2pitch("B6"));
+//exit();
+
+
+/////////
+//主程序//
+/////////
+files.ensureDir(musicDir);
+//config.put("inited", 0);
+if (config.get("inited", 0) == 0) {
+    //第一次启动，初始化设置
+    toast("初始化设置..");
+    config.put("majorPitchOffset", -1);
+    config.put("minorPitchOffset", 0);
+    let files_ = files.listDir("./exampleTracks");
+    for (let i in files_) {
+        toast("copy:" + files_[i])
+        files.copy("./exampleTracks/" + files_[i], musicDir + files_[i]);
+    };
+    config.put("inited", 1);
+
+};
+
+console.info("\
+1.为了点击屏幕，本程序需要辅助功能权限，这是必须的，剩下的权限拒绝就行\n\
+2.使用方法:在游戏中切换到演奏界面，打开这个脚本，之后切回游戏，脚本将会在3秒后开始运行\n\
+3.你可以随时按音量上键结束运行\n\
+4.如果脚本输出一些文字就没反应了，请允许脚本的悬浮窗权限！！(坑爹的小米手机)\n\
+5.脚本制作:声声慢:心慕流霞 李芒果，也强烈感谢auto.js作者提供的框架\n\
+");
+
+console.verbose("等待无障碍服务..");
+//toast("请允许本应用的无障碍权限");
+auto.waitFor();
+const fileList = getFileList();
+
+
+//解析信息
+
+var index;
+switch (dialogs.singleChoice("选择一项操作..", ["演奏乐曲", "更改设置","查看使用说明"])) {
+    case 1:
+        runSetup();
+        exit();
+        break;
+    case 0:
+        index = dialogs.singleChoice("选择一首乐曲..", fileList);
+        break;
+    case 2:
+        app.viewFile(musicDir + "使用帮助.txt");
+        exit();
+        break;
+};
+
+const totalFiles = files.listDir(musicDir, function(name) {
+    return name.endsWith(".json") && files.isFile(files.join(musicDir, name));
+});
+
+try {
+    const jsonData = JSON.parse(files.read(musicDir + totalFiles[index]));
+} catch (err) {
+    toast("文件解析失败！请检查格式是否正确");
+    console.error("文件解析失败:" + err);
+};
+
+var tracks = new Array();
+for (let i in jsonData.tracks) {
+    if (jsonData.tracks[i].name != "") {
+        tracks.push(i + ":" + jsonData.tracks[i].name);
+    } else {
+        tracks.push(i + ":" + "未命名");
+    };
+};
+const track = dialogs.singleChoice("选择一个音轨..", tracks);
+console.assert(track != -1, "错误:请选择一个选项");
+
+//exit();
+
+dialogs.alert("", "切回游戏，脚本会自动开始")
+console.verbose("无障碍服务启动成功");
+waitForPackage("com.netease.wyclx");
+toast("即将在3秒钟内开始...");
+sleep(3000);
+
+//注意，这是横屏状态的坐标:左上角(0,0),向右x增，向下y增
+//检测分辨率
+console.info("你的屏幕分辨率是:%dx%d", device.height, device.width);
+
+if (device.width == 1080 && device.height == 1920) {
+    //1920x1080分辨率的参数(现在的大多数手机)
+    var clickx_pos = [340, 580, 819, 1055, 1291, 1531, 1768];
+    var clicky_pos = [956, 816, 680];
+    var longclick_pos = [78, 367];
+} else if (device.width == 1440 && device.height == 3120) {
+    //3120x1440分辨率的参数(我的lg g7,2k屏)
+    var clickx_pos = [781, 1099, 1418, 1735, 2051, 2369, 2686];
+    var clicky_pos = [1271, 1089, 905];
+    var longclick_pos = [400, 525]; //x,y
+} else if (device.width == 1080 && device.height == 2160) {
+    //2160x1080带鱼屏的分辨率
+    var clickx_pos = [460, 697, 940, 1176, 1414, 1652, 1862];
+    var clicky_pos = [955, 818, 679];
+    var longclick_pos = [204, 359];
+} else if (device.width == 1080 && device.height == 2340) {
+    //eg.红米k20 pro
+    var clickx_pos = [550, 790, 1027, 1266, 1505, 1744, 1980];
+    var clicky_pos = [955, 818, 680];
+    var longclick_pos = [204, 359];
+} else if (device.width == 720 && device.height == 1520) {
+    //1520x720(很奇怪啊)
+    var clickx_pos = [348, 506, 665, 824, 982, 1141, 1300];
+    var clicky_pos = [637, 547, 454];
+    var longclick_pos = [175, 240];
+} else {
+    console.warn("不支持此分辨率，尝试兼容设置...");
+    setScreenMetrics(1080, 1920);
+    var clickx_pos = [340, 580, 819, 1055, 1291, 1531, 1768];
+    var clicky_pos = [956, 816, 680];
+    var longclick_pos = [78, 367];
+
+    exit();
+};
+
+
+
+
+
+//数据
+
+
+//安全点击
+function safeclick(x, y, time) {
+    press(x + random(-5, 5), y + random(-5, 5) - 10, time);
+};
+
+//media.playMusic("/sdcard/test.mp3", 1);
+//sleep(200);
+
+
+var majorPitchOffset = config.get("majorPitchOffset", 0);
+var minorPitchOffset = config.get("minorPitchOffset", 0);
+
+//主循环
+var noteList = new Array();
+var i = 0
+const noteCount = getJsonLength(jsonData.tracks[track].notes);
+while (i < noteCount) {
+    var tone = name2pitch(jsonData.tracks[track].notes[i].name);
+
+    if (tone == 0) {
+        i++;
+        continue;
+    };
+    var delaytime0 = jsonData.tracks[track].notes[i].time; //这个音符的时间，单位:秒
+    var delaytime1 = jsonData.tracks[track].notes[i + 1].time; //下一个.....
+    if (delaytime0 == delaytime1) { //如果两个音符时间相等，把这个音和后面的一起加入数组
+        noteList[noteList.length] = tone;
+    } else {
+        noteList[noteList.length] = tone;
+        let delaytime = delaytime1 - delaytime0;
+        //console.log(noteList);
+        var gestureList = new Array();
+        for (var j = 0; j < noteList.length; j++) { //遍历这个数组
+            tone = noteList[j];
+            if (tone != 0) {
+                var clicky = Math.floor((tone - 1) / 7) + 1; //得到x
+                if (tone % 7 == 0) { //得到y
+                    var clickx = 7;
+                } else {
+                    var clickx = tone % 7;
+                };
+                gestureList[gestureList.length] = [0, delaytime * 1000 / 2, [clickx_pos[clickx - 1], clicky_pos[clicky - 1]]];
+            };
+        };
+        if (delaytime >= 6) {
+            //长音
+            gestureList[gestureList.length] = [0, delaytime * 1000 / 2, longclick_pos];
+        };
+        //执行手势
+        //console.log(gestureList);
+        if (gestureList.length != 0) {
+            gestures.apply(null, gestureList); //传参给gestures
+        };
+        sleep(delaytime * 1000 / 2);
+        noteList = [];
+        gestureList = [];
+    };
+    i++
+}
