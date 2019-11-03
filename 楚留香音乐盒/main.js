@@ -69,6 +69,8 @@ function initConfig(filepath) {
 };
 
 function setConfigSafe(key, val, filename) {
+    
+    filename=filename.replace(".json",""); //如果原先有.json后缀，删除它
     filename += ".json.cfg";
     let filepath = musicDir + filename;
     if (!files.exists(filepath)) {
@@ -84,6 +86,7 @@ function setConfigSafe(key, val, filename) {
 
 };
 function readConfig(key, filename) {
+    filename=filename.replace(".json",""); //如果原先有.json后缀，删除它
     filename += ".json.cfg";
     let filepath = musicDir + filename;
     if (!files.exists(filepath)) {
@@ -184,6 +187,7 @@ for (let i in jsonData.tracks) {
         tracks.push(i + ":" + "未命名");
     };
 };
+
 const majorPitchOffset = readConfig("majorPitchOffset", fileName);
 const minorPitchOffset = readConfig("minorPitchOffset", fileName);
 const track = dialogs.singleChoice("选择一个音轨..", tracks);
