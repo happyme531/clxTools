@@ -13,21 +13,23 @@ function getJsonLength(json) {
 
 function getFileList() {
     //遍历synth文件夹中所有文件，获得标题信息
-    let totalFiles = files.listDir(musicDir, function(name) {
+    let totalFiles = files.listDir(musicDir, function (name) {
         return name.endsWith(".json") && files.isFile(files.join(musicDir, name));
     });
     let titles = new Array(totalFiles.length);
     log(totalFiles);
     for (let file in totalFiles) {
         log(musicDir + totalFiles[file]);
+        //读取json文件速度太慢
+
         //let tmp = files.read(musicDir + totalFiles[file]);
         //tmp = JSON.parse(tmp);
         //if (tmp.header.name != "") {
         //    titles[file] = tmp.header.name;
         //} else {
+
+        //直接读取文件名
         titles[file] = totalFiles[file].replace(".json", "");
-
-
     };
     return titles;
 };
@@ -56,25 +58,53 @@ function name2pitch(name) {
     return pitch;
 };
 
-function setConfigSafe(key, val) {
-    config.put(key, val);
-    if (config.get(key) == val) {
-        toast("设置保存成功");
-    } else {
-        toast("设置保存失败！");
-    };
+function initConfig(filepath) {
+    console.info("初始化文件:" + filepath);
+    files.create(filepath);
+    let cfg = {};
+    cfg.majorPitchOffset = 0;
+    cfg.minorPitchOffset = 0;
+    files.write(filepath, JSON.stringify(cfg));
+
 };
 
-function runSetup() {
-    let index = 0;
-    index = dialogs.singleChoice("选择一首乐曲..", fileList);
-    switch (dialogs.singleChoice("请选择一个设置，所有设置都会自动保存", ["查看使用帮助", "调整音高"])) {
+function setConfigSafe(key, val, filename) {
+    filename += ".json.cfg";
+    let filepath = musicDir + filename;
+    if (!files.exists(filepath)) {
+        initConfig(filepath);
+    };
+    let tmp = files.read(filepath);
+    tmp = JSON.parse(tmp);
+
+    tmp[key] = val;
+    files.write(filepath, JSON.stringify(tmp));
+    toast("设置保存成功");
+    return 0;
+
+};
+function readConfig(key, filename) {
+    filename += ".json.cfg";
+    let filepath = musicDir + filename;
+    if (!files.exists(filepath)) {
+        initConfig(filepath);
+    };
+    let tmp = files.read(filepath);
+    tmp = JSON.parse(tmp);
+    return tmp[key];
+};
+
+
+
+
+function runSetup(fileList) {
+    let fileName = dialogs.singleChoice("选择一首乐曲..", fileList);
+    fileName = fileList[fileName];
+    switch (dialogs.singleChoice("请选择一个设置，所有设置都会自动保存", ["调整音高"])) {
         case 0:
-            
-            break;
-        case 1:
-            setConfigSafe("majorPitchOffset", dialogs.singleChoice("调整音高1", ["降低一个八度", "默认", "升高一个八度"], config.get("majorPitchOffset") + 1) - 1);
-            setConfigSafe("minorPitchOffset", dialogs.singleChoice("调整音高2", ["降低2个音阶", "降低1个音阶", "默认", "升高1个音阶", "升高2个音阶"], config.get("minorPitchOffset") + 2) - 2);
+
+            setConfigSafe("majorPitchOffset", dialogs.singleChoice("调整音高1", ["降低一个八度", "默认", "升高一个八度"], readConfig("majorPitchOffset", fileName) + 1) - 1, fileName);
+            setConfigSafe("minorPitchOffset", dialogs.singleChoice("调整音高2", ["降低2个音阶", "降低1个音阶", "默认", "升高1个音阶", "升高2个音阶"], readConfig("minorPitchOffset", fileName) + 2) - 2, fileName);
             break;
 
     };
@@ -120,9 +150,9 @@ const fileList = getFileList();
 //解析信息
 
 var index;
-switch (dialogs.singleChoice("选择一项操作..", ["演奏乐曲", "更改设置","查看使用说明"])) {
+switch (dialogs.singleChoice("选择一项操作..", ["演奏乐曲", "更改设置", "查看使用说明"])) {
     case 1:
-        runSetup();
+        runSetup(fileList);
         exit();
         break;
     case 0:
@@ -134,17 +164,18 @@ switch (dialogs.singleChoice("选择一项操作..", ["演奏乐曲", "更改设
         break;
 };
 
-const totalFiles = files.listDir(musicDir, function(name) {
+const totalFiles = files.listDir(musicDir, function (name) {
     return name.endsWith(".json") && files.isFile(files.join(musicDir, name));
 });
+let fileName = totalFiles[index];
 
 try {
-    const jsonData = JSON.parse(files.read(musicDir + totalFiles[index]));
+    const jsonData = JSON.parse(files.read(musicDir + fileName));
 } catch (err) {
     toast("文件解析失败！请检查格式是否正确");
     console.error("文件解析失败:" + err);
 };
-
+//读取音轨列表
 var tracks = new Array();
 for (let i in jsonData.tracks) {
     if (jsonData.tracks[i].name != "") {
@@ -153,6 +184,8 @@ for (let i in jsonData.tracks) {
         tracks.push(i + ":" + "未命名");
     };
 };
+const majorPitchOffset = readConfig("majorPitchOffset", fileName);
+const minorPitchOffset = readConfig("minorPitchOffset", fileName);
 const track = dialogs.singleChoice("选择一个音轨..", tracks);
 console.assert(track != -1, "错误:请选择一个选项");
 
@@ -219,8 +252,7 @@ function safeclick(x, y, time) {
 //sleep(200);
 
 
-var majorPitchOffset = config.get("majorPitchOffset", 0);
-var minorPitchOffset = config.get("minorPitchOffset", 0);
+
 
 //主循环
 var noteList = new Array();
