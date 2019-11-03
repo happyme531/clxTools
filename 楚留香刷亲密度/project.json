@@ -1,0 +1,16 @@
+{
+  "assets": [],
+  "build": {
+    "build_id": "679B312F-6",
+    "build_number": 6,
+    "build_time": 1571562717749
+  },
+  "useFeatures": [],
+  "icon": "res/logo.png",
+  "main": "main.js",
+  "name": "楚留香刷亲密度",
+  "packageName": "com.happyme531.clxfamilarval",
+  "scripts": {},
+  "versionCode": 2,
+  "versionName": "1.0.1"
+}
