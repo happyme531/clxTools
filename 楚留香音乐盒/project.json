@@ -1,0 +1,16 @@
+{
+  "assets": [],
+  "build": {
+    "build_id": "02463256-8",
+    "build_number": 8,
+    "build_time": 1571576539960
+  },
+  "useFeatures": [],
+  "icon": "res/logo.png",
+  "main": "main.js",
+  "name": "楚留香音乐盒",
+  "packageName": "dev.happyme531.clxmidiplayer",
+  "scripts": {},
+  "versionCode": 5,
+  "versionName": "0.0.5"
+}
