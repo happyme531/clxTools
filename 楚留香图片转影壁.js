@@ -1,7 +1,7 @@
 //使用auto.js 4.0.1 beta版本 编写&运行
 
 //输入图片的路径(需要提前缩放到..176x94(在我的手机上))
-const img = images.read("/sdcard/test4.png"); 
+const img = images.read("/sdcard/test3.jpg");
 
 console.info("请在开始运行之前，切换到画板的\"画刷\"页面，并且调整滑块到最细的一端稍往上一点的位置！");
 
@@ -44,7 +44,7 @@ if (device.height == 3120 && device.width == 1440) {
     exit();
     var pixelWidth = 16; //用比最小笔刷宽度大一点点的宽度点一个点，这个点的直径
     var printAreaBegin = new Array(1350, 343); //绘图区左上角坐标
-    var printAreaEnd= new Array(2768, 1138); //绘图区右下角坐标
+    var printAreaEnd = new Array(2768, 1138); //绘图区右下角坐标
     var colorSelecterX = 1150; //选择颜色区的x坐标(正中间)
     var colorSelecterY = new Array(430, 595, 765, 930, 1090, 720, 880, 1050); //选择颜色区各个颜色对应的y坐标，最后3个需要向下翻页到底再获取
 };
@@ -55,7 +55,24 @@ const maxHeight = (printAreaEnd[1] - printAreaBegin[1] - pixelWidth) / pixelGap;
 
 const colorTable = new Array("#FFFDFFFF", "#FFE7B81A", "#FF1BE6E4", "#FFE71A62", "#FFB51AE6", "#FF1BE675", "#FF010000", "#FF3700A7"); //画板里仅有的几个颜色(差评)
 
-function findNearestColor(col) { //根据图片颜色确定最接近的笔刷颜色(实际上因为可选颜色太少，效果差劲)
+function findNearestColor(col, prevCol, prevColId) { //根据图片颜色确定最接近的笔刷颜色(实际上因为可选颜色太少，效果差劲)
+    //如果两个颜色相距很小，直接返回前一个颜色
+    if (Math.abs(colors.red(col) - colors.red(prevCol)) * 0.297 + Math.abs(colors.green(col) - colors.green(prevCol)) * 0.593 + Math.abs(colors.blue(col) - colors.blue(prevCol)) * 0.11 < 10) {
+        return prevColId;
+    };
+    //转换为hsv颜色
+    let R=colors.red(col),G=colors.green(col),B=colors.blue(col);
+    let maxc=max(R,G,B);
+    let minc=min(R,G,B);
+    let H=0;
+    if (R = max) H = (G-B)/(maxc-minc);
+    if (G = max) H = 2 + (B-R)/(maxc-minc);
+    if (B = max) H = 4 + (R-G)/(maxc-minc);
+    H = H * 60;
+    if (H < 0) H = H + 360;
+    let V=max(R,G,B)
+    let S=(maxc-minc)/maxc
+
     var diff0 = 256;
     var out = 0;
     for (var i = 0; i < colorTable.length; i++) {
@@ -90,21 +107,24 @@ if (img == null) {
 
 var pixelCountX = img.getWidth();
 var pixelCountY = img.getHeight();
-if (pixelCountX>maxWidth){
-    toast("图片宽度过大！最大为"+maxWidth);
+if (pixelCountX > maxWidth) {
+    toast("图片宽度过大！最大为" + maxWidth);
     //exit();
-    };
-    if (pixelCountY>maxHeight){
-    toast("图片高度过大！最大为"+maxHeight);
+};
+if (pixelCountY > maxHeight) {
+    toast("图片高度过大！最大为" + maxHeight);
     //exit();
-    };
+};
 
 var prevColId = 0;
+var prevCol = 0;
 for (var i = 1; i <= pixelCountX; i++) {
     for (var j = 1; j <= pixelCountY; j++) {
-        var searchx = (i - 1);
-        var searchy = (j - 1);
-        var colId = findNearestColor(img.pixel(searchx, searchy));
+        let searchx = (i - 1);
+        let searchy = (j - 1);
+
+        let colId = findNearestColor(img.pixel(searchx, searchy), prevCol, prevColId);
+        prevCol = img.pixel(searchx, searchy);
         //if(colId==0)continue;//跳过白色
         if (colId != prevColId) {
             var needSwipe = 0;
@@ -116,10 +136,10 @@ for (var i = 1; i <= pixelCountX; i++) {
         };
         press(printAreaBegin[0] + i * pixelGap, printAreaBegin[1] + j * pixelGap, 50);
         //sleep(200);
-        
+
 
     };
-    
+
 };
 
 toast("绘画完成");
