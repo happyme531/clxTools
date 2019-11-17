@@ -69,7 +69,7 @@ function initConfig(filepath) {
 };
 
 function setConfigSafe(key, val, filename) {
-    
+
     filename=filename.replace(".json",""); //如果原先有.json后缀，删除它
     filename += ".json.cfg";
     let filepath = musicDir + filename;
@@ -96,7 +96,6 @@ function readConfig(key, filename) {
     tmp = JSON.parse(tmp);
     return tmp[key];
 };
-
 
 
 
