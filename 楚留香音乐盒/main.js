@@ -180,10 +180,11 @@ try {
 //读取音轨列表
 var tracks = new Array();
 for (let i in jsonData.tracks) {
+    let noteCount = getJsonLength(jsonData.tracks[track].notes);
     if (jsonData.tracks[i].name != "") {
-        tracks.push(i + ":" + jsonData.tracks[i].name);
+        tracks.push(i + ":" + jsonData.tracks[i].name + ":" + noteCount+ "个音符");
     } else {
-        tracks.push(i + ":" + "未命名");
+        tracks.push(i + ":" + "未命名" +":"+ noteCount+ "个音符");
     };
 };
 
@@ -303,4 +304,5 @@ while (i < noteCount) {
         gestureList = [];
     };
     i++
-}
+};
+toast("播放结束");
