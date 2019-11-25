@@ -17,7 +17,7 @@ function getFileList() {
         return name.endsWith(".json") && files.isFile(files.join(musicDir, name));
     });
     let titles = new Array(totalFiles.length);
-    log(totalFiles);
+    //log(totalFiles);
     for (let file in totalFiles) {
         log(musicDir + totalFiles[file]);
         //读取json文件速度太慢
@@ -70,7 +70,7 @@ function initConfig(filepath) {
 
 function setConfigSafe(key, val, filename) {
 
-    filename=filename.replace(".json",""); //如果原先有.json后缀，删除它
+    filename = filename.replace(".json", ""); //如果原先有.json后缀，删除它
     filename += ".json.cfg";
     let filepath = musicDir + filename;
     if (!files.exists(filepath)) {
@@ -86,7 +86,7 @@ function setConfigSafe(key, val, filename) {
 
 };
 function readConfig(key, filename) {
-    filename=filename.replace(".json",""); //如果原先有.json后缀，删除它
+    filename = filename.replace(".json", ""); //如果原先有.json后缀，删除它
     filename += ".json.cfg";
     let filepath = musicDir + filename;
     if (!files.exists(filepath)) {
@@ -182,9 +182,9 @@ var tracks = new Array();
 for (let i in jsonData.tracks) {
     let noteCount = getJsonLength(jsonData.tracks[track].notes);
     if (jsonData.tracks[i].name != "") {
-        tracks.push(i + ":" + jsonData.tracks[i].name + ":" + noteCount+ "个音符");
+        tracks.push(i + ":" + jsonData.tracks[i].name + ":" + noteCount + "个音符");
     } else {
-        tracks.push(i + ":" + "未命名" +":"+ noteCount+ "个音符");
+        tracks.push(i + ":" + "未命名" + ":" + noteCount + "个音符");
     };
 };
 
@@ -232,36 +232,22 @@ if (device.width == 1080 && device.height == 1920) {
     var longclick_pos = [175, 240];
 } else {
     console.warn("不支持此分辨率，尝试兼容设置...");
-    setScreenMetrics(1080, 1920);
+    setScreenMetrics(1920, 1080);
     var clickx_pos = [340, 580, 819, 1055, 1291, 1531, 1768];
     var clicky_pos = [956, 816, 680];
     var longclick_pos = [78, 367];
 
-    exit();
 };
 
-
-
-
-
-//数据
-
-
-//安全点击
-function safeclick(x, y, time) {
-    press(x + random(-5, 5), y + random(-5, 5) - 10, time);
-};
 
 //media.playMusic("/sdcard/test.mp3", 1);
 //sleep(200);
-
-
-
 
 //主循环
 var noteList = new Array();
 var i = 0
 const noteCount = getJsonLength(jsonData.tracks[track].notes);
+var delaytime0, delaytime1;
 while (i < noteCount) {
     var tone = name2pitch(jsonData.tracks[track].notes[i].name);
 
@@ -269,8 +255,12 @@ while (i < noteCount) {
         i++;
         continue;
     };
-    var delaytime0 = jsonData.tracks[track].notes[i].time; //这个音符的时间，单位:秒
-    var delaytime1 = jsonData.tracks[track].notes[i + 1].time; //下一个.....
+    delaytime0 = jsonData.tracks[track].notes[i].time; //这个音符的时间，单位:秒
+    if (i == noteCount - 1) {
+        delaytime1 = jsonData.tracks[track].notes[i + 1].time;
+    } else {
+        delaytime1 = delaytime0 + 0.1;
+    };
     if (delaytime0 == delaytime1) { //如果两个音符时间相等，把这个音和后面的一起加入数组
         noteList[noteList.length] = tone;
     } else {
@@ -296,8 +286,10 @@ while (i < noteCount) {
         };
         //执行手势
         //console.log(gestureList);
+        if (gestureList.length > 10) gestureList.splice(9, gestureList.length - 10); //手势最多同时只能执行10个
+
         if (gestureList.length != 0) {
-            gestures.apply(null, gestureList); //传参给gestures
+            gestures.apply(null, gestureList); /
         };
         sleep(delaytime * 1000 / 2);
         noteList = [];
