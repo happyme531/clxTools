@@ -101,8 +101,8 @@ function findNearestColor(col, prevCol, prevColId) { //根据图片颜色确定�
         let db=b1-b2;
         return ((2+rmean/256)*(dr*dr)+4*(dg*dg)+(2+(255-rmean)/256)*(db*db));
    
-    };
-    let diff0 = Infinity;
+    }; 
+    let diff0 = +Infinity;
     let out = 0;
     for (let i = 0; i < colorTable.length; i++) {
         //let diff = compareHSV(H, S, V, hsvColorTable[i][0], hsvColorTable[i][1], hsvColorTable[i][2]);
