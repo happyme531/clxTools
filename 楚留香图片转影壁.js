@@ -1,7 +1,7 @@
 //使用auto.js 4.0.1 beta版本 编写&运行
 
-//输入图片的路径(需要提前缩放到..176x94(在我的手机上))
-const img = images.read("/sdcard/test3.jpg");
+//输入图片的路径(需要提前缩放到..180x97(在我的手机上))
+const img = images.read("/sdcard/test9.png");
 
 console.info("请在开始运行之前，切换到画板的\"画刷\"页面，并且调整滑块到最细的一端稍往上一点的位置！");
 
@@ -9,9 +9,9 @@ console.info("请在开始运行之前，切换到画板的\"画刷\"页面，�
 
 if (device.height == 3120 && device.width == 1440) {
     //3120x1440(eg.LG G7)
-    var pixelWidth = 14;
-    var printAreaBegin = [1350, 343];
-    var printAreaEnd = [2768, 1138];
+    var pixelWidth = 15;
+    var printAreaBegin = [1304, 345];
+    var printAreaEnd = [2764, 1138];
     var colorSelecterX = 1150;
     var colorSelecterY = [430, 595, 765, 930, 1090, 720, 880, 1050];
 
@@ -53,11 +53,14 @@ const pixelGap = pixelWidth / 2;
 const maxWidth = (printAreaEnd[0] - printAreaBegin[0] - pixelWidth) / pixelGap;
 const maxHeight = (printAreaEnd[1] - printAreaBegin[1] - pixelWidth) / pixelGap;
 
-//const colorTable = new Array("#FFFDFFFF", "#FFE7B81A", "#FF1BE6E4", "#FFE71A62", "#FFB51AE6", "#FF1BE675", "#FF010000", "#FF3700A7"); //画板里仅有的几个颜色(差评)
-const hsvColorTable = [[180, 1, 1], [46, 0.89, 0.91], [179, 0.88, 0.90], [339, 0.89, 0.91], [286, 0.89, 0.90], [147, 0.88, 0.90], [0, 1, 0], [260, 1, 0.65]];
+const colorTable = new Array("#FFFDFFFF", "#FFE7B81A", "#FF1BE6E4", "#FFE71A62", "#FFB51AE6", "#FF1BE675", "#FF010000", "#FF3700A7"); //画板里仅有的几个颜色(差评)
+//const hsvColorTable = [[180, 1, 1], [46, 0.89, 0.91], [179, 0.88, 0.90], [339, 0.89, 0.91], [286, 0.89, 0.90], [147, 0.88, 0.90], [0, 1, 0], [260, 1, 0.65]];
 function findNearestColor(col, prevCol, prevColId) { //根据图片颜色确定最接近的笔刷颜色(实际上因为可选颜色太少，效果差劲)
-
-    function comparehsv(h1, s1, v1, h2, s2, v2) {
+    if (Math.abs(colors.red(col) - colors.red(prevCol)) * 0.297 + Math.abs(colors.green(col) - colors.green(prevCol)) * 0.593 + Math.abs(colors.blue(col) - colors.blue(prevCol)) * 0.11 < 2) {
+        return prevColId;
+    };
+    /*
+    function compareHSV(h1, s1, v1, h2, s2, v2) {
         const R = 100;
         const angle = 30;
         const h = R * Math.cos(angle / 180 * Math.PI);
@@ -77,9 +80,7 @@ function findNearestColor(col, prevCol, prevColId) { //根据图片颜色确定�
 
     };
     //如果两个颜色相距很小，直接返回前一个颜色
-    //if (Math.abs(colors.red(col) - colors.red(prevCol)) * 0.297 + Math.abs(colors.green(col) - colors.green(prevCol)) * 0.593 + Math.abs(colors.blue(col) - colors.blue(prevCol)) * 0.11 < 2) {
-    //    return prevColId;
-    //};
+   
     //转换为hsv颜色
     let R = colors.red(col) / 255, G = colors.green(col) / 255, B = colors.blue(col) / 255;
     let maxc = Math.max(R, G, B);
@@ -92,12 +93,20 @@ function findNearestColor(col, prevCol, prevColId) { //根据图片颜色确定�
     if (H < 0) H = H + 360;
     let V = Math.max(R, G, B);
     let S = (V == 0 ? 0 : (maxc - minc) / (maxc));
-
-    let diff0 = 1000;
+    */
+    function compareRGB(r1,g1,b1,r2,g2,b2){
+        let rmean=(r1+r2)/2;
+        let dr=r1-r2;
+        let dg=g1-g2;
+        let db=b1-b2;
+        return ((2+rmean/256)*(dr*dr)+4*(dg*dg)+(2+(255-rmean)/256)*(db*db));
+   
+    };
+    let diff0 = Infinity;
     let out = 0;
-    for (let i = 0; i < hsvColorTable.length; i++) {
-        let diff = comparehsv(H, S, V, hsvColorTable[i][0], hsvColorTable[i][1], hsvColorTable[i][2]);
-
+    for (let i = 0; i < colorTable.length; i++) {
+        //let diff = compareHSV(H, S, V, hsvColorTable[i][0], hsvColorTable[i][1], hsvColorTable[i][2]);
+        let diff=compareRGB(colors.red(col),colors.green(col),colors.blue(col),colors.red(colorTable[i]),colors.green(colorTable[i]),colors.blue(colorTable[i]))
         if (diff < diff0) {
             diff0 = diff;
             out = i;
