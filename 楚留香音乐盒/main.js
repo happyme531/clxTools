@@ -1,5 +1,6 @@
-var config = storages.create("hallo1_clxmidiplayer_config");
+var globalConfig = storages.create("hallo1_clxmidiplayer_config");
 const musicDir = "/sdcard/楚留香音乐盒数据目录/"
+const scriptVersion = 8;
 //const midi=require("./dist/Midi.js");
 
 
@@ -58,7 +59,7 @@ function name2pitch(name) {
     return pitch;
 };
 
-function initConfig(filepath) {
+function initFileConfig(filepath) {
     console.info("初始化文件:" + filepath);
     files.create(filepath);
     let cfg = {};
@@ -68,13 +69,28 @@ function initConfig(filepath) {
 
 };
 
-function setConfigSafe(key, val, filename) {
+function setGlobalConfig(key, val) {
+    globalConfig.put(key, val);
+    if (globalConfig.get(key) == val) {
+        toast("设置保存成功");
+        return 1;
+    } else {
+        toast("设置保存失败");
+        return 0;
+    }
+
+};
+function readGlobalConfig(key, defaultValue) {
+    return globalConfig.get(key, defaultValue);
+
+};
+function setFileConfig(key, val, filename) {
 
     filename = filename.replace(".json", ""); //如果原先有.json后缀，删除它
     filename += ".json.cfg";
     let filepath = musicDir + filename;
     if (!files.exists(filepath)) {
-        initConfig(filepath);
+        initFileConfig(filepath);
     };
     let tmp = files.read(filepath);
     tmp = JSON.parse(tmp);
@@ -85,12 +101,13 @@ function setConfigSafe(key, val, filename) {
     return 0;
 
 };
-function readConfig(key, filename) {
+
+function readFileConfig(key, filename) {
     filename = filename.replace(".json", ""); //如果原先有.json后缀，删除它
     filename += ".json.cfg";
     let filepath = musicDir + filename;
     if (!files.exists(filepath)) {
-        initConfig(filepath);
+        initFileConfig(filepath);
     };
     let tmp = files.read(filepath);
     tmp = JSON.parse(tmp);
@@ -99,16 +116,27 @@ function readConfig(key, filename) {
 
 
 
-function runSetup(fileList) {
+
+function runFileSetup(fileList) {
     let fileName = dialogs.singleChoice("选择一首乐曲..", fileList);
     fileName = fileList[fileName];
     switch (dialogs.singleChoice("请选择一个设置，所有设置都会自动保存", ["调整音高"])) {
         case 0:
 
-            setConfigSafe("majorPitchOffset", dialogs.singleChoice("调整音高1", ["降低一个八度", "默认", "升高一个八度"], readConfig("majorPitchOffset", fileName) + 1) - 1, fileName);
-            setConfigSafe("minorPitchOffset", dialogs.singleChoice("调整音高2", ["降低2个音阶", "降低1个音阶", "默认", "升高1个音阶", "升高2个音阶"], readConfig("minorPitchOffset", fileName) + 2) - 2, fileName);
+            setFileConfig("majorPitchOffset", dialogs.singleChoice("调整音高1", ["降低一个八度", "默认", "升高一个八度"], readFileConfig("majorPitchOffset", fileName) + 1) - 1, fileName);
+            setFileConfig("minorPitchOffset", dialogs.singleChoice("调整音高2", ["降低2个音阶", "降低1个音阶", "默认", "升高1个音阶", "升高2个音阶"], readFileConfig("minorPitchOffset", fileName) + 2) - 2, fileName);
             break;
 
+    };
+};
+function runGlobalSetup() {
+    switch (dialogs.singleChoice("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "检测进入游戏"])) {
+        case 0:
+            setGlobalConfig("skipInit", dialogs.singleChoice("是否跳过乐曲开始前的空白?", ["否", "是"]));
+            break;
+        case 1:
+            setGlobalConfig("waitForGame", dialogs.singleChoice("是否等待进入游戏后再开始弹奏?", ["否", "是"]));
+            break;
     };
 };
 
@@ -120,18 +148,20 @@ function runSetup(fileList) {
 //主程序//
 /////////
 files.ensureDir(musicDir);
-//config.put("inited", 0);
-if (config.get("inited", 0) == 0) {
+//globalConfig.put("inited", 0);
+if (readGlobalConfig("lastVersion", 0) != scriptVersion) {
     //第一次启动，初始化设置
     toast("初始化设置..");
-    config.put("majorPitchOffset", -1);
-    config.put("minorPitchOffset", 0);
+
+    if (readGlobalConfig("skipInit", -1) == -1) setGlobalConfig("skipInit", 1);
+    if (readGlobalConfig("waitForGame", -1) == -1) setGlobalConfig("waitForGame", 1);
+
     let files_ = files.listDir("./exampleTracks");
     for (let i in files_) {
         toast("copy:" + files_[i])
         files.copy("./exampleTracks/" + files_[i], musicDir + files_[i]);
     };
-    config.put("inited", 1);
+    setGlobalConfig("lastVersion", scriptVersion);
 
 };
 
@@ -152,15 +182,20 @@ const fileList = getFileList();
 //解析信息
 
 var index;
-switch (dialogs.singleChoice("选择一项操作..", ["演奏乐曲", "更改设置", "查看使用说明"])) {
-    case 1:
-        runSetup(fileList);
-        exit();
-        break;
+switch (dialogs.singleChoice("选择一项操作..", ["演奏乐曲", "更改全局设置", "更改乐曲设置", "查看使用说明"])) {
+
     case 0:
         index = dialogs.singleChoice("选择一首乐曲..", fileList);
         break;
+    case 1:
+        runGlobalSetup();
+        exit();
+        break;
     case 2:
+        runFileSetup(fileList);
+        exit();
+        break;
+    case 3:
         app.viewFile(musicDir + "使用帮助.txt");
         exit();
         break;
@@ -169,7 +204,8 @@ switch (dialogs.singleChoice("选择一项操作..", ["演奏乐曲", "更改设
 const totalFiles = files.listDir(musicDir, function (name) {
     return name.endsWith(".json") && files.isFile(files.join(musicDir, name));
 });
-let fileName = totalFiles[index];
+var fileName = totalFiles[index];
+
 
 try {
     const jsonData = JSON.parse(files.read(musicDir + fileName));
@@ -177,10 +213,11 @@ try {
     toast("文件解析失败！请检查格式是否正确");
     console.error("文件解析失败:" + err);
 };
+
 //读取音轨列表
 var tracks = new Array();
 for (let i in jsonData.tracks) {
-    let noteCount = getJsonLength(jsonData.tracks[track].notes);
+    let noteCount = getJsonLength(jsonData.tracks[i].notes);
     if (jsonData.tracks[i].name != "") {
         tracks.push(i + ":" + jsonData.tracks[i].name + ":" + noteCount + "个音符");
     } else {
@@ -188,8 +225,8 @@ for (let i in jsonData.tracks) {
     };
 };
 
-const majorPitchOffset = readConfig("majorPitchOffset", fileName);
-const minorPitchOffset = readConfig("minorPitchOffset", fileName);
+const majorPitchOffset = readFileConfig("majorPitchOffset", fileName);
+const minorPitchOffset = readFileConfig("minorPitchOffset", fileName);
 const track = dialogs.singleChoice("选择一个音轨..", tracks);
 console.assert(track != -1, "错误:请选择一个选项");
 
@@ -197,7 +234,9 @@ console.assert(track != -1, "错误:请选择一个选项");
 
 dialogs.alert("", "切回游戏，脚本会自动开始")
 console.verbose("无障碍服务启动成功");
-waitForPackage("com.netease.wyclx");
+
+if (readGlobalConfig("waitForGame", 1)) waitForPackage("com.netease.wyclx");
+
 toast("即将在3秒钟内开始...");
 sleep(3000);
 
@@ -248,6 +287,9 @@ var noteList = new Array();
 var i = 0
 const noteCount = getJsonLength(jsonData.tracks[track].notes);
 var delaytime0, delaytime1;
+
+if (!readGlobalConfig("skipInit",1)) sleep(jsonData.tracks[track].notes[0].time * 1000);
+
 while (i < noteCount) {
     var tone = name2pitch(jsonData.tracks[track].notes[i].name);
 
@@ -289,7 +331,7 @@ while (i < noteCount) {
         if (gestureList.length > 10) gestureList.splice(9, gestureList.length - 10); //手势最多同时只能执行10个
 
         if (gestureList.length != 0) {
-            gestures.apply(null, gestureList); /
+            gestures.apply(null, gestureList);
         };
         sleep(delaytime * 1000 / 2);
         noteList = [];
