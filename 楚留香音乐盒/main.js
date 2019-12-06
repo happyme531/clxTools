@@ -234,13 +234,8 @@ console.assert(track != -1, "错误:请选择一个选项");
 
 dialogs.alert("", "切回游戏，脚本会自动开始")
 console.verbose("无障碍服务启动成功");
-<<<<<<< Updated upstream
-
 if (readGlobalConfig("waitForGame", 1)) waitForPackage("com.netease.wyclx");
 
-=======
-//waitForPackage("com.netease.wyclx");
->>>>>>> Stashed changes
 toast("即将在3秒钟内开始...");
 sleep(3000);
 
@@ -332,14 +327,9 @@ while (i < noteCount) {
         };
         //执行手势
         //console.log(gestureList);
-<<<<<<< Updated upstream
+
         if (gestureList.length > 10) gestureList.splice(9, gestureList.length - 10); //手势最多同时只能执行10个
 
-=======
-        if(gestureList.length>10) gestureList.splice(9,gestureList.length-10)  ;
-            
-      
->>>>>>> Stashed changes
         if (gestureList.length != 0) {
             gestures.apply(null, gestureList);
         };
