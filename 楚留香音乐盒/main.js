@@ -1,7 +1,6 @@
 var globalConfig = storages.create("hallo1_clxmidiplayer_config");
 const musicDir = "/sdcard/楚留香音乐盒数据目录/"
 const scriptVersion = 8;
-//const midi=require("./dist/Midi.js");
 
 
 function getJsonLength(json) {
@@ -236,8 +235,8 @@ dialogs.alert("", "切回游戏，脚本会自动开始")
 console.verbose("无障碍服务启动成功");
 if (readGlobalConfig("waitForGame", 1)) waitForPackage("com.netease.wyclx");
 
-toast("即将在3秒钟内开始...");
-sleep(3000);
+toast("即将在5秒钟内开始...");
+sleep(5000);
 
 //注意，这是横屏状态的坐标:左上角(0,0),向右x增，向下y增
 //检测分辨率
@@ -297,7 +296,7 @@ while (i < noteCount) {
         continue;
     };
     delaytime0 = jsonData.tracks[track].notes[i].time; //这个音符的时间，单位:秒
-    if (i == noteCount - 1) {
+    if (i != (noteCount - 1)) {
         delaytime1 = jsonData.tracks[track].notes[i + 1].time;
     } else {
         delaytime1 = delaytime0 + 0.1;
