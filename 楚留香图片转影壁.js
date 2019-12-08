@@ -1,7 +1,7 @@
 //使用auto.js 4.0.1 beta版本 编写&运行
 
 //输入图片的路径(需要提前缩放到..180x97(在我的手机上))
-const img = images.read("/sdcard/test9.png");
+const img = images.read("/sdcard/test3.jpg");
 
 console.info("请在开始运行之前，切换到画板的\"画刷\"页面，并且调整滑块到最细的一端稍往上一点的位置！");
 
@@ -9,15 +9,9 @@ console.info("请在开始运行之前，切换到画板的\"画刷\"页面，�
 
 if (device.height == 3120 && device.width == 1440) {
     //3120x1440(eg.LG G7)
-<<<<<<< Updated upstream
-    var pixelWidth = 15;
-    var printAreaBegin = [1304, 345];
-    var printAreaEnd = [2764, 1138];
-=======
     var pixelWidth = 16;
     var printAreaBegin = [1304, 345];
     var printAreaEnd = [2760, 1138];
->>>>>>> Stashed changes
     var colorSelecterX = 1150;
     var colorSelecterY = [430, 595, 765, 930, 1090, 720, 880, 1050];
 

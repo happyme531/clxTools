@@ -111,7 +111,7 @@ function runSetup() {
 
 //获取一句诗词
 function getPoem(logEnable) {
-    let files_ = files.listDir("./gushi_json/");
+    let files_ = files.listDir("./gushi_json/",function(name){ return name.endsWith(".json") && files.isFile(files.join("./gushi_json/", name)); });
     let targetFileName = files_[Math.floor(Math.random() * files_.length)];
     let pstr = files.read("./gushi_json/" + targetFileName);
     let pjson = JSON.parse(pstr);
@@ -136,7 +136,7 @@ function sendMessage(msg, timeOut) {
         return 0;
     }
     className("android.widget.Button").text("确定").findOne().click();
-    sleep(300);
+    sleep(400);
     click(clickPos[1][0], clickPos[1][1]);
     return 1;
 
