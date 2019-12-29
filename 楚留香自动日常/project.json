@@ -1,0 +1,16 @@
+{
+    "assets": [],
+    "useFeatures": [],
+    "build": {
+        "build_id": "028FDCA8-10",
+        "build_number": 10,
+        "build_time": 1575782776843
+      },
+    "icon": "res/logo.png",
+    "main": "main.js",
+    "name": "楚留香自动日常",
+    "packageName": "com.happyme531.clxautodaily",
+    "scripts": {},
+    "versionCode": 1,
+    "versionName": "0.0.1"
+  }
