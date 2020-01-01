@@ -47,6 +47,7 @@ task.steps.push(new function () {
         };
         sleep(700);
         click(pos.unifyx(1419), pos.unifyy(694)); //(跳过对话)
+        return 1;
 
     };
 
@@ -135,14 +136,15 @@ task.steps.push(new function () {
             itemRefreshCount++;
         };
         //检测提交按钮
-        screenutil.waitUntilColorMatch(pos.unifyx(2482),pos.unifyy(825),"#bbc6c6");
+        screenutil.waitUntilColorMatch(pos.unifyx(2482), pos.unifyy(825), "#bbc6c6");
         click(pos.unifyx(2481), pos.unifyy(822));
         sleep(500);
         //辛苦了::确定
         click(pos.unifyx(1992), pos.unifyy(1019));
         sleep(500);
         //在这之后关闭任务界面
-        click(pos.unifyx(2523), pos.unifyy(140)); 
+        click(pos.unifyx(2523), pos.unifyy(140));
+        return 1;
     }
 }
 )
