@@ -25,6 +25,7 @@ task.steps.push(new function () {
 
             sleep(800);
         };
+        return 1;
     }
 })
 
@@ -33,6 +34,7 @@ task.steps.push(new function () {
     this.run = function () {
         click(pos.unifyx(2630), pos.unifyy(913));  //"课业"
         sleep(500);
+        console.info("门派任务:开始选择课业.." )
         switch (random(1, 3)) { //选择一个课业
             case 1:
                 click(pos.unifyx(985), pos.unifyy(684));
@@ -43,7 +45,6 @@ task.steps.push(new function () {
             case 3:
                 click(pos.unifyx(2131), pos.unifyy(704));
                 break;
-
         };
         sleep(700);
         click(pos.unifyx(1419), pos.unifyy(694)); //(跳过对话)
@@ -57,6 +58,7 @@ task.steps.push(new function () {
     this.name = "完成任务";
     this.run = function () {
         let finishTask4 = false;
+        console.info("门派任务:开始完成任务..")
         while (!finishTask4) {
             //处理前四个任务
 
