@@ -99,6 +99,7 @@ function findNearestColor(col, prevCol, prevColId) { //根据图片颜色确定�
         let dr=r1-r2;
         let dg=g1-g2;
         let db=b1-b2;
+        //lab deltaE颜色相似度
         return ((2+rmean/256)*(dr*dr)+4*(dg*dg)+(2+(255-rmean)/256)*(db*db));
    
     }; 
