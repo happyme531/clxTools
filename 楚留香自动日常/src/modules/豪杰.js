@@ -24,7 +24,8 @@ task.steps.push(new function () {
 task.steps.push(new function () {
     this.name = "寻踪索迹"
     this.run = function () {
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < 1; i++) {
+            console.info("威名:开始寻踪索迹，第%d次",i+1);
             click(pos.unifyx(1573), pos.unifyy(1347)); //搜索(雾)按钮
             sleep(500);
             click(pos.unifyx(1998), pos.unifyy(1014)); //确定

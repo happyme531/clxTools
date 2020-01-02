@@ -4,7 +4,7 @@ tasks.push(require('./src/modules/钱庄.js'));
 tasks.push(require('./src/modules/每日buff.js'));
 tasks.push(require('./src/modules/豪杰.js'));
 tasks.push(require('./src/modules/门派任务.js'));
-tasks.push(require('./src/modules/论剑.js'));
+//tasks.push(require('./src/modules/论剑.js'));
 
 
 function runSingleStep() {
@@ -19,12 +19,18 @@ function runSingleStep() {
     }).on("item_select", (index, item, dialog) => {
         task = index;
     }).on("negative", () => {
-        toast("你取消了选择，脚本将会退出..");
+        toast("你取消了选择，脚本将会退出.."); 
     }).show();
     while(task==-1);
     toast(task);
 
     let stepNames = [];
+
+
+
+
+
+    
     for (i in tasks[task].steps) stepNames.push(tasks[task].steps[i].name);
     let step = -1;
     dialogs.build({
@@ -38,61 +44,21 @@ function runSingleStep() {
         toast("你取消了选择，脚本将会退出..");
     }).show();
     while(step==-1);
+    sleep(5000);
     tasks[task].steps[step].run();
-
-
 };
 
-function runFromStep() {
-    let taskNames = [];
-    for (i in tasks) taskNames.push(tasks[i].name);
-    let task = 0;
-    dialogs.build({
-        title: "选择一个模块..",
-        items: taskNames,
-        itemsSelectMode: "select",
-        negative: "取消",
-    }).on("item_select", (index, item, dialog) => {
-        task = index;
-    }).on("negative", () => {
-        toast("你取消了选择，脚本将会退出..");
-    }).show();
-
-    let stepNames = [];
-    for (i in tasks[task]) stepNames.push(tasks[task].steps[i].name);
-    let step = 0;
-    dialogs.build({
-        title: "选择一个步骤..",
-        items: stepsNames,
-        itemsSelectMode: "select",
-        negative: "取消",
-    }).on("item_select", (index, item, dialog) => {
-        step = index;
-    }).on("negative", () => {
-        toast("你取消了选择，脚本将会退出..");
-    }).show();
-
-    for (let i = task; i < tasks.length; i++) {
-        for (let j = 0; j < tasks[i].steps.length; j++) {
-            if (!tasks[i].steps[j].run()) {
-                toast("脚本出现错误");
-                exit();
-            }
-        };
-    };
-
-
-
-};
 
 
 function runAll() {
+    sleep(5000);
     for (let i = 0; i < tasks.length; i++) {
         for (let j = 0; j < tasks[i].steps.length; j++) {
             if (!tasks[i].steps[j].run()) {
                 toast("脚本出现错误");
                 exit();
-            }
+            };
+            sleep(1000);
         };
     };
 };
