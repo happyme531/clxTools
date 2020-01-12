@@ -11,9 +11,9 @@ task.steps.push(new function () {
     this.run = function () {
 
         click(pos.unifyx(2724), pos.unifyy(404));//"包裹" 按钮
-        sleep(500);
+        sleep(1000);
         click(pos.unifyx(2731), pos.unifyy(855));//"钱庄" 按钮
-        sleep(600);
+        sleep(1000);
         if (screenutil.checkColor(pos.unifyx(1690), pos.unifyy(243), "#ccd5d4")) { //"钱庄"文字背景
             console.info("钱庄:进入gui成功");
             return 1;

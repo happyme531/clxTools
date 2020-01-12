@@ -5,6 +5,8 @@ const confirmBtnPos = [2191,1159];
 
 //所有的密令
 const allKeys = [
+    "故山空复梦松楸",
+    //以下是旧的密令
     "青山面目想依依",
     "剑阁再题词",
     "半夜清香入梦来",
@@ -50,8 +52,7 @@ return 0;
 
 for (var i = 0; i < allKeys.length; i++) {
     if (tryKey(allKeys[i])) {
-        toastLog("破解成功，密令为:" + allKeys[i - 2]);  //脚本速度太快，
-        setClip(allKeys[i-2]);
+        toastLog("破解成功");  //脚本速度太快，
         exit();
     };
 };

@@ -7,6 +7,7 @@ task.steps = [];
 task.steps.push(new function () {
     this.name = "打开GUI";
     this.run = function () {
+        console.info("威名:正在打开GUI..");
         click(pos.unifyx(2873), pos.unifyy(401)); //展开菜单
         sleep(500);
         click(pos.unifyx(2876), pos.unifyy(1148));//命格
@@ -14,8 +15,7 @@ task.steps.push(new function () {
         click(pos.unifyx(2729), pos.unifyy(1038)); //威名
         sleep(800);
         if (!screenutil.checkColor(pos.unifyx(2646), pos.unifyy(1004), "#ccd6d5")) {//威名按钮的背景
-            console.warn("威名:进入GUI失败");
-            return 0;
+            throw new Error("威名:进入GUI失败")
         };
         return 1;
     };
@@ -41,6 +41,7 @@ task.steps.push(new function () {
 task.steps.push(new function () {
     this.name = "退出GUI";
     this.run = function () {
+        console.info("威名:正在退出GUI..");
         click(pos.unifyx(2722), pos.unifyy(34));
         return 1;
     };
