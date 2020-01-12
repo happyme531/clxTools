@@ -210,7 +210,7 @@ try {
     const jsonData = JSON.parse(files.read(musicDir + fileName));
 } catch (err) {
     toast("文件解析失败！请检查格式是否正确");
-    console.error("文件解析失败:" + err);
+    console.error("文件解析失败:" +err+",数据文件可能缺失或不完整！");
 };
 
 //读取音轨列表
