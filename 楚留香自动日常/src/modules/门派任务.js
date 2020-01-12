@@ -7,14 +7,22 @@ task.steps = [];
 task.steps.push(new function () {
     this.name = "寻路到npc";
     this.run = function () {
+        console.info("门派任务：正在打开菜单..");
         click(pos.unifyx(2278), pos.unifyy(68)); //"活动"
+        sleep(700);
+        click(pos.unifyx(318), pos.unifyy(1361));//"江湖"
         sleep(700);
         click(pos.unifyx(574), pos.unifyy(533));//"前往"
         sleep(500);
         click(pos.unifyx(838), pos.unifyy(1009));//"课业::前往"
+        sleep(2000);
+        //完成上述步骤后应该已经返回了主界面。所以..
+        if (!screenutil.isMainScreen()) throw new Error("门派任务:开始寻路失败");
         console.info("门派任务：开始寻路");
         let findingEnd = 0;
+        let totalFindCount = 0;
         while (findingEnd < 8) {//检测右上角叉号,8次
+            totalFindCount++;
             if (screenutil.checkColor(pos.unifyx(2904), pos.unifyy(58), "#fefffd")) {
                 findingEnd++;
                 console.info("门派任务:检测成功,第%d次", findingEnd);
@@ -22,8 +30,10 @@ task.steps.push(new function () {
                 findingEnd = 0;
                 console.info("门派任务:未检测到对话框")
             };
-
             sleep(800);
+            if (totalFindCount > 150) {
+                throw new Error("门派任务:寻路到NPC失败");
+            };
         };
         return 1;
     }
@@ -34,7 +44,7 @@ task.steps.push(new function () {
     this.run = function () {
         click(pos.unifyx(2630), pos.unifyy(913));  //"课业"
         sleep(500);
-        console.info("门派任务:开始选择课业.." )
+        console.info("门派任务:开始选择课业..")
         switch (random(1, 3)) { //选择一个课业
             case 1:
                 click(pos.unifyx(985), pos.unifyy(684));
@@ -55,10 +65,10 @@ task.steps.push(new function () {
 })
 
 task.steps.push(new function () {
-    this.name = "完成任务";
+    this.name = "完成任务1~4";
     this.run = function () {
         let finishTask4 = false;
-        console.info("门派任务:开始完成任务..")
+        console.info("门派任务:开始完成前四个任务..")
         while (!finishTask4) {
             //处理前四个任务
 
@@ -68,19 +78,19 @@ task.steps.push(new function () {
             //但是拜访类任务同样有叉号
             //所以可以先点几次屏幕中央，排除这类问题
 
-            let findingEnd = 0;
+            let findingEnd1 = 0;
             while (1) {//检测右上角叉号,3次(这个叉号位置和一般对话框不一样，有些偏移)
                 sleep(800);
                 if (screenutil.checkColor(pos.unifyx(2900), pos.unifyy(77), "#fefffd")) {
-                    findingEnd++;
+                    findingEnd1++;
                     console.info("门派任务:检测到问题中的叉号,第%d次", findingEnd);
                 } else {
-                    findingEnd = 0;
+                    findingEnd1 = 0;
                     //console.info("门派任务:未检测到叉号" )
                     break;
                 }
 
-                if (findingEnd > 3) {
+                if (findingEnd1 > 3) {
                     for (let i = 0; i < 4; i++) {
                         click(pos.unifyx(1419), pos.unifyy(694));
                         sleep(500);
@@ -90,8 +100,13 @@ task.steps.push(new function () {
                     sleep(500);
                 };
             };
+
+            //快速通过剧情
+            let img=images.captureScreen();
+            if(images.findImage(img,images.read("./src/assets/icon_share.png"))) click(pos.unifyx(1475),pos.unifyy(774));
+            
             //检测是否进入到了第五个任务
-            //其实有个问题，如果第一次不需要换物品，那么检测不到..
+            //其实有个问题，如果第一次需求的物品玩家拥有，那么就检测不到..
             let findingEnd2 = 0;
             while (1) {//检测商品购买界面叉号,3次
                 sleep(800);
@@ -108,10 +123,15 @@ task.steps.push(new function () {
                     finishTask4 = true;
                     break;
                 };
-
             };
-
         };
+        return 1;
+    }
+}
+)
+task.steps.push(new function () {
+    this.name = "完成任务5";
+    this.run = function () {
         console.info("门派任务:开始处理第五个任务");
         //处理第五个任务
         //由于我们有行当，身上是有需要提交的物品的
@@ -140,15 +160,16 @@ task.steps.push(new function () {
         //检测提交按钮
         screenutil.waitUntilColorMatch(pos.unifyx(2482), pos.unifyy(825), "#bbc6c6");
         click(pos.unifyx(2481), pos.unifyy(822));
-        sleep(500);
+        sleep(1000);
         //辛苦了::确定
         click(pos.unifyx(1992), pos.unifyy(1019));
-        sleep(500);
+        sleep(1000);
         //在这之后关闭任务界面
         click(pos.unifyx(2523), pos.unifyy(140));
         return 1;
+
     }
-}
-)
+
+})
 
 module.exports = task;
