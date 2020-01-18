@@ -4,6 +4,7 @@ tasks.push(require('./src/modules/钱庄.js'));
 tasks.push(require('./src/modules/每日buff.js'));
 tasks.push(require('./src/modules/豪杰.js'));
 tasks.push(require('./src/modules/门派任务.js'));
+tasks.push(require('./src/modules/帮派任务.js'));
 //tasks.push(require('./src/modules/论剑.js'));
 
 
