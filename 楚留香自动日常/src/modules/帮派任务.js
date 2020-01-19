@@ -29,40 +29,43 @@ task.steps.push(new function () {
 task.steps.push(new function () {
     this.name = "完成任务";
     this.run = function () {
-        console.info("帮派任务:开始完成任务")
+        let finished=0;
+        while (!finished) {
+            console.info("帮派任务:开始完成任务")
 
-        //快速通过剧情
-        let img = images.captureScreen();
-        if (images.findImage(img, images.read("./src/assets/icon_share.png"))) click(pos.unifyx(1475), pos.unifyy(774));
-        //检测购买商品
-        let findingEnd = 0;
+            //快速通过剧情
+            let img = images.captureScreen();
+            if (images.findImage(img, images.read("./src/assets/icon_share.png"))) click(pos.unifyx(1475), pos.unifyy(774));
+            //检测购买商品
+            let findingEnd = 0;
 
-        stepFinishing:while (1) {//检测商品购买界面叉号,3次
-            sleep(800);
-            if (screenutil.checkColor(pos.unifyx(2525), pos.unifyy(135), "#fdfffd")) {
-                findingEnd++;
-                console.info("帮派任务:检测到商品购买界面叉号,第%d次", findingEnd);
-            } else {
-                findingEnd = 0;
-                break;
-            }
-            if (findingEnd > 3) {
-                console.info("帮派任务:开始购买商品..");
-                click(pos.unifyx(2019), pos.unifyy(1195));//购买
-                sleep(10000);
-                screenutil.waitUntilColorMatch(pos.unifyx(2482), pos.unifyy(825), "#bbc6c6");//"一键提交"
-                console.info("帮派任务:正在提交");
-                click(pos.unifyx(2481), pos.unifyy(822));
-                sleep(10000);
-                while (1) {
-                    let img = images.captureScreen();
-                    if (images.findImage(img, images.read("./src/assets/icon_share.png"))){
-                    click(pos.unifyx(1475), pos.unifyy(774));  //这个对话框不会自动消失，需要检测并点击
-                    sleep(500);
-                    break stepFinishing;
+             while (!finished) {//检测商品购买界面叉号,3次
+                sleep(800);
+                if (screenutil.checkColor(pos.unifyx(2525), pos.unifyy(135), "#fdfffd")) {
+                    findingEnd++;
+                    console.info("帮派任务:检测到商品购买界面叉号,第%d次", findingEnd);
+                } else {
+                    findingEnd = 0;
+                    break;
+                }
+                if (findingEnd > 3) {
+                    console.info("帮派任务:开始购买商品..");
+                    click(pos.unifyx(2019), pos.unifyy(1195));//购买
+                    sleep(10000);
+                    screenutil.waitUntilColorMatch(pos.unifyx(2482), pos.unifyy(825), "#bbc6c6");//"一键提交"
+                    console.info("帮派任务:正在提交");
+                    click(pos.unifyx(2481), pos.unifyy(822));
+                    sleep(10000);
+                    while (!finished) {
+                        let img = images.captureScreen();
+                        if (images.findImage(img, images.read("./src/assets/icon_share.png"))) {
+                            click(pos.unifyx(1475), pos.unifyy(774));  //这个对话框不会自动消失，需要检测并点击
+                            sleep(500);
+                            finished=1;
+                        };
                     };
-                };
 
+                };
             };
         };
         return 1;
@@ -70,15 +73,4 @@ task.steps.push(new function () {
 }
 )
 
-task.steps.push(new function() {
-    this.name ="离开帮派场景";
-    //没做好！！！请手动退出！！
-    this.run = function() {
-    click(pos.unifyx(2852),pos.unifyy(151)); //地图
-    sleep(600);
-    click(pos.unifyx(1678), pos.unifyy(1363));//前往江南 
-    sleep(600);
-    }
-
-})
 module.exports = task;
