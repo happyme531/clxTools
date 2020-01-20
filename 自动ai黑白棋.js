@@ -346,6 +346,7 @@ function gameUtil() {
     const startPos = [1714, 261];//左上角格子的中心
     //const startPos = [1756, 277];
     const gap = 156; //两个棋子中心的距离
+    this.gameMode=0; //游戏模式:0为玩家对战，1为灵犀对战
     this.readBoard = function() {
         let arr =  new Array();                
         for (var  i = 0; i < 8; i++) {                    
@@ -366,10 +367,10 @@ function gameUtil() {
         for (var i = 0; i < 8; i++) {
             for (let j = 0; j < 8; j++) {
                 col = img.pixel(startPos[0] + j * gap, startPos[1] + i * gap);
-                if (colors.isSimilar(col, "#333438", 10, "rgb+")) { //黑色
+                if (colors.isSimilar(col, "#333438", 9, "rgb+")) { //黑色
                     arr[i][j] = playerCol ? 2 : 1;
 
-                } else if (colors.isSimilar(col, "#d8e0e2", 11, "rgb")) { //白色
+                } else if (colors.isSimilar(col, "#d8e0e2", 10, "rgb")) { //白色
                     arr[i][j] = playerCol ? 1 : 2;
 
                 } else {
@@ -388,7 +389,12 @@ function gameUtil() {
     };
     this.isMyTurn = function() {
         let img = images.captureScreen();
-        let col = images.pixel(img, 2158, 186); //"己"下面的一个点,只有己方回合才是白色
+        let col=0;
+        if(this.gameMode){
+            col=images.pixel(img,2188,186); //(灵犀对战)
+        }else{
+        col = images.pixel(img, 2158, 186); //"己"下面的一个点,只有己方回合才是白色(玩家对战)
+        };
         if (colors.isSimilar(col, "#fffeffff", 4)) {
             return 1;
         };
@@ -400,12 +406,13 @@ function main() {
     console.show();
     let game = new gameUtil();
     let ai = new AI.Pattern();
+    game.gameMode=dialogs.singleChoice("游戏模式",["玩家对战","灵犀对战"]);
    while (1) {
        if (game.isMyTurn()) {
            console.log("读取棋盘..");
             ai.load(game.readBoard());
             console.log("开始计算..");
-            let step = ai.computer(2, 2);
+            let step =game.gameMode? ai.computer(3, 3):ai.computer(2,2);
             console.log("点击位置:"+step);
             game.place(step[0] - 1, step[1] - 1);
         }else{
