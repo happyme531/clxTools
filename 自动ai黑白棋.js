@@ -341,6 +341,24 @@ new function() {
     //WScript.echo(new pattern().move(5,6).search(-Infinity,Infinity,2));
 }()
 
+/*
+*@brief 检测一个点周围多个颜色是否都符合要求
+*@param img 图片对象,centerX/Y 中心点坐标
+*@param gridSize 需要检测的点成一个方形网格，这个方形每条边上的点数,gridWidth 每条边上相邻两点距离
+*@param targetColor 目标颜色, threshold 最多可容忍的差异
+*/
+function checkAreaColorSimilar(img, centerX, centerY, gridSize, gridWidth, targetColor, threshold) {
+    let matchSuccess = true;
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+             let col = img.pixel(centerX - ((gridSize - 1) / 2) * gridWidth + i * gridWidth,centerY - ((gridSize - 1) / 2) * gridWidth + j * gridWidth);
+            if (!colors.isSimilar(col, targetColor, threshold, "rgb+")) matchSuccess = false;
+           //console.log("color at %d,%d is %d,match %d",centerX - ((gridSize - 1) / 2) * gridWidth + i * gridWidth,centerY - ((gridSize - 1) / 2) * gridWidth + j * gridWidth,col,matchSuccess);
+        };
+    };
+    return matchSuccess;
+};
+
 
 function gameUtil() {
     const startPos = [1714, 261];//左上角格子的中心
@@ -367,17 +385,12 @@ function gameUtil() {
         for (var i = 0; i < 8; i++) {
             for (let j = 0; j < 8; j++) {
                 col = img.pixel(startPos[0] + j * gap, startPos[1] + i * gap);
-                if (colors.isSimilar(col, "#333438", 9, "rgb+")) { //黑色
+                if (checkAreaColorSimilar(img,startPos[0] + j * gap,startPos[1] + i * gap,7,4,"#333438",12)){  //匹配黑色,如果匹配不到请减小第二个5
                     arr[i][j] = playerCol ? 2 : 1;
 
-                } else if (colors.isSimilar(col, "#d8e0e2", 10, "rgb")) { //白色
+                }else if(checkAreaColorSimilar(img,startPos[0] + j * gap,startPos[1] + i * gap,7,4,"#d8e0e2",12)) {//匹配白色
                     arr[i][j] = playerCol ? 1 : 2;
-
-                } else {
-                    // arr[i][j] = 0; //空白
                 };
-                //log(colors.toString(col));
-                // sleep(300);
             };
         };
         log("棋盘:\n%j",arr);
@@ -424,6 +437,6 @@ function main() {
 };
 
 
-sleep(2000);
+//sleep(2000);
 requestScreenCapture();
 main();

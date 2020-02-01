@@ -2,7 +2,7 @@
 function screenOff() {
     importClass(android.graphics.Bitmap);
     importClass(android.graphics.Matrix);
-    
+
 
 }
 //繁体转换为简体
@@ -72,7 +72,7 @@ let cmp = (x, y) => {
 function setConfigSafe(key, val) {
     config.put(key, val);
     let tmp = config.get(key);
-    if (cmp(tmp,val)) {
+    if (cmp(tmp, val)) {
         toast("设置保存成功");
     } else {
         toast("设置保存失败！");
@@ -81,7 +81,7 @@ function setConfigSafe(key, val) {
 
 //用户设置
 function runSetup() {
-    switch (dialogs.singleChoice("请选择一个设置，所有设置都会自动保存", ["查看当前设置", "更改消息模板", "更改停止次数", "调整发送速度", "调整点击位置", "恢复默认设置", "发送完成后操作", "查看获取坐标方法"])) {
+    switch (dialogs.singleChoice("请选择一个设置，所有设置都会自动保存", ["查看当前设置", "更改消息模板", "更改停止次数", "调整发送速度", "调整点击位置", "切换自动重试", "恢复默认设置", "发送完成后操作", "查看获取坐标方法"])) {
         case 0: //查看当前设置
             dialogs.alert("暂时还没做好");
             break;
@@ -97,13 +97,16 @@ function runSetup() {
         case 4://调整点击位置
             setConfigSafe("clickPos", dialogs.input("按\"[[点击输入文字的方框正中间的x坐标,点击输入文字的方框正中间的y坐标],[发送按钮正中间的x坐标,发送按钮正中间的y坐标]]\"这个格式输入坐标，例如: [[1618,1173],[2197,1170]]", "[[0,0],[0,0]]"));
             break;
-        case 5://恢复默认设置
+        case 5: //切换自动重试
+            setConfigSafe("autoRetry", dialogs.confirm("", "是否在找不到输入框时不断尝试点击?"));
+            break;
+        case 6://恢复默认设置
             dialogs.alert("以后再完善这个功能");
             break;
-        case 6://发送完成后操作
+        case 7://发送完成后操作
             setConfigSafe("endingInstruction", dialogs.singleChoice("选择发送完成后的操作..", ["无操作", "关闭屏幕(需要root)"]));
             break;
-        case 7://查看获取坐标方法
+        case 8://查看获取坐标方法
             app.openUrl("https://jingyan.baidu.com/article/154b4631186be928ca8f412a.html")
             break;
     };
@@ -111,7 +114,7 @@ function runSetup() {
 
 //获取一句诗词
 function getPoem(logEnable) {
-    let files_ = files.listDir("./gushi_json/",function(name){ return name.endsWith(".json") && files.isFile(files.join("./gushi_json/", name)); });
+    let files_ = files.listDir("./gushi_json/", function (name) { return name.endsWith(".json") && files.isFile(files.join("./gushi_json/", name)); });
     let targetFileName = files_[Math.floor(Math.random() * files_.length)];
     let pstr = files.read("./gushi_json/" + targetFileName);
     let pjson = JSON.parse(pstr);
@@ -127,14 +130,15 @@ function getPoem(logEnable) {
 
 //发送消息给对方
 function sendMessage(msg, timeOut) {
-    click(clickPos[0][0], clickPos[0][1]);
-    sleep(200);
     let textBox;
-    if ((textBox = className("android.widget.EditText").findOne(timeOut)) != null) {
-        textBox.setText(msg);
-    } else {
-        return 0;
-    }
+    click(clickPos[0][0], clickPos[0][1]);
+    sleep(200); 
+    while ((textBox = className("android.widget.EditText").findOne(timeOut)) == null && autoRetryEnabled){
+        console.info("找不到对话框，10秒后重试..")
+        click(clickPos[0][0], clickPos[0][1]);
+        sleep(10000);
+    };
+    textBox.setText(msg);
     className("android.widget.Button").text("确定").findOne().click();
     sleep(400);
     click(clickPos[1][0], clickPos[1][1]);
@@ -218,6 +222,8 @@ if (screenOffEnabled) {
     var sh = new Shell(true);
 };
 
+var autoRetryEnabled = config.get("autoRetry", false);
+
 var msg_ = config.get("msgTemplate", "请修改消息模板");
 var maxCount = config.get("maxCount", 60);
 var clickPos = config.get("clickPos", 0);
@@ -228,7 +234,7 @@ if (clickPos === 0) {
 };
 
 dialogs.alert("", "现在，打开游戏，点击输入框，如果遇到一些异常情况可以按音量上键结束脚本");
-
+if (autoRetryEnabled) sleep(10000);
 startSending();
 
 if (screenOffEnabled) {
