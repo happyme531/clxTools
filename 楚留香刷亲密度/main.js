@@ -132,11 +132,12 @@ function getPoem(logEnable) {
 function sendMessage(msg, timeOut) {
     let textBox;
     click(clickPos[0][0], clickPos[0][1]);
-    sleep(200); 
-    while ((textBox = className("android.widget.EditText").findOne(timeOut)) == null && autoRetryEnabled){
+    sleep(400);
+    while ((textBox = className("android.widget.EditText").findOne(timeOut)) == null && autoRetryEnabled) {
         console.info("找不到对话框，10秒后重试..")
-        click(clickPos[0][0], clickPos[0][1]);
         sleep(10000);
+        click(clickPos[0][0], clickPos[0][1]);
+        sleep(200);
     };
     textBox.setText(msg);
     className("android.widget.Button").text("确定").findOne().click();
@@ -166,7 +167,7 @@ function startSending() {
         if (msg.indexOf("$n")) {
             msg = msg.replace("$n", i)
         };
-        if (sendMessage(msg, 0)) i++;
+        if (sendMessage(msg, autoRetryEnabled ? 500 : 0)) i++;
 
         sleep(sendDelay);
     };
