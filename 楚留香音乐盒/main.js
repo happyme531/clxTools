@@ -271,6 +271,11 @@ if (device.width == 1080 && device.height == 1920) {
     var clickx_pos = [348, 506, 665, 824, 982, 1141, 1300];
     var clicky_pos = [637, 547, 454];
     var longclick_pos = [175, 240];
+} else if (device.width == 1080 && device.height == 2248) {
+    //2188x1080(也很奇怪)
+    var clickx_pos = [507, 746, 983, 1220, 1458, 1696, 1934];
+    var clicky_pos = [956, 818, 681];
+    var longclick_pos = [388, 420];
 } else {
     console.warn("不支持此分辨率，尝试兼容设置...");
     setScreenMetrics(1920, 1080);
