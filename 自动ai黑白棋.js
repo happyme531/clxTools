@@ -385,10 +385,10 @@ function gameUtil() {
         for (var i = 0; i < 8; i++) {
             for (let j = 0; j < 8; j++) {
                 col = img.pixel(startPos[0] + j * gap, startPos[1] + i * gap);
-                if (checkAreaColorSimilar(img,startPos[0] + j * gap,startPos[1] + i * gap,7,4,"#333438",12)){  //匹配黑色,如果匹配不到请减小第二个5
+                if (checkAreaColorSimilar(img,startPos[0] + j * gap,startPos[1] + i * gap,7,4,"#333438",13)){  //匹配黑色,如果匹配不到请减小第二个5
                     arr[i][j] = playerCol ? 2 : 1;
 
-                }else if(checkAreaColorSimilar(img,startPos[0] + j * gap,startPos[1] + i * gap,7,4,"#d8e0e2",12)) {//匹配白色
+                }else if(checkAreaColorSimilar(img,startPos[0] + j * gap,startPos[1] + i * gap,7,4,"#d8e0e2",11)) {//匹配白色
                     arr[i][j] = playerCol ? 1 : 2;
                 };
             };
