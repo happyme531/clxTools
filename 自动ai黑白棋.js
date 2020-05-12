@@ -341,11 +341,30 @@ new function() {
     //WScript.echo(new pattern().move(5,6).search(-Infinity,Infinity,2));
 }()
 
+/*
+*@brief 检测一个点周围多个颜色是否都符合要求
+*@param img 图片对象,centerX/Y 中心点坐标
+*@param gridSize 需要检测的点成一个方形网格，这个方形每条边上的点数,gridWidth 每条边上相邻两点距离
+*@param targetColor 目标颜色, threshold 最多可容忍的差异
+*/
+function checkAreaColorSimilar(img, centerX, centerY, gridSize, gridWidth, targetColor, threshold) {
+    let matchSuccess = true;
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+             let col = img.pixel(centerX - ((gridSize - 1) / 2) * gridWidth + i * gridWidth,centerY - ((gridSize - 1) / 2) * gridWidth + j * gridWidth);
+            if (!colors.isSimilar(col, targetColor, threshold, "rgb+")) matchSuccess = false;
+           //console.log("color at %d,%d is %d,match %d",centerX - ((gridSize - 1) / 2) * gridWidth + i * gridWidth,centerY - ((gridSize - 1) / 2) * gridWidth + j * gridWidth,col,matchSuccess);
+        };
+    };
+    return matchSuccess;
+};
+
 
 function gameUtil() {
     const startPos = [1714, 261];//左上角格子的中心
     //const startPos = [1756, 277];
     const gap = 156; //两个棋子中心的距离
+    this.gameMode=0; //游戏模式:0为玩家对战，1为灵犀对战
     this.readBoard = function() {
         let arr =  new Array();                
         for (var  i = 0; i < 8; i++) {                    
@@ -366,17 +385,12 @@ function gameUtil() {
         for (var i = 0; i < 8; i++) {
             for (let j = 0; j < 8; j++) {
                 col = img.pixel(startPos[0] + j * gap, startPos[1] + i * gap);
-                if (colors.isSimilar(col, "#333438", 10, "rgb+")) { //黑色
+                if (checkAreaColorSimilar(img,startPos[0] + j * gap,startPos[1] + i * gap,7,4,"#333438",13)){  //匹配黑色,如果匹配不到请减小第二个5
                     arr[i][j] = playerCol ? 2 : 1;
 
-                } else if (colors.isSimilar(col, "#d8e0e2", 11, "rgb")) { //白色
+                }else if(checkAreaColorSimilar(img,startPos[0] + j * gap,startPos[1] + i * gap,7,4,"#d8e0e2",11)) {//匹配白色
                     arr[i][j] = playerCol ? 1 : 2;
-
-                } else {
-                    // arr[i][j] = 0; //空白
                 };
-                //log(colors.toString(col));
-                // sleep(300);
             };
         };
         log("棋盘:\n%j",arr);
@@ -388,7 +402,12 @@ function gameUtil() {
     };
     this.isMyTurn = function() {
         let img = images.captureScreen();
-        let col = images.pixel(img, 2158, 186); //"己"下面的一个点,只有己方回合才是白色
+        let col=0;
+        if(this.gameMode){
+            col=images.pixel(img,2188,186); //(灵犀对战)
+        }else{
+        col = images.pixel(img, 2158, 186); //"己"下面的一个点,只有己方回合才是白色(玩家对战)
+        };
         if (colors.isSimilar(col, "#fffeffff", 4)) {
             return 1;
         };
@@ -400,12 +419,13 @@ function main() {
     console.show();
     let game = new gameUtil();
     let ai = new AI.Pattern();
+    game.gameMode=dialogs.singleChoice("游戏模式",["玩家对战","灵犀对战"]);
    while (1) {
        if (game.isMyTurn()) {
            console.log("读取棋盘..");
             ai.load(game.readBoard());
             console.log("开始计算..");
-            let step = ai.computer(2, 2);
+            let step =game.gameMode? ai.computer(3, 3):ai.computer(2,2);
             console.log("点击位置:"+step);
             game.place(step[0] - 1, step[1] - 1);
         }else{
@@ -417,6 +437,6 @@ function main() {
 };
 
 
-sleep(2000);
+//sleep(2000);
 requestScreenCapture();
 main();

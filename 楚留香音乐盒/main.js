@@ -1,6 +1,6 @@
 var globalConfig = storages.create("hallo1_clxmidiplayer_config");
 const musicDir = "/sdcard/楚留香音乐盒数据目录/"
-const scriptVersion = 8;
+const scriptVersion = 9;
 
 
 function getJsonLength(json) {
@@ -48,13 +48,14 @@ function name2pitch(name) {
     m = minorPitchOffset;
     for (let i in toneNames) {
         if (name.charAt(0) === toneNames[i]) {
-
             pitch += parseInt(i) + 1 + minorPitchOffset;
             break;
         };
     };
+    if (treatHalfAsCeiling){
+        if (name.charAt(1)==="#") pitch++;
+    };
     if (pitch > 21 || pitch < 1) return 0;
-
     return pitch;
 };
 
@@ -79,9 +80,9 @@ function setGlobalConfig(key, val) {
     }
 
 };
+
 function readGlobalConfig(key, defaultValue) {
     return globalConfig.get(key, defaultValue);
-
 };
 function setFileConfig(key, val, filename) {
 
@@ -119,15 +120,17 @@ function readFileConfig(key, filename) {
 function runFileSetup(fileList) {
     let fileName = dialogs.singleChoice("选择一首乐曲..", fileList);
     fileName = fileList[fileName];
-    switch (dialogs.singleChoice("请选择一个设置，所有设置都会自动保存", ["调整音高"])) {
+    switch (dialogs.singleChoice("请选择一个设置，所有设置都会自动保存", ["调整音高", "半音处理方式"])) {
         case 0:
-
             setFileConfig("majorPitchOffset", dialogs.singleChoice("调整音高1", ["降低一个八度", "默认", "升高一个八度"], readFileConfig("majorPitchOffset", fileName) + 1) - 1, fileName);
             setFileConfig("minorPitchOffset", dialogs.singleChoice("调整音高2", ["降低2个音阶", "降低1个音阶", "默认", "升高1个音阶", "升高2个音阶"], readFileConfig("minorPitchOffset", fileName) + 2) - 2, fileName);
             break;
+        case 1:
+            setFileConfig("halfCeiling", dialogs.singleChoice("楚留香的乐器无法弹奏半音，所以对于半音..", ["降低", "升高"], readFileConfig("halfCeiling", fileName)), fileName);
 
     };
 };
+
 function runGlobalSetup() {
     switch (dialogs.singleChoice("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "检测进入游戏"])) {
         case 0:
@@ -210,7 +213,7 @@ try {
     const jsonData = JSON.parse(files.read(musicDir + fileName));
 } catch (err) {
     toast("文件解析失败！请检查格式是否正确");
-    console.error("文件解析失败:" +err+",数据文件可能缺失或不完整！");
+    console.error("文件解析失败:" + err + ",数据文件可能缺失或不完整！");
 };
 
 //读取音轨列表
@@ -226,6 +229,7 @@ for (let i in jsonData.tracks) {
 
 const majorPitchOffset = readFileConfig("majorPitchOffset", fileName);
 const minorPitchOffset = readFileConfig("minorPitchOffset", fileName);
+const treatHalfAsCeiling = readFileConfig("halfCeiling",fileName);
 const track = dialogs.singleChoice("选择一个音轨..", tracks);
 console.assert(track != -1, "错误:请选择一个选项");
 
@@ -267,6 +271,11 @@ if (device.width == 1080 && device.height == 1920) {
     var clickx_pos = [348, 506, 665, 824, 982, 1141, 1300];
     var clicky_pos = [637, 547, 454];
     var longclick_pos = [175, 240];
+} else if (device.width == 1080 && device.height == 2248) {
+    //2188x1080(也很奇怪)
+    var clickx_pos = [507, 746, 983, 1220, 1458, 1696, 1934];
+    var clicky_pos = [956, 818, 681];
+    var longclick_pos = [388, 420];
 } else {
     console.warn("不支持此分辨率，尝试兼容设置...");
     setScreenMetrics(1920, 1080);
@@ -286,7 +295,7 @@ var i = 0
 const noteCount = getJsonLength(jsonData.tracks[track].notes);
 var delaytime0, delaytime1;
 
-if (!readGlobalConfig("skipInit",1)) sleep(jsonData.tracks[track].notes[0].time * 1000);
+if (!readGlobalConfig("skipInit", 1)) sleep(jsonData.tracks[track].notes[0].time * 1000);
 
 while (i < noteCount) {
     var tone = name2pitch(jsonData.tracks[track].notes[i].name);
@@ -332,7 +341,7 @@ while (i < noteCount) {
         if (gestureList.length != 0) {
             gestures.apply(null, gestureList);
         };
-        sleep(delaytime * 1000 -20);
+        sleep(delaytime * 1000 - 20);
         noteList = [];
         gestureList = [];
     };

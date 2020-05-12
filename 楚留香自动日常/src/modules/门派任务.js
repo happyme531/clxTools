@@ -83,7 +83,7 @@ task.steps.push(new function () {
                 sleep(800);
                 if (screenutil.checkColor(pos.unifyx(2900), pos.unifyy(77), "#fefffd")) {
                     findingEnd1++;
-                    console.info("门派任务:检测到问题中的叉号,第%d次", findingEnd);
+                    console.info("门派任务:检测到问题中的叉号,第%d次", findingEnd1);
                 } else {
                     findingEnd1 = 0;
                     //console.info("门派任务:未检测到叉号" )
