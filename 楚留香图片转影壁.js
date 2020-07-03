@@ -1,6 +1,6 @@
 //使用auto.js 4.0.1 beta版本 编写&运行
 
-//输入图片的路径(需要提前缩放到..180x97(在我的手机上))
+//在下面输入图片的路径(需要提前缩放到合适大小)
 const img = images.read("/sdcard/test3.jpg");
 
 console.info("请在开始运行之前，切换到画板的\"画刷\"页面，并且调整滑块到最细的一端稍往上一点的位置！");
@@ -8,7 +8,7 @@ console.info("请在开始运行之前，切换到画板的\"画刷\"页面，�
 //////一些预置的分辨率
 
 if (device.height == 3120 && device.width == 1440) {
-    //3120x1440(eg.LG G7)
+    //3120x1440(eg.LG G7)(图片尺寸为180×97)
     var pixelWidth = 16;
     var printAreaBegin = [1304, 345];
     var printAreaEnd = [2760, 1138];
@@ -16,31 +16,68 @@ if (device.height == 3120 && device.width == 1440) {
     var colorSelecterY = [430, 595, 765, 930, 1090, 720, 880, 1050];
 
 } else if (device.height == 1920 && device.width == 1080) {
-    //1920x1080(eg.小米5s)   
+    //1920x1080(eg.小米5s)(图片尺寸为175×97)   
     var pixelWidth = 12;
-    var printAreaBegin = [769, 258];
+    var printAreaBegin = [769, 257];
     var printAreaEnd = [1831, 853];
     var colorSelecterX = 620;
     var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
 
 } else if (device.height == 2160 && device.width == 1080) {
-    //2160x1080(来自酷安网友)
+    //2160x1080(来自酷安网友)(图片尺寸为174×97)
     var pixelWidth = 12;
-    var printAreaBegin = [890, 258];
+    var printAreaBegin = [890, 257];
     var printAreaEnd = [1951, 853];
     var colorSelecterX = 735;
     var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
 } else if (device.height == 2340 && device.width == 1080) {
-    //2340x1080(eg.红米k20pro)
+    //2340x1080(eg.红米k20pro)(图片尺寸为174×97)
     var pixelWidth = 12;
-    var printAreaBegin = [980, 258];
+    var printAreaBegin = [980, 257];
     var printAreaEnd = [2040, 853];
     var colorSelecterX = 825;
     var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
-} else {
+} else if (device.height == 2280 && device.width == 1080) {
+    //2280x1080(图片尺寸为175×97)
+    var pixelWidth = 12;
+    var printAreaBegin = [948, 257];
+    var printAreaEnd = [2011, 854];
+    var colorSelecterX = 799;
+    var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
+} else if (device.height == 2400 && device.width == 1080) {
+    //2400x1080(图片尺寸为175×97)
+    var pixelWidth = 12;
+    var printAreaBegin = [1007, 257];
+    var printAreaEnd = [2070, 854];
+    var colorSelecterX = 860;
+    var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
+} else if (device.height == 2312 && device.width == 1080) {
+    //2312x1080(图片尺寸为175×97)
+    var pixelWidth = 12;
+    var printAreaBegin = [965, 257];
+    var printAreaEnd = [2027, 854];
+    var colorSelecterX = 770;
+    var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
+} else if (device.height == 1520 && device.width == 720) {
+    //1520x720(图片尺寸为139×77)
+    var pixelWidth = 10;
+    var printAreaBegin = [660, 170];
+    var printAreaEnd = [1368, 569];
+    var colorSelecterX = 560;
+    var colorSelecterY = [215, 305, 380, 465, 540, 360, 440, 525];
+} else if (device.height == 2220 && device.width == 1080) {
+    //2220x1080(图片尺寸为175×97)
+    var pixelWidth = 12;
+    var printAreaBegin = [918, 257];
+    var printAreaEnd = [1981, 854];
+    var colorSelecterX = 768;
+    var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
+}else {
     //暂时没适配的分辨率，你可以自己更改这个脚本
     toast("暂不支持此分辨率！");
     //toast("你也可以打开脚本自行适配");
+    
+    //请在修改结束后删掉这个 'exit();'
     exit();
     var pixelWidth = 16; //用比最小笔刷宽度大一点点的宽度点一个点，这个点的直径
     var printAreaBegin = new Array(1350, 343); //绘图区左上角坐标
