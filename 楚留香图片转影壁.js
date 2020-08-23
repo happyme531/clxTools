@@ -1,7 +1,7 @@
 //使用auto.js 4.0.1 beta版本 编写&运行
 
 //在下面输入图片的路径(需要提前缩放到合适大小)
-const img = images.read("/sdcard/test3.jpg");
+const img = images.read("/sdcard/test9.png");
 
 console.info("请在开始运行之前，切换到画板的\"画刷\"页面，并且调整滑块到最细的一端稍往上一点的位置！");
 
@@ -72,11 +72,11 @@ if (device.height == 3120 && device.width == 1440) {
     var printAreaEnd = [1981, 854];
     var colorSelecterX = 768;
     var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
-}else {
+} else {
     //暂时没适配的分辨率，你可以自己更改这个脚本
     toast("暂不支持此分辨率！");
     //toast("你也可以打开脚本自行适配");
-    
+
     //请在修改结束后删掉这个 'exit();'
     exit();
     var pixelWidth = 16; //用比最小笔刷宽度大一点点的宽度点一个点，这个点的直径
@@ -90,8 +90,26 @@ const pixelGap = pixelWidth / 2;
 const maxWidth = (printAreaEnd[0] - printAreaBegin[0] - pixelWidth) / pixelGap;
 const maxHeight = (printAreaEnd[1] - printAreaBegin[1] - pixelWidth) / pixelGap;
 
-const colorTable = new Array("#FFFDFFFF", "#FFE7B81A", "#FF1BE6E4", "#FFE71A62", "#FFB51AE6", "#FF1BE675", "#FF010000", "#FF3700A7"); //画板里仅有的几个颜色(差评)
+//const colorTable = new Array("#FFFDFFFF", "#FFE7B81A", "#FF1BE6E4", "#FFE71A62", "#FFB51AE6", "#FF1BE675", "#FF010000", "#FF3700A7"); //画板里仅有的几个颜色(差评)
+var colorTable = new Array();
 //const hsvColorTable = [[180, 1, 1], [46, 0.89, 0.91], [179, 0.88, 0.90], [339, 0.89, 0.91], [286, 0.89, 0.90], [147, 0.88, 0.90], [0, 1, 0], [260, 1, 0.65]];
+function buildColorTable() {
+    requestScreenCapture();
+    let img = images.captureScreen();
+    for (let i = 0; i < 5; i++) {
+        colorTable.push(img.pixel(colorSelecterX, colorSelecterY[i]));
+    };
+    swipe(colorSelecterX, colorSelecterY[4], colorSelecterX, 0, 600);
+    sleep(600);
+    img = images.captureScreen();
+    for (let i = 5; i < colorSelecterY.length; i++) {
+        colorTable.push(img.pixel(colorSelecterX, colorSelecterY[i]));
+    };
+    sleep(600);
+    swipe(colorSelecterX, colorSelecterY[0], colorSelecterX, device.width, 600); //滑到第一页
+    //toast((JSON.stringify(colorTable)));
+};
+
 function findNearestColor(col, prevCol, prevColId) { //根据图片颜色确定最接近的笔刷颜色(实际上因为可选颜色太少，效果差劲)
     if (Math.abs(colors.red(col) - colors.red(prevCol)) * 0.297 + Math.abs(colors.green(col) - colors.green(prevCol)) * 0.593 + Math.abs(colors.blue(col) - colors.blue(prevCol)) * 0.11 < 2) {
         return prevColId;
@@ -131,20 +149,20 @@ function findNearestColor(col, prevCol, prevColId) { //根据图片颜色确定�
     let V = Math.max(R, G, B);
     let S = (V == 0 ? 0 : (maxc - minc) / (maxc));
     */
-    function compareRGB(r1,g1,b1,r2,g2,b2){
-        let rmean=(r1+r2)/2;
-        let dr=r1-r2;
-        let dg=g1-g2;
-        let db=b1-b2;
+    function compareRGB(r1, g1, b1, r2, g2, b2) {
+        let rmean = (r1 + r2) / 2;
+        let dr = r1 - r2;
+        let dg = g1 - g2;
+        let db = b1 - b2;
         //lab deltaE颜色相似度
-        return ((2+rmean/256)*(dr*dr)+4*(dg*dg)+(2+(255-rmean)/256)*(db*db));
-   
-    }; 
+        return ((2 + rmean / 256) * (dr * dr) + 4 * (dg * dg) + (2 + (255 - rmean) / 256) * (db * db));
+
+    };
     let diff0 = +Infinity;
     let out = 0;
     for (let i = 0; i < colorTable.length; i++) {
         //let diff = compareHSV(H, S, V, hsvColorTable[i][0], hsvColorTable[i][1], hsvColorTable[i][2]);
-        let diff=compareRGB(colors.red(col),colors.green(col),colors.blue(col),colors.red(colorTable[i]),colors.green(colorTable[i]),colors.blue(colorTable[i]))
+        let diff = compareRGB(colors.red(col), colors.green(col), colors.blue(col), colors.red(colorTable[i]), colors.green(colorTable[i]), colors.blue(colorTable[i]))
         if (diff < diff0) {
             diff0 = diff;
             out = i;
@@ -188,7 +206,8 @@ if (pixelCountY > maxHeight) {
 
 var prevColId = 0;
 var prevCol = "#FFFFFFFF";
-
+buildColorTable();
+sleep(600);
 for (var i = 1; i <= pixelCountX; i++) {
     for (var j = 1; j <= pixelCountY; j++) {
         let searchx = (i - 1);
@@ -199,7 +218,7 @@ for (var i = 1; i <= pixelCountX; i++) {
         //if(colId==0)continue;//跳过白色
         if (colId != prevColId) {
             var needSwipe = 0;
-            if ((colId <= 4 && colId >= 0 && prevColId <= 4 && prevColId >= 0) || (colId <= 7 && colId >= 5 && prevColId <= 7 && prevColId >= 5)) { } else { //两个颜色不在同一页
+            if ((colId <= 4 && colId >= 0 && prevColId <= 4 && prevColId >= 0) || (colId <= 7 && colId >= 5 && prevColId <= 7 && prevColId >= 5)) {} else { //两个颜色不在同一页
                 needSwipe = 1;
             };
             prevColId = colId;
