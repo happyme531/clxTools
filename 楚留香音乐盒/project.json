@@ -1,9 +1,9 @@
 {
   "assets": [],
   "build": {
-    "build_id": "0D535033-12",
-    "build_number": 12,
-    "build_time": 1580973415132
+    "build_id": "B2F60220-14",
+    "build_number": 14,
+    "build_time": 1582374879140
   },
   "useFeatures": [],
   "icon": "res/logo.png",
@@ -11,6 +11,6 @@
   "name": "楚留香音乐盒",
   "packageName": "dev.happyme531.clxmidiplayer",
   "scripts": {},
-  "versionCode": 9,
-  "versionName": "0.0.9"
+  "versionCode": 10,
+  "versionName": "0.1.0"
 }
