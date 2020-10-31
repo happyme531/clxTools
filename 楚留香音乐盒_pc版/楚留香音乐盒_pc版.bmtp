@@ -1,0 +1,164 @@
+[MIDI.routes]
+In0=Bome Virtual Port 1
+Out0=Microsoft GS Wavetable Synth
+
+[Preset.0]
+Name=default
+Active=1
+Comments=
+PresetSwitchIgnore=0
+Name0=-1
+Incoming0=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x30"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing0=KAM10100KSQ1000205A25A
+Options0=Actv01Stop00OutO01
+Name1=#-1
+Incoming1=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x31"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing1=KAM10100KSQ1000205A25A
+Options1=Actv01Stop00OutO01
+Name2=-2
+Incoming2=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x32"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing2=KAM10100KSQ10002058258
+Options2=Actv01Stop00OutO01
+Name3=b-3
+Incoming3=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x33"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing3=KAM10100KSQ10002043243
+Options3=Actv01Stop00OutO01
+Name4=-3
+Incoming4=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x34"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing4=KAM10100KSQ10002043243
+Options4=Actv01Stop00OutO01
+Name5=-4
+Incoming5=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x35"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing5=KAM10100KSQ10002056256
+Options5=Actv01Stop00OutO01
+Name6=#-4
+Incoming6=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x36"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing6=KAM10100KSQ10002056256
+Options6=Actv01Stop00OutO01
+Name7=-5
+Incoming7=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x37"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing7=KAM10100KSQ10002042242
+Options7=Actv01Stop00OutO01
+Name8=#-5
+Incoming8=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x38"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing8=KAM10100KSQ10002042242
+Options8=Actv01Stop00OutO01
+Name9=-6
+Incoming9=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x39"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing9=KAM10100KSQ1000204E24E
+Options9=Actv01Stop00OutO01
+Name10=#-6
+Incoming10=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3A"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing10=KAM10100KSQ1000204E24E
+Options10=Actv01Stop00OutO01
+Name11=-7
+Incoming11=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3B"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing11=KAM10100KSQ1000204D24D
+Options11=Actv01Stop00OutO01
+Name12=1
+Incoming12=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3C"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing12=KAM10100KSQ10002041241
+Options12=Actv01Stop00OutO01
+Name13=#1
+Incoming13=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3D"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing13=KAM10100KSQ10002041241
+Options13=Actv01Stop00OutO01
+Name14=2
+Incoming14=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3E"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing14=KAM10100KSQ10002053253
+Options14=Actv01Stop00OutO01
+Name15=#2
+Incoming15=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3F"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing15=KAM10100KSQ10002053253
+Options15=Actv01Stop00OutO01
+Name16=3
+Incoming16=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x40"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing16=KAM10100KSQ10002044244
+Options16=Actv01Stop00OutO01
+Name17=4
+Incoming17=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x41"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing17=KAM10100KSQ10002046246
+Options17=Actv01Stop00OutO01
+Name18=#4
+Incoming18=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x42"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing18=KAM10100KSQ10002046246
+Options18=Actv01Stop00OutO01
+Name19=5
+Incoming19=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x43"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing19=KAM10100KSQ10002047247
+Options19=Actv01Stop00OutO01
+Name20=#5
+Incoming20=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x44"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing20=KAM10100KSQ10002047247
+Options20=Actv01Stop00OutO01
+Name21=6
+Incoming21=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x45"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing21=KAM10100KSQ10002048248
+Options21=Actv01Stop00OutO01
+Name22=#6
+Incoming22=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x46"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing22=KAM10100KSQ10002048248
+Options22=Actv01Stop00OutO01
+Name23=7
+Incoming23=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x47"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing23=KAM10100KSQ1000204A24A
+Options23=Actv01Stop00OutO01
+Name24=+1
+Incoming24=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x48"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing24=KAM10100KSQ10002051251
+Options24=Actv01Stop00OutO01
+Name25=#+1
+Incoming25=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x49"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing25=KAM10100KSQ10002051251
+Options25=Actv01Stop00OutO01
+Name26=+2
+Incoming26=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4A"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing26=KAM10100KSQ10002057257
+Options26=Actv01Stop00OutO01
+Name27=#+2
+Incoming27=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4B"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing27=KAM10100KSQ10002057257
+Options27=Actv01Stop00OutO01
+Name28=+3
+Incoming28=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4C"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing28=KAM10100KSQ10002045245
+Options28=Actv01Stop00OutO01
+Name29=+4
+Incoming29=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4D"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing29=KAM10100KSQ10002052252
+Options29=Actv01Stop00OutO01
+Name30=#+4
+Incoming30=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4E"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing30=KAM10100KSQ10002052252
+Options30=Actv01Stop00OutO01
+Name31=+5
+Incoming31=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4F"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing31=KAM10100KSQ10002054254
+Options31=Actv01Stop00OutO01
+Name32=#+5
+Incoming32=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x50"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing32=KAM10100KSQ10002054254
+Options32=Actv01Stop00OutO01
+Name33=+6
+Incoming33=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x51"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing33=KAM10100KSQ10002059259
+Options33=Actv01Stop00OutO01
+Name34=#+6
+Incoming34=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x52"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing34=KAM10100KSQ10002059259
+Options34=Actv01Stop00OutO01
+Name35=+7
+Incoming35=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x53"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Outgoing35=KAM10100KSQ10002055255
+Options35=Actv01Stop00OutO01
+
+[Project]
+Version=2
+Author=hallo1
+AuthorContact=2302004040@qq.com
+Comments=
+AuthorWWW=
+AuthorCopyright=
+DefaultInPorts=MIDA00010013Bome Virtual Port 1
+DefaultOutPorts=MIDA0001001CMicrosoft GS Wavetable Synth
+
