@@ -1,91 +1,260 @@
 //使用auto.js 4.0.1 beta版本 编写&运行
+var config = storages.create("hallo1_clximgplotter_config");
 
-//在下面输入图片的路径(需要提前缩放到合适大小)
-const img = images.read("/sdcard/test9.png");
+function getPosInteractive(promptText) {
+    let confirmed = false;
+    //提示和确认按钮的框
+    let confirmWindow = floaty.rawWindow(
+        <frame gravity="left|top">
+            <vertical bg="#7fffff7f">
+                <text id="promptText" text="" textSize="14sp" />
+                {/* <button id= "up" style="Widget.AppCompat.Button.Colored" text="↑"/>
+            <button id= "down" style="Widget.AppCompat.Button.Colored" text="↓"/>
+            <button id= "left" style="Widget.AppCompat.Button.Colored" text="←"/>
+            <button id= "right" style="Widget.AppCompat.Button.Colored" text="→"/> */}
+                <button id="confirmBtn" style="Widget.AppCompat.Button.Colored" text="确定" />
+            </vertical>
+        </frame>
+    );
+    confirmWindow.setTouchable(true);
+    ui.run(function(){
+        confirmWindow.promptText.setText("请将另一个悬浮窗口左上端移到" + promptText + "，之后点击确认来获取坐标");
+        confirmWindow.confirmBtn.click(()=>{
+            confirmed = true;
+        });
+    });
+
+    //只有一个箭头的框，用来获取坐标
+    let selectorWindow = floaty.window(
+        <frame gravity="left|top">
+            <img src="data:image/jpg;base64,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"/>
+        </frame>);
+        selectorWindow.setAdjustEnabled(true);
+        while(!confirmed) sleep(50);
+        confirmWindow.close();
+        selectorWindow.close();
+        return {
+            "x": selectorWindow.getX(),
+            "y": selectorWindow.getY()
+        };
+}
+
+let cmp = (x, y) => {
+    // If both x and y are null or undefined and exactly the same
+    if (x === y) {
+        return true;
+    }
+
+    // If they are not strictly equal, they both need to be Objects
+    if (!(x instanceof Object) || !(y instanceof Object)) {
+        return false;
+    }
+
+    //They must have the exact same prototype chain,the closest we can do is
+    //test the constructor.
+    if (x.constructor !== y.constructor) {
+        return false;
+    }
+    for (var p in x) {
+        //Inherited properties were tested using x.constructor === y.constructor
+        if (x.hasOwnProperty(p)) {
+            // Allows comparing x[ p ] and y[ p ] when set to undefined
+            if (!y.hasOwnProperty(p)) {
+                return false;
+            }
+            // If they have the same strict value or identity then they are equal
+            if (x[p] === y[p]) {
+                continue;
+            }
+            // Numbers, Strings, Functions, Booleans must be strictly equal
+            if (typeof(x[p]) !== "object") {
+                return false;
+            }
+            // Objects and Arrays must be tested recursively
+            if (!Object.equals(x[p], y[p])) {
+                return false;
+            }
+        }
+    }
+
+    for (p in y) {
+        // allows x[ p ] to be set to undefined
+        if (y.hasOwnProperty(p) && !x.hasOwnProperty(p)) {
+            return false;
+        }
+    }
+    return true;
+};
+
+function setConfigSafe(key, val) {
+    config.put(key, val);
+    let tmp = config.get(key);
+    if (cmp(tmp, val)) {
+        toast("设置保存成功");
+    } else {
+        toast("设置保存失败！");
+    };
+};
+
+//用户设置
+function runSetup() {
+    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["查看当前设置", "更改默认图片路径","使用自定义坐标","设置自定义坐标"])) {
+        case 0: //查看当前设置
+            dialogs.alert("暂时还没做好");
+            break;
+        case 1: //更改默认图片路径
+            setConfigSafe("defaultImgPath", dialogs.rawInput("选择默认的图片路径", "/sdcard/test.jpg"));
+            break;
+        case 2:
+            if(dialogs.confirm("","总是使用自定义坐标吗")){
+                setConfigSafe("alwaysUseCustomPos", false);
+            } else {
+                if (config.get("colorSelecterX", 0) === 0) {    //无效的配置
+                    dialogs.alert("", "你还没有设置自定义坐标!");
+                } else {
+                    setConfigSafe("alwaysUseCustomPos", true);
+                }
+            }
+            break;
+        case 3: //设置自定义坐标
+            let colorSelecterX = 0;
+            let colorSelecterY = [];
+            let pos = getPosInteractive("颜色选择器中从上往下第一个颜色的按钮中心");
+            colorSelecterX = pos.x;
+            colorSelecterY.push(pos.y);
+            pos = getPosInteractive("从上往下第二个颜色的按钮中心");
+            colorSelecterY.push(pos.y);
+            pos = getPosInteractive("从上往下第三个颜色的按钮中心");
+            colorSelecterY.push(pos.y); 
+            pos = getPosInteractive("从上往下第四个颜色的按钮中心");
+            colorSelecterY.push(pos.y);
+            dialogs.alert("","现在把颜色选择器翻到最下方！");
+            pos = getPosInteractive("从上往下第五个颜色的按钮中心");
+            colorSelecterY.push(pos.y);
+            pos = getPosInteractive("从上往下第六个颜色的按钮中心");
+            colorSelecterY.push(pos.y);
+            pos = getPosInteractive("从上往下第七个颜色的按钮中心");
+            colorSelecterY.push(pos.y);
+            pos = getPosInteractive("画布左上角");
+            let printAreaBegin = [pos.x,pos.y];
+            pos = getPosInteractive("画布右下角");
+            let printAreaEnd = [pos.x,pos.y];
+            let pixelWidth = 12;
+            setConfigSafe("colorSelecterX",colorSelecterX);
+            setConfigSafe("colorSelecterY",colorSelecterX);
+            setConfigSafe("printAreaBegin",printAreaBegin);
+            setConfigSafe("printAreaEnd",printAreaEnd);
+            setConfigSafe("pixelWidth",pixelWidth);   
+            dialogs.alert("","设置完成");
+            break;
+        };
+};
+
+
+//主函数
+if (dialogs.select("君欲何为？", ["开始绘画", "更改设置"])) { //进入设置
+    let endSetup = 0;
+    while (!endSetup) {
+        runSetup();
+        endSetup = dialogs.select("继续设置吗？", ["继续设置", "退出，开始绘画"]);
+    };
+};
+let imgPath = dialogs.rawInput("选择图片的路径", config.get("defaultImgPath","/sdcard/test.jpg"));
+const img = images.read(imgPath);
+
+let useCustomPos = config.get("alwaysUseCustomPos", false);
 
 console.info("请在开始运行之前，切换到画板的\"画刷\"页面，并且调整滑块到最细的一端稍往上一点的位置！");
 
 //////一些预置的分辨率
+if(!useCustomPos){
+    if (device.height == 3120 && device.width == 1440) {
+        //3120x1440(eg.LG G7)(图片尺寸为180×97)
+        var pixelWidth = 16;
+        var printAreaBegin = [1304, 345];
+        var printAreaEnd = [2760, 1138];
+        var colorSelecterX = 1150;
+        var colorSelecterY = [430, 595, 765, 930, 1090, 720, 880, 1050];
 
-if (device.height == 3120 && device.width == 1440) {
-    //3120x1440(eg.LG G7)(图片尺寸为180×97)
-    var pixelWidth = 16;
-    var printAreaBegin = [1304, 345];
-    var printAreaEnd = [2760, 1138];
-    var colorSelecterX = 1150;
-    var colorSelecterY = [430, 595, 765, 930, 1090, 720, 880, 1050];
+    } else if (device.height == 1920 && device.width == 1080) {
+        //1920x1080(eg.小米5s)(图片尺寸为175×97)   
+        var pixelWidth = 12;
+        var printAreaBegin = [769, 257];
+        var printAreaEnd = [1831, 853];
+        var colorSelecterX = 620;
+        var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
 
-} else if (device.height == 1920 && device.width == 1080) {
-    //1920x1080(eg.小米5s)(图片尺寸为175×97)   
-    var pixelWidth = 12;
-    var printAreaBegin = [769, 257];
-    var printAreaEnd = [1831, 853];
-    var colorSelecterX = 620;
-    var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
-
-} else if (device.height == 2160 && device.width == 1080) {
-    //2160x1080(来自酷安网友)(图片尺寸为174×97)
-    var pixelWidth = 12;
-    var printAreaBegin = [890, 257];
-    var printAreaEnd = [1951, 853];
-    var colorSelecterX = 735;
-    var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
-} else if (device.height == 2340 && device.width == 1080) {
-    //2340x1080(eg.红米k20pro)(图片尺寸为174×97)
-    var pixelWidth = 12;
-    var printAreaBegin = [980, 257];
-    var printAreaEnd = [2040, 853];
-    var colorSelecterX = 825;
-    var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
-} else if (device.height == 2280 && device.width == 1080) {
-    //2280x1080(图片尺寸为175×97)
-    var pixelWidth = 12;
-    var printAreaBegin = [948, 257];
-    var printAreaEnd = [2011, 854];
-    var colorSelecterX = 799;
-    var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
-} else if (device.height == 2400 && device.width == 1080) {
-    //2400x1080(图片尺寸为175×97)
-    var pixelWidth = 12;
-    var printAreaBegin = [1007, 257];
-    var printAreaEnd = [2070, 854];
-    var colorSelecterX = 860;
-    var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
-} else if (device.height == 2312 && device.width == 1080) {
-    //2312x1080(图片尺寸为175×97)
-    var pixelWidth = 12;
-    var printAreaBegin = [965, 257];
-    var printAreaEnd = [2027, 854];
-    var colorSelecterX = 770;
-    var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
-} else if (device.height == 1520 && device.width == 720) {
-    //1520x720(图片尺寸为139×77)
-    var pixelWidth = 10;
-    var printAreaBegin = [660, 170];
-    var printAreaEnd = [1368, 569];
-    var colorSelecterX = 560;
-    var colorSelecterY = [215, 305, 380, 465, 540, 360, 440, 525];
-} else if (device.height == 2220 && device.width == 1080) {
-    //2220x1080(图片尺寸为175×97)
-    var pixelWidth = 12;
-    var printAreaBegin = [918, 257];
-    var printAreaEnd = [1981, 854];
-    var colorSelecterX = 768;
-    var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
-} else {
-    //暂时没适配的分辨率，你可以自己更改这个脚本
-    toast("暂不支持此分辨率！");
-    //toast("你也可以打开脚本自行适配");
-
-    //请在修改结束后删掉这个 'exit();'
-    exit();
-    var pixelWidth = 16; //用比最小笔刷宽度大一点点的宽度点一个点，这个点的直径
-    var printAreaBegin = new Array(1350, 343); //绘图区左上角坐标
-    var printAreaEnd = new Array(2768, 1138); //绘图区右下角坐标
-    var colorSelecterX = 1150; //选择颜色区的x坐标(正中间)
-    var colorSelecterY = new Array(430, 595, 765, 930, 1090, 720, 880, 1050); //选择颜色区各个颜色对应的y坐标，最后3个需要向下翻页到底再获取
-};
-
+    } else if (device.height == 2160 && device.width == 1080) {
+        //2160x1080(来自酷安网友)(图片尺寸为174×97)
+        var pixelWidth = 12;
+        var printAreaBegin = [890, 257];
+        var printAreaEnd = [1951, 853];
+        var colorSelecterX = 735;
+        var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
+    } else if (device.height == 2340 && device.width == 1080) {
+        //2340x1080(eg.红米k20pro)(图片尺寸为174×97)
+        var pixelWidth = 12;
+        var printAreaBegin = [980, 257];
+        var printAreaEnd = [2040, 853];
+        var colorSelecterX = 825;
+        var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
+    } else if (device.height == 2280 && device.width == 1080) {
+        //2280x1080(图片尺寸为175×97)
+        var pixelWidth = 12;
+        var printAreaBegin = [948, 257];
+        var printAreaEnd = [2011, 854];
+        var colorSelecterX = 799;
+        var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
+    } else if (device.height == 2400 && device.width == 1080) {
+        //2400x1080(图片尺寸为175×97)
+        var pixelWidth = 12;
+        var printAreaBegin = [1007, 257];
+        var printAreaEnd = [2070, 854];
+        var colorSelecterX = 860;
+        var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
+    } else if (device.height == 2312 && device.width == 1080) {
+        //2312x1080(图片尺寸为175×97)
+        var pixelWidth = 12;
+        var printAreaBegin = [965, 257];
+        var printAreaEnd = [2027, 854];
+        var colorSelecterX = 770;
+        var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
+    } else if (device.height == 1520 && device.width == 720) {
+        //1520x720(图片尺寸为139×77)
+        var pixelWidth = 10;
+        var printAreaBegin = [660, 170];
+        var printAreaEnd = [1368, 569];
+        var colorSelecterX = 560;
+        var colorSelecterY = [215, 305, 380, 465, 540, 360, 440, 525];
+    } else if (device.height == 2220 && device.width == 1080) {
+        //2220x1080(图片尺寸为175×97)
+        var pixelWidth = 12;
+        var printAreaBegin = [918, 257];
+        var printAreaEnd = [1981, 854];
+        var colorSelecterX = 768;
+        var colorSelecterY = [320, 450, 570, 690, 806, 534, 660, 787];
+    } else {
+        //暂时没适配的分辨率，你可以自己更改这个脚本
+        dialogs.alert("暂不支持此分辨率", "请在设置中设置你的坐标");
+        setConfigSafe("alwaysUseCustomPos",true);
+        //toast("你也可以打开脚本自行适配");
+        
+        //请在修改结束后删掉这个 'exit();'
+        exit();
+        var pixelWidth = 16; //用比最小笔刷宽度大一点点的宽度点一个点，这个点的直径
+        var printAreaBegin = new Array(1350, 343); //绘图区左上角坐标
+        var printAreaEnd = new Array(2768, 1138); //绘图区右下角坐标
+        var colorSelecterX = 1150; //选择颜色区的x坐标(正中间)
+        var colorSelecterY = new Array(430, 595, 765, 930, 1090, 720, 880, 1050); //选择颜色区各个颜色对应的y坐标，最后3个需要向下翻页到底再获取
+    };
+}else{
+    console.log("正在使用自定义坐标")
+    var pixelWidth = config.get("pixelWidth");
+    var printAreaBegin = config.get("printAreaBegin");
+    var printAreaEnd = config.get("printAreaEnd");
+    var colorSelecterX = config.get("colorSelecterX");
+    var colorSelecterY = config.get("colorSelecterY");
+}
 const pixelGap = pixelWidth / 2;
 const maxWidth = (printAreaEnd[0] - printAreaBegin[0] - pixelWidth) / pixelGap;
 const maxHeight = (printAreaEnd[1] - printAreaBegin[1] - pixelWidth) / pixelGap;
@@ -93,8 +262,12 @@ const maxHeight = (printAreaEnd[1] - printAreaBegin[1] - pixelWidth) / pixelGap;
 //const colorTable = new Array("#FFFDFFFF", "#FFE7B81A", "#FF1BE6E4", "#FFE71A62", "#FFB51AE6", "#FF1BE675", "#FF010000", "#FF3700A7"); //画板里仅有的几个颜色(差评)
 var colorTable = new Array();
 //const hsvColorTable = [[180, 1, 1], [46, 0.89, 0.91], [179, 0.88, 0.90], [339, 0.89, 0.91], [286, 0.89, 0.90], [147, 0.88, 0.90], [0, 1, 0], [260, 1, 0.65]];
+//现在颜色顺序会变化了！所以自动检测顺序
 function buildColorTable() {
-    requestScreenCapture();
+    if(!requestScreenCapture()){
+        dialogs.alert("","脚本需要截图来获取颜色顺序，请允许这项权限！");
+        exit();
+    };
     let img = images.captureScreen();
     for (let i = 0; i < 5; i++) {
         colorTable.push(img.pixel(colorSelecterX, colorSelecterY[i]));
@@ -193,17 +366,24 @@ if (img == null) {
     exit();
 };
 
+let optimalSize = true;
 var pixelCountX = img.getWidth();
 var pixelCountY = img.getHeight();
 if (pixelCountX > maxWidth) {
-    toast("图片宽度过大！最大为" + maxWidth);
+    toast("图片宽度过大！建议的图片最大宽度为" + maxWidth);
+    optimalSize = false
     //exit();
 };
 if (pixelCountY > maxHeight) {
-    toast("图片高度过大！最大为" + maxHeight);
+    toast("图片高度过大！建议的图片最大高度为" + maxHeight);
+    optimalSize = false;
     //exit();
 };
-
+if(!optimalSize){
+    img = images.scale(img, maxWidth/pixelCountX, maxHeight/pixelCountY);
+    img = images.clip(img, 0,0, maxWidth,maxHeight);
+    toast("图片已被缩放来满足比例");
+}
 var prevColId = 0;
 var prevCol = "#FFFFFFFF";
 buildColorTable();
