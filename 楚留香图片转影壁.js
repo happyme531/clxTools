@@ -106,7 +106,7 @@ function runSetup() {
             setConfigSafe("defaultImgPath", dialogs.rawInput("选择默认的图片路径", "/sdcard/test.jpg"));
             break;
         case 2:
-            if(dialogs.confirm("","总是使用自定义坐标吗")){
+            if(!dialogs.confirm("","总是使用自定义坐标吗")){
                 setConfigSafe("alwaysUseCustomPos", false);
             } else {
                 if (config.get("colorSelecterX", 0) === 0) {    //无效的配置
@@ -150,7 +150,9 @@ function runSetup() {
         };
 };
 
-
+// let pos = getPosInteractive("test");
+// console.log(JSON.stringify(pos));
+// exit();
 //主函数
 if (dialogs.select("君欲何为？", ["开始绘画", "更改设置"])) { //进入设置
     let endSetup = 0;
