@@ -251,7 +251,7 @@ function runGlobalSetup() {
                 clicky_pos.push(pos1.y + (pos2.y - pos1.y) * i / 3);    //从下到上(y高->y低)
             }
             setGlobalConfig("customPosX", clickx_pos);
-            setGlobalConfig("customPosY", clickx_pos);
+            setGlobalConfig("customPosY", clicky_pos);
             dialogs.alert("", "设置完成");
             break;
     };
@@ -299,10 +299,10 @@ const fileList = getFileList();
 //解析信息
 
 var index;
-switch (dialogs.singleChoice("选择一项操作..", ["演奏乐曲", "更改全局设置", "更改乐曲设置", "查看使用说明"])) {
+switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更改全局设置", "🛠️更改乐曲设置", "📃查看使用说明"])) {
 
     case 0:
-        index = dialogs.singleChoice("选择一首乐曲..", fileList);
+        index = dialogs.select("选择一首乐曲..", fileList);
         break;
     case 1:
         runGlobalSetup();
@@ -333,9 +333,12 @@ try {
 
 //读取音轨列表
 var tracks = new Array();
+var noteCounts = new Array();
 for (let i in jsonData.tracks) {
     let noteCount = getJsonLength(jsonData.tracks[i].notes);
-    if(noteCount == 0) continue;
+    noteCounts.push(noteCount);
+    // if(noteCount == 0) continue;
+    
     if (jsonData.tracks[i].name != "") {
         tracks.push(i + ":" + jsonData.tracks[i].name + ":" + noteCount + "个音符");
     } else {
@@ -346,8 +349,47 @@ for (let i in jsonData.tracks) {
 const majorPitchOffset = readFileConfig("majorPitchOffset", fileName);
 const minorPitchOffset = readFileConfig("minorPitchOffset", fileName);
 const treatHalfAsCeiling = readFileConfig("halfCeiling",fileName);
-const track = dialogs.singleChoice("选择你想播放的音轨(可以多选)..", tracks);
-console.assert(track != -1, "错误:请选择一个选项");
+const selectedTracks = dialogs.multiChoice("选择你想播放的音轨(可以多选)..", tracks);
+console.assert(!cmp(tracks,[]), "错误:请选择一个选项");
+
+//处理音符数据
+var noteData = [];  //[按键，时间]
+
+var tracksIdx = new Array(selectedTracks.length);
+for (let i = 0; i < selectedTracks.length; i++) {
+    tracksIdx[i] = 0;
+}
+
+let curTime = 0;
+
+while (true) {
+    let minNextTime = 999999999;
+    let minNextTimeTrack = 0;   //下一个音符所在的音轨
+    let selectedI = 0;          //下一个音符所在的音轨在所有选中的音轨列表中的位置
+    for (let i = 0; i < selectedTracks.length; i++) { //选出下一个音符
+        curTrack = selectedTracks[i];
+        curNoteIdx = tracksIdx[i];
+        if (curNoteIdx == noteCounts[curTrack]) continue;
+        let curTimeTmp = jsonData.tracks[curTrack].notes[curNoteIdx].time;
+        if (curTimeTmp <= minNextTime) { 
+            minNextTime = curTimeTmp;
+            minNextTimeTrack = curTrack;
+            selectedI = i
+        }
+    }
+    if(minNextTime==999999999) break;
+    // console.log("ffsel track %d, note %d",minNextTimeTrack,tracksIdx[selectedI]);
+    
+
+    let key = name2pitch(jsonData.tracks[minNextTimeTrack].notes[tracksIdx[selectedI]].name);
+    tracksIdx[selectedI]++;
+    if(key != 0){   //丢弃无法弹奏的音符
+        noteData.push([key,minNextTime]);
+    }
+}
+
+console.log("have %d ge note",noteData.length);
+//exit();
 
 //exit();
 
@@ -409,7 +451,7 @@ if (!useCustomPos) {
     console.log("正在使用自定义坐标");
     var clickx_pos = readGlobalConfig("customPosX", 0);
     var clicky_pos = readGlobalConfig("customPosY", 0);
-    console.log(clickx_pos);
+    console.log(clicky_pos);
 }
 
 //media.playMusic("/sdcard/test.mp3", 1);
@@ -418,28 +460,22 @@ if (!useCustomPos) {
 //主循环
 var noteList = new Array();
 var i = 0
-const noteCount = getJsonLength(jsonData.tracks[track].notes);
+const noteCount = noteData.length;
 var delaytime0, delaytime1;
 
-if (!readGlobalConfig("skipInit", 1)) sleep(jsonData.tracks[track].notes[0].time * 1000);
+if (!readGlobalConfig("skipInit", 1)) sleep(noteData[0][1] * 1000);
 
 while (i < noteCount) {
-    var tone = name2pitch(jsonData.tracks[track].notes[i].name);
-
-    if (tone == 0) {
-        i++;
-        continue;
-    };
-    delaytime0 = jsonData.tracks[track].notes[i].time; //这个音符的时间，单位:秒
+    delaytime0 = noteData[i][1]; //这个音符的时间，单位:秒
     if (i != (noteCount - 1)) {
-        delaytime1 = jsonData.tracks[track].notes[i + 1].time;
+        delaytime1 = noteData[i+1][1];
     } else {
         delaytime1 = delaytime0 + 0.1;
     };
     if (Math.abs(delaytime0 - delaytime1) < 0.01) { //如果两个音符时间相等，把这个音和后面的一起加入数组
-        noteList[noteList.length] = tone;
+        noteList.push(noteData[i][0]);
     } else {
-        noteList[noteList.length] = tone;
+        noteList.push(noteData[i][0]);
         let delaytime = delaytime1 - delaytime0;
         //console.log(noteList);
         var gestureList = new Array();

@@ -141,7 +141,7 @@ function runSetup() {
             let printAreaEnd = [pos.x,pos.y];
             let pixelWidth = 12;
             setConfigSafe("colorSelecterX",colorSelecterX);
-            setConfigSafe("colorSelecterY",colorSelecterX);
+            setConfigSafe("colorSelecterY",colorSelecterY);
             setConfigSafe("printAreaBegin",printAreaBegin);
             setConfigSafe("printAreaEnd",printAreaEnd);
             setConfigSafe("pixelWidth",pixelWidth);   
