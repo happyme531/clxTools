@@ -57,7 +57,7 @@ function getFileList() {
     let titles = new Array(totalFiles.length);
     //log(totalFiles);
     for (let file in totalFiles) {
-        log(musicDir + totalFiles[file]);
+        //log(musicDir + totalFiles[file]);
         //读取json文件速度太慢
 
         //let tmp = files.read(musicDir + totalFiles[file]);
@@ -104,9 +104,11 @@ function initFileConfig(filepath) {
     cfg.majorPitchOffset = 0;
     cfg.minorPitchOffset = 0;
     files.write(filepath, JSON.stringify(cfg));
-
 };
 
+function sec2timeStr(timeSec){
+    return (Math.floor(timeSec/60)).toString() + ":" + (Math.floor(timeSec%60)).toString();
+}
 
 let cmp = (x, y) => {
     // If both x and y are null or undefined and exactly the same
@@ -248,7 +250,7 @@ function runGlobalSetup() {
                 clickx_pos.push(pos1.x + (pos2.x - pos1.x) * i / 6);
             }
             for (let i = 2; i >= 0; i--) {
-                clicky_pos.push(pos1.y + (pos2.y - pos1.y) * i / 3);    //从下到上(y高->y低)
+                clicky_pos.push(pos1.y + (pos2.y - pos1.y) * i / 2);    //从下到上(y高->y低)
             }
             setGlobalConfig("customPosX", clickx_pos);
             setGlobalConfig("customPosY", clicky_pos);
@@ -388,7 +390,7 @@ while (true) {
     }
 }
 
-console.log("have %d ge note",noteData.length);
+console.log("音符总数:%d",noteData.length);
 //exit();
 
 //exit();
@@ -457,6 +459,11 @@ if (!useCustomPos) {
 //media.playMusic("/sdcard/test.mp3", 1);
 //sleep(200);
 
+
+
+
+
+
 //主循环
 var noteList = new Array();
 var i = 0
@@ -465,6 +472,74 @@ var delaytime0, delaytime1;
 
 if (!readGlobalConfig("skipInit", 1)) sleep(noteData[0][1] * 1000);
 
+//显示悬浮窗
+let controlWindow = floaty.rawWindow(
+    <frame gravity="left">
+        <horizontal bg="#7fffff7f">
+            <text id="timerText" text="00:00/00:00" textSize="14sp"  />
+            <seekbar id="progressBar" layout_gravity="center_vertical" w='900px' />、
+            <button id="pauseResumeBtn" style="Widget.AppCompat.Button.Colored" w="180px" text="⏸" />
+            <button id="stopBtn" style="Widget.AppCompat.Button.Colored" w="180px" text="⏹" />
+        </horizontal>
+    </frame>
+);
+
+controlWindow.setTouchable(true);  
+
+let paused = false;
+//用来更新悬浮窗的线程
+threads.start(function(){
+    let progress = 0;
+    let progressChanged = false;
+    ui.run(function () {
+        controlWindow.progressBar.setOnSeekBarChangeListener({ 
+            onProgressChanged: function (seekBar, progress0, fromUser) {  
+                if (fromUser) {
+                    progress = progress0;
+                    progressChanged = true;
+                };
+            }
+        });
+        controlWindow.pauseResumeBtn.click(() => {
+            if (paused) {
+                paused = false; //只需要设置变量即可，主线程会自动处理
+                controlWindow.pauseResumeBtn.setText("⏸");
+            } else {
+                paused = true;
+                controlWindow.pauseResumeBtn.setText("▶️");
+            }
+        });
+        controlWindow.stopBtn.click(()=>{
+            exit();
+        })
+    });
+    let totalTimeSec = noteData[noteData.length -1][1];
+    let totalTimeStr = sec2timeStr(totalTimeSec);
+
+    while (true) {
+        //如果进度条被拖动，更新播放进度
+        if(progressChanged){
+            progressChanged = false;
+            let targetTimeSec = totalTimeSec * progress / 100;
+            for (let j = 0; j < noteData.length; j++) {
+                if (noteData[j][1] > targetTimeSec) {
+                    i = j - 1;
+                    break;
+                }
+            }
+        }
+        //计算时间
+        let curTimeSec = noteData[i][1];
+        let curTimeStr = sec2timeStr(curTimeSec);
+        let timeStr = curTimeStr + "/" + totalTimeStr;
+        //更新窗口
+        ui.run(()=>{
+            controlWindow.progressBar.setProgress(curTimeSec/totalTimeSec * 100);
+            controlWindow.timerText.setText(timeStr); 
+        })
+        sleep(500);
+    }
+})
 while (i < noteCount) {
     delaytime0 = noteData[i][1]; //这个音符的时间，单位:秒
     if (i != (noteCount - 1)) {
@@ -488,7 +563,7 @@ while (i < noteCount) {
                 } else {
                     var clickx = tone % 7;
                 };
-                gestureList[gestureList.length] = [0, 20, [clickx_pos[clickx - 1], clicky_pos[clicky - 1]]];
+                gestureList[gestureList.length] = [0, 5, [clickx_pos[clickx - 1], clicky_pos[clicky - 1]]];
             };
         };
         if (delaytime >= 6) {
@@ -503,10 +578,14 @@ while (i < noteCount) {
         if (gestureList.length != 0) {
             gestures.apply(null, gestureList);
         };
-        sleep(delaytime * 1000 - 20);
+        sleep(delaytime * 1000 - 8);
+        while (paused) {
+            sleep(1000);
+        }
         noteList = [];
         gestureList = [];
     };
     i++
 };
 toast("播放结束");
+threads.shutDownAll();
