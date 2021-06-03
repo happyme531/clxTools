@@ -301,7 +301,8 @@ const fileList = getFileList();
 //解析信息
 
 var index;
-switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更改全局设置", "🛠️更改乐曲设置", "📃查看使用说明"])) {
+var exportScore = false;
+switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更改全局设置", "🛠️更改乐曲设置", "🎼乐谱输出", "📃查看使用说明"])) {
 
     case 0:
         index = dialogs.select("选择一首乐曲..", fileList);
@@ -315,6 +316,10 @@ switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更�
         exit();
         break;
     case 3:
+        index = dialogs.select("选择一首乐曲..", fileList);
+        exportScore = true;
+        break;
+    case 4:
         app.viewFile(musicDir + "使用帮助.txt");
         exit();
         break;
@@ -351,8 +356,9 @@ for (let i in jsonData.tracks) {
 const majorPitchOffset = readFileConfig("majorPitchOffset", fileName);
 const minorPitchOffset = readFileConfig("minorPitchOffset", fileName);
 const treatHalfAsCeiling = readFileConfig("halfCeiling",fileName);
+
 const selectedTracks = dialogs.multiChoice("选择你想播放的音轨(可以多选)..", tracks);
-console.assert(!cmp(tracks,[]), "错误:请选择一个选项");
+console.assert(!cmp(selectedTracks,[]), "错误:请选择一个选项");
 
 //处理音符数据
 var noteData = [];  //[按键，时间]
@@ -389,18 +395,81 @@ while (true) {
         noteData.push([key,minNextTime]);
     }
 }
-
+jsonData = null;
 console.log("音符总数:%d",noteData.length);
-//exit();
+
+//////////////////////////乐谱导出功能开始
+if(exportScore){
+    let keySeq = [];
+    let noteList =[];
+    let noteCount = noteData.length;
+    let i = 0;
+    let maxDelayTime = 0;
+    while (i < noteCount) {
+        delaytime0 = noteData[i][1]; //这个音符的时间，单位:秒
+        if (i != (noteCount - 1)) {
+            delaytime1 = noteData[i+1][1];
+        } else {
+            delaytime1 = delaytime0 + 0.1;
+        };
+        if (Math.abs(delaytime0 - delaytime1) < 0.01) { //如果两个音符时间相等，把这个音和后面的一起加入数组
+            noteList.push(noteData[i][0]);
+        } else {
+            noteList.push(noteData[i][0]);
+            let delaytime = (delaytime1 - delaytime0) * 1000;
+            if(delaytime > maxDelayTime) maxDelayTime = delaytime;
+            keySeq.push([noteList,delaytime]);
+            noteList = [];
+            gestureList = [];
+        };
+        i++;
+    };
+    let confirmed = false;
+    let gapTime = 0;
+    while (!confirmed) {
+        gapTime = dialogs.input("输入在你打算把两个音符分到两小段的时候,它们间的时间差(单位:毫秒)", maxDelayTime.toString());
+        if(gapTime < 10) dialogs.alert("","输入无效,请重新输入");
+        let segmentCnt = 1;
+        keySeq.forEach(key => {
+            if(key[1] >= gapTime) segmentCnt++;
+        }); 
+        confirmed = dialogs.confirm("","乐谱将分为" + segmentCnt.toString() + "个小段,是否满意?");
+    }
+
+   
+    let toneStr;
+    switch (dialogs.select("选择导出格式", ["楚留香(键盘)", "原神(键盘)"])) {
+        case 0:
+            toneStr = "ZXCVBNMASDFGHJQWERTYU";
+            break;
+        case 1:
+            toneStr = "ZXCVBNMASDFGHJQWERTYU";
+            break;
+    }
+    //开始转换
+    let outPutStr = "";
+    keySeq.forEach(key => {
+        if(key[0].length > 1){
+            outPutStr += "(";
+            key[0].forEach(element => {
+                outPutStr += toneStr[element-1];
+            });
+            outPutStr += ")";
+        }else{
+            outPutStr += toneStr[key[0][0]-1];
+        }
+        if(key[1] >= gapTime) outPutStr += " ";
+    }); 
+    //导出到文件
+    let path = musicDir + "乐谱导出.txt";
+    files.write(path, outPutStr);
+    dialogs.alert("导出成功","已导出至" + path);
+    exit();
+}
+
+//////////////////////////乐谱导出功能结束
 
 //exit();
-
-dialogs.alert("", "切回游戏，脚本会自动开始(如果不能开始，请关掉检测进入游戏)");
-console.verbose("无障碍服务启动成功");
-if (readGlobalConfig("waitForGame", 1)) waitForPackage("com.netease.wyclx");
-
-toast("即将在5秒钟内开始...");
-sleep(5000);
 
 //注意，这是横屏状态的坐标:左上角(0,0),向右x增，向下y增
 //检测分辨率
@@ -460,9 +529,12 @@ if (!useCustomPos) {
 //sleep(200);
 
 
+dialogs.alert("", "切回游戏，脚本会自动开始(如果不能开始，请关掉检测进入游戏)");
+console.verbose("无障碍服务启动成功");
+if (readGlobalConfig("waitForGame", 1)) waitForPackage("com.netease.wyclx");
 
-
-
+toast("即将在5秒钟内开始...");
+sleep(5000);
 
 //主循环
 var noteList = new Array();
@@ -540,6 +612,7 @@ threads.start(function(){
         sleep(500);
     }
 })
+
 while (i < noteCount) {
     delaytime0 = noteData[i][1]; //这个音符的时间，单位:秒
     if (i != (noteCount - 1)) {
