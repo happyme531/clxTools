@@ -52,7 +52,7 @@ function getJsonLength(json) {
 function getFileList() {
     //遍历synth文件夹中所有文件，获得标题信息
     let totalFiles = files.listDir(musicDir, function (name) {
-        return name.endsWith(".json") && files.isFile(files.join(musicDir, name));
+        return (name.endsWith(".json") || name.endsWith(".mid")) && files.isFile(files.join(musicDir, name));
     });
     let titles = new Array(totalFiles.length);
     //log(totalFiles);
@@ -67,11 +67,15 @@ function getFileList() {
         //} else {
 
         //直接读取文件名
-        titles[file] = totalFiles[file].replace(".json", "");
+        titles[file] = totalFiles[file].replace(".json", "").replace(".mid", "");
+
     };
     return titles;
 };
 
+let majorPitchOffset;
+let minorPitchOffset;
+let treatHalfAsCeiling;
 //将类似"C3"这样的音符名转换为音高
 function name2pitch(name) {
     const toneNames = ["C", "D", "E", "F", "G", "A", "B"];
@@ -96,6 +100,137 @@ function name2pitch(name) {
     if (pitch > 21 || pitch < 1) return 0;
     return pitch;
 };
+//低效率的转换！
+function midiPitch2pitch(midiPitch){
+    function midiToPitchClass(midi){
+        const scaleIndexToNote = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const note = midi % 12;
+        return scaleIndexToNote[note];
+    }
+    function midiToPitch(midi) {
+        const octave = Math.floor(midi / 12) - 1;
+        return midiToPitchClass(midi) + octave.toString();
+    }
+    return name2pitch(midiToPitch(midiPitch));
+}
+
+function parseTonejsJSON(jsonFilePath){
+    let jsonData;
+    try {
+        jsonData = JSON.parse(files.read(jsonFilePath));
+    } catch (err) {
+        toast("文件解析失败！请检查格式是否正确");
+        console.error("文件解析失败:" + err + ",数据文件可能缺失或不完整！");
+    };
+    
+    //读取音轨列表
+    var tracks = new Array();
+    var noteCounts = new Array();
+    for (let i in jsonData.tracks) {
+        let noteCount = getJsonLength(jsonData.tracks[i].notes);
+        noteCounts.push(noteCount);
+        // if(noteCount == 0) continue;
+        
+        if (jsonData.tracks[i].name != "") {
+            tracks.push(i + ":" + jsonData.tracks[i].name + ":" + noteCount + "个音符");
+        } else {
+            tracks.push(i + ":" + "未命名" + ":" + noteCount + "个音符");
+        };
+    };
+    
+     majorPitchOffset = readFileConfig("majorPitchOffset", fileName);
+     minorPitchOffset = readFileConfig("minorPitchOffset", fileName);
+     treatHalfAsCeiling = readFileConfig("halfCeiling",fileName);
+    
+    const selectedTracks = dialogs.multiChoice("选择你想播放的音轨(可以多选)..", tracks);
+    console.assert(!cmp(selectedTracks,[]), "错误:请选择一个选项");
+    
+    //处理音符数据
+    var noteData = [];  //[按键，时间]
+    
+    var tracksIdx = new Array(selectedTracks.length);
+    for (let i = 0; i < selectedTracks.length; i++) {
+        tracksIdx[i] = 0;
+    }
+    
+    let curTime = 0;
+    
+    while (true) {
+        let minNextTime = 999999999;
+        let minNextTimeTrack = 0;   //下一个音符所在的音轨
+        let selectedI = 0;          //下一个音符所在的音轨在所有选中的音轨列表中的位置
+        for (let i = 0; i < selectedTracks.length; i++) { //选出下一个音符
+            curTrack = selectedTracks[i];
+            curNoteIdx = tracksIdx[i];
+            if (curNoteIdx == noteCounts[curTrack]) continue;
+            let curTimeTmp = jsonData.tracks[curTrack].notes[curNoteIdx].time;
+            if (curTimeTmp <= minNextTime) { 
+                minNextTime = curTimeTmp;
+                minNextTimeTrack = curTrack;
+                selectedI = i
+            }
+        }
+        if(minNextTime==999999999) break;
+        // console.log("ffsel track %d, note %d",minNextTimeTrack,tracksIdx[selectedI]);
+        
+    
+        let key = name2pitch(jsonData.tracks[minNextTimeTrack].notes[tracksIdx[selectedI]].name);
+        tracksIdx[selectedI]++;
+        if(key != 0){   //丢弃无法弹奏的音符
+            noteData.push([key,minNextTime]);
+        }
+    }
+    return noteData;
+}
+
+function parseMIDI(midiFilePath){
+    let dexPath = files.cwd() + "/MidiReader.dex"
+    runtime.loadDex(dexPath);
+    
+    importPackage(Packages.midireader);
+
+    let reader = new MidiReader(midiFilePath);
+    let midiFileInfo = reader.getMidiFileInfo();
+    let usperTick = midiFileInfo.getMicrosecondsPerTick() == 0 ? 1000 : midiFileInfo.getMicrosecondsPerTick();
+    console.log(midiFileInfo);
+    // let trackCnt = midiFileInfo.getNumberOfTracks();
+    // let tracks = new Array();
+
+    // for (let i = 0; i < trackCnt; i++) {
+    //     let trackInfo = midiFileInfo.getTrackInfo(i);
+
+    //     if (trackInfo.getTrackName() != "") {
+    //         tracks.push(i + ":" + trackInfo.getTrackName() );
+    //     } else {
+    //         tracks.push(i + ":" + "未命名");
+    //     };
+    // };
+    
+     majorPitchOffset = readFileConfig("majorPitchOffset", fileName);
+     minorPitchOffset = readFileConfig("minorPitchOffset", fileName);
+     treatHalfAsCeiling = readFileConfig("halfCeiling",fileName);
+    
+    // const selectedTracks = dialogs.multiChoice("选择你想播放的音轨(可以多选)..", tracks);
+    // console.assert(!cmp(selectedTracks,[]), "错误:请选择一个选项");
+    var noteData = [];
+    let it = reader.iterator();
+    while (it.hasNext()) {
+        let event = it.next();
+        if (event instanceof Packages.midireader.midievent.NoteMidiEvent) {
+            if (event.getNoteEventType() == Packages.midireader.midievent.NoteMidiEvent.NoteEventType.NOTE_ON) {
+                let key = midiPitch2pitch(event.getNoteNumber());
+                let time = event.getTotalTime() * usperTick/1000/1000;
+                noteData.push([key,time]);
+            }
+        }
+
+        // if(event.getMetaEventType()==MetaEventType.LYRIC){
+        //     console.log(event.getContentAsString())
+        // }
+    };
+    reader.close();
+    return noteData;
+}
 
 function initFileConfig(filepath) {
     console.info("初始化文件:" + filepath);
@@ -326,75 +461,18 @@ switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更�
 };
 
 const totalFiles = files.listDir(musicDir, function (name) {
-    return name.endsWith(".json") && files.isFile(files.join(musicDir, name));
+    return (name.endsWith(".json") || name.endsWith(".mid")) && files.isFile(files.join(musicDir, name));
 });
+
 var fileName = totalFiles[index];
 
-let jsonData;
-try {
-    jsonData = JSON.parse(files.read(musicDir + fileName));
-} catch (err) {
-    toast("文件解析失败！请检查格式是否正确");
-    console.error("文件解析失败:" + err + ",数据文件可能缺失或不完整！");
-};
-
-//读取音轨列表
-var tracks = new Array();
-var noteCounts = new Array();
-for (let i in jsonData.tracks) {
-    let noteCount = getJsonLength(jsonData.tracks[i].notes);
-    noteCounts.push(noteCount);
-    // if(noteCount == 0) continue;
-    
-    if (jsonData.tracks[i].name != "") {
-        tracks.push(i + ":" + jsonData.tracks[i].name + ":" + noteCount + "个音符");
-    } else {
-        tracks.push(i + ":" + "未命名" + ":" + noteCount + "个音符");
-    };
-};
-
-const majorPitchOffset = readFileConfig("majorPitchOffset", fileName);
-const minorPitchOffset = readFileConfig("minorPitchOffset", fileName);
-const treatHalfAsCeiling = readFileConfig("halfCeiling",fileName);
-
-const selectedTracks = dialogs.multiChoice("选择你想播放的音轨(可以多选)..", tracks);
-console.assert(!cmp(selectedTracks,[]), "错误:请选择一个选项");
-
-//处理音符数据
-var noteData = [];  //[按键，时间]
-
-var tracksIdx = new Array(selectedTracks.length);
-for (let i = 0; i < selectedTracks.length; i++) {
-    tracksIdx[i] = 0;
+let noteData;
+if (fileName.endsWith(".json")) {
+    noteData = parseTonejsJSON(musicDir + fileName);
+}else if(fileName.endsWith(".mid")){
+    noteData = parseMIDI(musicDir + fileName);
 }
 
-let curTime = 0;
-
-while (true) {
-    let minNextTime = 999999999;
-    let minNextTimeTrack = 0;   //下一个音符所在的音轨
-    let selectedI = 0;          //下一个音符所在的音轨在所有选中的音轨列表中的位置
-    for (let i = 0; i < selectedTracks.length; i++) { //选出下一个音符
-        curTrack = selectedTracks[i];
-        curNoteIdx = tracksIdx[i];
-        if (curNoteIdx == noteCounts[curTrack]) continue;
-        let curTimeTmp = jsonData.tracks[curTrack].notes[curNoteIdx].time;
-        if (curTimeTmp <= minNextTime) { 
-            minNextTime = curTimeTmp;
-            minNextTimeTrack = curTrack;
-            selectedI = i
-        }
-    }
-    if(minNextTime==999999999) break;
-    // console.log("ffsel track %d, note %d",minNextTimeTrack,tracksIdx[selectedI]);
-    
-
-    let key = name2pitch(jsonData.tracks[minNextTimeTrack].notes[tracksIdx[selectedI]].name);
-    tracksIdx[selectedI]++;
-    if(key != 0){   //丢弃无法弹奏的音符
-        noteData.push([key,minNextTime]);
-    }
-}
 jsonData = null;
 console.log("音符总数:%d",noteData.length);
 
@@ -529,7 +607,7 @@ if (!useCustomPos) {
 //sleep(200);
 
 
-dialogs.alert("", "切回游戏，脚本会自动开始(如果不能开始，请关掉检测进入游戏)");
+dialogs.alert("","音符总数:" + noteData.length + ",切回游戏，脚本会自动开始(如果不能开始，请关掉检测进入游戏)");
 console.verbose("无障碍服务启动成功");
 if (readGlobalConfig("waitForGame", 1)) waitForPackage("com.netease.wyclx");
 
