@@ -85,7 +85,7 @@ function runSetup() {
             dialogs.alert("暂时还没做好");
             break;
         case 1: //更改消息模板
-            setConfigSafe("msgTemplate", dialogs.rawInput("输入你想发送的消息，$n代表当前发送的条数，$t代表当前时间，$p代表一句诗词", "当前是$t,第$n次，给你一句诗词:$p"));
+            setConfigSafe("msgTemplate", dialogs.rawInput("输入你想发送的消息，$n代表当前发送的条数，$t代表当前时间，$p代表一句诗词，$r代表一句自定义内容", "当前是$t,第$n次，给你一句诗词:$p"));
             break;
         case 2: //更改停止次数
             setConfigSafe("maxCount", dialogs.input("输入发送自动停止时的条数，参考数据:刷友好度60，刷侠缘积分100，实际建议比参考数据稍高一点", "65"));
@@ -94,7 +94,7 @@ function runSetup() {
             setConfigSafe("sendDelay", dialogs.input("输入两次发送之间的延迟，单位:毫秒，如果对方在线建议1000，对方不在线建议4700，请按[<快速模式下速度>,<慢速模式下速度>]填写", "[1000,4700]"));
             break;
         case 4: //调整点击位置
-            setConfigSafe("clickPos", dialogs.input("按\"[[点击输入文字的方框正中间的x坐标,点击输入文字的方框正中间的y坐标],[发送按钮正中间的x坐标,发送按钮正中间的y坐标]]\"这个格式输入坐标，例如: [[1618,1173],[2197,1170]]", "[[0,0],[0,0]]"));
+            config.put("clickPos", dialogs.input("按\"[[点击输入文字的方框正中间的x坐标,点击输入文字的方框正中间的y坐标],[发送按钮正中间的x坐标,发送按钮正中间的y坐标]]\"这个格式输入坐标，例如: [[1618,1173],[2197,1170]]", "[[0,0],[0,0]]"));
             break;
         case 5: //切换自动重试
             setConfigSafe("autoRetry", dialogs.confirm("", "是否在找不到输入框时不断尝试点击?"));
@@ -129,6 +129,32 @@ function getPoem(logEnable) {
     return pstr.tran(); //繁体变为简体
 };
 
+function initCustomStr(){
+    let customStrPath = files.cwd() + "/custom.txt";
+    console.log(customStrPath);
+    if(!files.exists(customStrPath)){
+        throw "自定义文本文件不存在!";
+    }
+    let customFile = open(customStrPath);
+    let customStrs = [];
+    try {
+        while (true) {
+            let str = customFile.readline();
+            if (!str.startsWith("//")) {
+                customStrs.push(str);
+            }
+        }
+    } catch (error) {
+
+    }
+    customStrs.sort(()=>Math.random() - 0.5); //洗牌
+
+    function getCustomStr(index) {
+        let i = index % customStrs.length;
+        return customStrs[i];
+    }
+    return getCustomStr;
+}
 
 //发送消息给对方
 function sendMessage(msg, timeOut) {
@@ -141,8 +167,8 @@ function sendMessage(msg, timeOut) {
     };
     sleep(400);
     while ((textBox = className("android.widget.EditText").findOne(timeOut)) == null && autoRetryEnabled) {
-        console.info("找不到对话框，10秒后重试..")
-        sleep(10000);
+        console.info("找不到对话框，5秒后重试..")
+        sleep(5000);
         if (operatingMode == 0) {
             click(clickPos[0][0], clickPos[0][1]);
         } else {
@@ -163,10 +189,11 @@ function sendMessage(msg, timeOut) {
 
 
 function startSending() {
+    let getCustomStr = initCustomStr();
     while (i <= maxCount) {
-
         var msg = msg_;
-        if (msg.indexOf("$t")) { //消息中有时间
+        console.log(msg);
+        if (msg.includes("$t")) { //消息中有时间
 
             var myDate = new Date();
             var timeStr = myDate.toLocaleString();
@@ -174,13 +201,15 @@ function startSending() {
             msg = msg.replace("$t", timeStr);
 
         };
-        if (msg.indexOf("$p")) {
+        if (msg.includes("$p")) {
             msg = msg.replace("$p", getPoem(1))
         };
-
-        if (msg.indexOf("$n")) {
+        if (msg.includes("$n")) {
             msg = msg.replace("$n", i)
         };
+        if(msg.includes("$r")){
+            msg = msg.replace("$r",getCustomStr(i));
+        }
         if (sendMessage(msg, autoRetryEnabled ? 500 : 0)) i++;
         sleep(sendDelay);
     };
@@ -196,7 +225,7 @@ console.info("\
 1.为了点击屏幕和存储配置，本程序需要辅助功能和存储空间权限，这是必须的，剩下的权限拒绝就行\n\
 2.你可以随时按音量上键结束运行\n\
 3.脚本制作:声声慢:心慕流霞 李芒果，也强烈感谢auto.js作者提供的框架\n\
-4.你可能想问这个脚本为什么这么大，其实是因为脚本里打包了大约30万首古诗。(其实也没必要搞这么多，不过我追求完美)\n\
+4.你可能想问这个脚本为什么这么大，其实是因为脚本里打包了大约30万首古诗。(其实也没必要搞这么多...)\n\
 5.如果脚本输出一些文字就没反应了，请允许脚本的悬浮窗权限！！(坑爹的小米手机)\
 ");
 
@@ -206,10 +235,10 @@ if (shell("cat /proc/cmdline 1>/dev/null", true).error) deviceHasRoot = 0;
 
 //确定工作模式
 var operatingMode; //0:非root 1:root
-if (device.sdkInt < 24) {
+if (device.sdkInt < 24) {}
     if (deviceHasRoot) {
         console.log("当前工作模式:root模式");
-        operatingMode = 1;
+        operatingMode = 1;s
     } else {
         console.error("设备安卓版本小于7.0且无root权限，脚本无法运行");
         exit();
@@ -270,5 +299,4 @@ startSending();
 
 if (screenOffEnabled) {
     sh.exec("input keyevent 26");
-
 };
