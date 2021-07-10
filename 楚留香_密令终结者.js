@@ -1,10 +1,19 @@
 //点击输入文字的输入框所在的位置
-const inputBoxPos = [1526, 934];
+const inputBoxPos = [1526, 1051];
 //确认按钮所在位置
-const confirmBtnPos = [1984,931];
+const confirmBtnPos = [1984,1051];
 
 //所有的密令
 const allKeys = [
+    //2021.7.9 入梦来新增
+    "江湖夜雨十年灯",
+    "岁岁常相见",
+    "只缘感君一回顾",
+    "寄我江南春色一枝梅",
+    "一寸相思一寸灰",
+    "聒碎乡心梦不成",
+    "相思似海深",
+    //上一次
     "一春幽梦逐游丝",
     "醉梦醺醺晓未苏",
     "故山空复梦松楸",
@@ -49,9 +58,9 @@ function tryKey(key) {
     };
     className("android.widget.EditText").findOnce().setText(key );
     className("android.widget.Button").text("确定").findOne().click();
-    sleep(400);
+    sleep(600);
     click(confirmBtnPos[0],confirmBtnPos[1]);
-    sleep(50);
+    sleep(20);
 return 0;
 
 
