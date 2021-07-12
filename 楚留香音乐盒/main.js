@@ -577,6 +577,11 @@ if (!useCustomPos) {
         var clickx_pos = [550, 790, 1027, 1266, 1505, 1744, 1980];
         var clicky_pos = [955, 818, 680];
         var longclick_pos = [204, 359];
+    } else if (device.width == 1080 && device.height == 2240) {
+        //
+        var clickx_pos = [502, 738, 982, 1215, 1436, 1693, 1931];
+        var clicky_pos = [955, 818, 680];
+        var longclick_pos = [204, 359];
     } else if (device.width == 720 && device.height == 1520) {
         //1520x720(很奇怪啊)
         var clickx_pos = [348, 506, 665, 824, 982, 1141, 1300];
