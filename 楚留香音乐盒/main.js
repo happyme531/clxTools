@@ -217,7 +217,8 @@ function parseMIDI(midiFilePath){
     while (it.hasNext()) {
         let event = it.next();
         if (event instanceof Packages.midireader.midievent.NoteMidiEvent) {
-            if (event.getNoteEventType() == Packages.midireader.midievent.NoteMidiEvent.NoteEventType.NOTE_ON) {
+            if (event.getNoteEventType() == Packages.midireader.midievent.NoteMidiEvent.NoteEventType.NOTE_ON
+                && event.getVelocity()>1) {
                 let key = midiPitch2pitch(event.getNoteNumber());
                 let time = event.getTotalTime() * usperTick/1000/1000;
                 noteData.push([key,time]);
