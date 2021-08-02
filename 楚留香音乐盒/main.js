@@ -1,4 +1,5 @@
 var globalConfig = storages.create("hallo1_clxmidiplayer_config");
+var preDefinedRes = require("predefinedres.js");
 const musicDir = "/sdcard/楚留香音乐盒数据目录/"
 const scriptVersion = 9;
 
@@ -192,7 +193,7 @@ function parseMIDI(midiFilePath){
     let reader = new MidiReader(midiFilePath);
     let midiFileInfo = reader.getMidiFileInfo();
     let usperTick = midiFileInfo.getMicrosecondsPerTick() == 0 ? 1000 : midiFileInfo.getMicrosecondsPerTick();
-    console.log(midiFileInfo);
+    //console.log(midiFileInfo);
     // let trackCnt = midiFileInfo.getNumberOfTracks();
     // let tracks = new Array();
 
@@ -358,12 +359,26 @@ function runFileSetup(fileList) {
 };
 
 function runGlobalSetup() {
-    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "检测进入游戏","使用自定义坐标","设置自定义坐标"])) {
+    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "设置游戏类型","使用自定义坐标","设置自定义坐标"])) {
         case 0:
             setGlobalConfig("skipInit", dialogs.select("是否跳过乐曲开始前的空白?", ["否", "是"]));
             break;
         case 1:
-            setGlobalConfig("waitForGame", dialogs.select("是否等待进入游戏后再开始弹奏?", ["否", "是"]));
+            let sel = dialogs.select("选择此脚本的目标游戏(此选项只会影响预设的坐标)", ["楚留香(一梦江湖)", "天涯明月刀", "原神", "摩尔庄园"]);
+            switch (sel) {
+                case 0:
+                    setGlobalConfig("gameType", "楚留香");
+                    break;
+                case 1:
+                    setGlobalConfig("gameType", "天涯明月刀");
+                    break;
+                case 2:
+                    setGlobalConfig("gameType", "原神");
+                    break;
+                case 3:
+                    setGlobalConfig("gameType", "摩尔庄园");
+                    break;
+            };
             break;
         case 2:
             if (!dialogs.confirm("", "总是使用自定义坐标吗")) {
@@ -422,7 +437,7 @@ if (readGlobalConfig("lastVersion", 0) != scriptVersion) {
 
 console.info("\
 1.为了点击屏幕，本程序需要辅助功能权限，这是必须的，剩下的权限拒绝就行\n\
-2.使用方法:在游戏中切换到演奏界面，打开这个脚本，之后切回游戏，脚本将会在3秒后开始运行\n\
+2.使用方法:在游戏中切换到演奏界面，打开这个脚本，点击播放按钮即可开始\n\
 3.你可以随时按音量上键结束运行\n\
 4.如果脚本输出一些文字就没反应了，请允许脚本的悬浮窗权限！！(坑爹的小米手机)\n\
 5.脚本制作:声声慢:心慕流霞 李芒果，也强烈感谢auto.js作者提供的框架\n\
@@ -557,55 +572,29 @@ console.info("你的屏幕分辨率是:%dx%d", device.height, device.width);
 let useCustomPos = readGlobalConfig("alwaysUseCustomPos", false);
 if (!useCustomPos) {
     console.log("正在使用内置坐标");
-
-    if (device.width == 1080 && device.height == 1920) {
-        //1920x1080分辨率的参数(现在的大多数手机)
-        var clickx_pos = [340, 580, 819, 1055, 1291, 1531, 1768];
-        var clicky_pos = [956, 816, 680];
-        var longclick_pos = [78, 367];
-    } else if (device.width == 1440 && device.height == 3120) {
-        //3120x1440分辨率的参数(我的lg g7,2k屏)
-        var clickx_pos = [781, 1099, 1418, 1735, 2051, 2369, 2686];
-        var clicky_pos = [1271, 1089, 905];
-        var longclick_pos = [400, 525]; //x,y
-    } else if (device.width == 1080 && device.height == 2160) {
-        //2160x1080带鱼屏的分辨率
-        var clickx_pos = [460, 697, 940, 1176, 1414, 1652, 1862];
-        var clicky_pos = [955, 818, 679];
-        var longclick_pos = [204, 359];
-    } else if (device.width == 1080 && device.height == 2340) {
-        //eg.红米k20 pro
-        var clickx_pos = [550, 790, 1027, 1266, 1505, 1744, 1980];
-        var clicky_pos = [955, 818, 680];
-        var longclick_pos = [204, 359];
-    } else if (device.width == 1080 && device.height == 2240) {
-        //
-        var clickx_pos = [502, 738, 982, 1215, 1436, 1693, 1931];
-        var clicky_pos = [955, 818, 680];
-        var longclick_pos = [204, 359];
-    } else if (device.width == 720 && device.height == 1520) {
-        //1520x720(很奇怪啊)
-        var clickx_pos = [348, 506, 665, 824, 982, 1141, 1300];
-        var clicky_pos = [637, 547, 454];
-        var longclick_pos = [175, 240];
-    } else if (device.width == 1080 && device.height == 2248) {
-        //2188x1080(也很奇怪)
-        var clickx_pos = [507, 746, 983, 1220, 1458, 1696, 1934];
-        var clicky_pos = [956, 818, 681];
-        var longclick_pos = [388, 420];
-    } else if (device.width == 1176 && device.height == 2400) {
-        var clickx_pos = [553, 801, 1055, 1300, 1551, 1800, 2052];
-        var clicky_pos = [997, 857, 715];
-        var longclick_pos = [455, 442];
-    } else {
-        dialogs.alert("暂不支持此分辨率", "请在设置中设置你的坐标");
-        setConfigSafe("alwaysUseCustomPos", true);
+    let screenWidth = device.width;
+    let screenHeight = device.height;
+    let gameType = readGlobalConfig("gameType", "楚留香");
+    let keyPos;
+    let res = new preDefinedRes();
+    try {
+        keyPos = res.getKeyPosition(screenHeight, screenWidth, gameType);
+    }catch (e) {
+        console.error(e);
+        setGlobalConfig("alwaysUseCustomPos", true);
+        dialogs.alert("错误", "没有找到合适的内置坐标，请设置自定义坐标");
         exit();
-    }
+    };
+    var clickx_pos = keyPos.clickx_pos;
+    var clicky_pos = keyPos.clicky_pos;
 } else {
     console.log("正在使用自定义坐标");
     var clickx_pos = readGlobalConfig("customPosX", 0);
     var clicky_pos = readGlobalConfig("customPosY", 0);
+    if(clickx_pos == 0 || clicky_pos == 0){
+        dialogs.alert("错误", "自定义坐标未设置");
+        exit();
+    }
     console.log(clicky_pos);
 }
 
@@ -613,12 +602,9 @@ if (!useCustomPos) {
 //sleep(200);
 
 
-dialogs.alert("","音符总数:" + noteData.length + ",切回游戏，脚本会自动开始(如果不能开始，请关掉检测进入游戏)");
+dialogs.alert("","音符总数:" + noteData.length);
 console.verbose("无障碍服务启动成功");
-if (readGlobalConfig("waitForGame", 1)) waitForPackage("com.netease.wyclx");
 
-toast("即将在5秒钟内开始...");
-sleep(5000);
 
 //主循环
 var noteList = new Array();
@@ -642,7 +628,7 @@ let controlWindow = floaty.rawWindow(
 
 controlWindow.setTouchable(true);  
 
-let paused = false;
+let paused = true;  //手动启动播放
 //用来更新悬浮窗的线程
 threads.start(function(){
     let progress = 0;
@@ -656,6 +642,7 @@ threads.start(function(){
                 };
             }
         });
+        controlWindow.pauseResumeBtn.setText("▶️");
         controlWindow.pauseResumeBtn.click(() => {
             if (paused) {
                 paused = false; //只需要设置变量即可，主线程会自动处理
@@ -696,7 +683,9 @@ threads.start(function(){
         sleep(500);
     }
 })
-
+while (paused) {
+    sleep(500);
+}
 while (i < noteCount) {
     delaytime0 = noteData[i][1]; //这个音符的时间，单位:秒
     if (i != (noteCount - 1)) {
