@@ -161,12 +161,16 @@ if (dialogs.select("君欲何为？", ["开始绘画", "更改设置"])) { //进
         endSetup = dialogs.select("继续设置吗？", ["继续设置", "退出，开始绘画"]);
     };
 };
+
+dialogs.alert("","请在开始运行之前，切换到画板的\"画刷\"页面，并且调整滑块到最细的一端稍往上一点的位置！");
+
 let imgPath = dialogs.rawInput("选择图片的路径", config.get("defaultImgPath","/sdcard/test.jpg"));
 const img = images.read(imgPath);
 
+let algo = dialogs.select("请选择绘图算法", ["算法0:速度很慢，效果较好", "算法1: 速度较快，效果较差"]);
+
 let useCustomPos = config.get("alwaysUseCustomPos", false);
 
-console.info("请在开始运行之前，切换到画板的\"画刷\"页面，并且调整滑块到最细的一端稍往上一点的位置！");
 
 //////一些预置的分辨率
 if(!useCustomPos){
@@ -270,19 +274,31 @@ function buildColorTable() {
         dialogs.alert("","脚本需要截图来获取颜色顺序，请允许这项权限！");
         exit();
     };
+    swipe(colorSelecterX, colorSelecterY[0], colorSelecterX, device.width, 600); //滑到第一页
+    sleep(650);
     let img = images.captureScreen();
     for (let i = 0; i < 5; i++) {
-        colorTable.push(img.pixel(colorSelecterX, colorSelecterY[i]));
+        colorTable.push(img.pixel(colorSelecterX, colorSelecterY[i]));  //获取第一页中的颜色
     };
-    swipe(colorSelecterX, colorSelecterY[4], colorSelecterX, 0, 600);
+    swipe(colorSelecterX, colorSelecterY[4], colorSelecterX, 0, 600); //滑到第二页
     sleep(600);
     img = images.captureScreen();
     for (let i = 5; i < colorSelecterY.length; i++) {
-        colorTable.push(img.pixel(colorSelecterX, colorSelecterY[i]));
+        colorTable.push(img.pixel(colorSelecterX, colorSelecterY[i])); //获取第二页中的颜色
     };
     sleep(600);
     swipe(colorSelecterX, colorSelecterY[0], colorSelecterX, device.width, 600); //滑到第一页
     //toast((JSON.stringify(colorTable)));
+};
+
+function compareRGB(r1, g1, b1, r2, g2, b2) {
+    let rmean = (r1 + r2) / 2;
+    let dr = r1 - r2;
+    let dg = g1 - g2;
+    let db = b1 - b2;
+    //lab deltaE颜色相似度
+    return ((2 + rmean / 256) * (dr * dr) + 4 * (dg * dg) + (2 + (255 - rmean) / 256) * (db * db));
+
 };
 
 function findNearestColor(col, prevCol, prevColId) { //根据图片颜色确定最接近的笔刷颜色(实际上因为可选颜色太少，效果差劲)
@@ -324,15 +340,7 @@ function findNearestColor(col, prevCol, prevColId) { //根据图片颜色确定�
     let V = Math.max(R, G, B);
     let S = (V == 0 ? 0 : (maxc - minc) / (maxc));
     */
-    function compareRGB(r1, g1, b1, r2, g2, b2) {
-        let rmean = (r1 + r2) / 2;
-        let dr = r1 - r2;
-        let dg = g1 - g2;
-        let db = b1 - b2;
-        //lab deltaE颜色相似度
-        return ((2 + rmean / 256) * (dr * dr) + 4 * (dg * dg) + (2 + (255 - rmean) / 256) * (db * db));
-
-    };
+ 
     let diff0 = +Infinity;
     let out = 0;
     for (let i = 0; i < colorTable.length; i++) {
@@ -363,6 +371,85 @@ function switchColor(colId, needSwipe) { //更换当前笔刷颜色
     press(colorSelecterX, colorSelecterY[colId], 20); //点选颜色
 };
 
+/**
+ * Algo0 -  最原始的算法，逐个像素进行绘画，效果尚可，但是需要很长的时间
+ */
+function execAlgo0(){
+    var prevColId = 0;
+    var prevCol = "#FFFFFFFF";
+    buildColorTable();
+    sleep(600);
+    for (var i = 1; i <= pixelCountX; i++) {
+        for (var j = 1; j <= pixelCountY; j++) {
+            let searchx = (i - 1);
+            let searchy = (j - 1);
+    
+            let colId = findNearestColor(img.pixel(searchx, searchy), prevCol, prevColId);
+            prevCol = img.pixel(searchx, searchy);
+            //if(colId==0)continue;//跳过白色
+            if (colId != prevColId) {
+                var needSwipe = 0;
+                if ((colId <= 4 && colId >= 0 && prevColId <= 4 && prevColId >= 0) || (colId <= 7 && colId >= 5 && prevColId <= 7 && prevColId >= 5)) {} else { //两个颜色不在同一页
+                    needSwipe = 1;
+                };
+                prevColId = colId;
+                switchColor(colId, needSwipe);
+            };
+            press(printAreaBegin[0] + i * pixelGap, printAreaBegin[1] + j * pixelGap, 30);
+            //sleep(200);
+    
+    
+        };
+        toast(i + "/" + pixelCountX + "完成");
+    
+    };
+    
+    toast("绘画完成");
+}
+
+/**
+ * Algo1 - 逐个颜色进行绘画，效果稍差，但是速度快
+ */
+function execAlgo1(){
+    buildColorTable();
+    sleep(600);
+    let prevColId = 0;
+    let prevCol = "#FFFFFFFF"
+    // a matrix of the same size as the image, filled with desired color
+    toast("正在计算颜色");
+    let m = new Array(pixelCountX);
+    for (let i = 0; i < pixelCountX; i++) {
+        m[i] = new Array(pixelCountY);
+        for (let j = 0; j < pixelCountY; j++) {
+            m[i][j] = findNearestColor(img.pixel(i, j), prevCol, prevColId);
+            prevCol = img.pixel(i, j);
+            prevColId = m[i][j];
+        }
+    }
+    //for each color in the matrix, draw it on the screen
+    //don't draw the white color
+    for(let colId = 0; colId < colorTable.length; colId++){
+        // if the current color is similar to white, skip it 
+        let curCol = colorTable[colId];
+        let distance = compareRGB(colors.red(curCol), colors.green(curCol), colors.blue(curCol), 255, 255, 255);
+        if(distance < 100){ 
+            continue;
+        }
+
+
+        switchColor(colId, true);   //在这种算法中，滑动带来的时间消耗少，所以默认不滑动
+        for(let i = 0; i < pixelCountX; i++){
+            for(let j = 0; j < pixelCountY; j++){
+                if(m[i][j]==colId){
+                    //楚留香中绘图只支持单点触控，所以这里只能用单点触控。
+                    press(printAreaBegin[0] + i * pixelGap, printAreaBegin[1] + j * pixelGap, 1);
+                }
+            }
+        }
+    }
+    toast("绘画完成");
+}
+
 if (img == null) {
     toast("输入图片错误！请检查图片路径与格式");
     exit();
@@ -386,33 +473,16 @@ if(!optimalSize){
     img = images.clip(img, 0,0, maxWidth,maxHeight);
     toast("图片已被缩放来满足比例");
 }
-var prevColId = 0;
-var prevCol = "#FFFFFFFF";
-buildColorTable();
-sleep(600);
-for (var i = 1; i <= pixelCountX; i++) {
-    for (var j = 1; j <= pixelCountY; j++) {
-        let searchx = (i - 1);
-        let searchy = (j - 1);
 
-        let colId = findNearestColor(img.pixel(searchx, searchy), prevCol, prevColId);
-        prevCol = img.pixel(searchx, searchy);
-        //if(colId==0)continue;//跳过白色
-        if (colId != prevColId) {
-            var needSwipe = 0;
-            if ((colId <= 4 && colId >= 0 && prevColId <= 4 && prevColId >= 0) || (colId <= 7 && colId >= 5 && prevColId <= 7 && prevColId >= 5)) {} else { //两个颜色不在同一页
-                needSwipe = 1;
-            };
-            prevColId = colId;
-            switchColor(colId, needSwipe);
-        };
-        press(printAreaBegin[0] + i * pixelGap, printAreaBegin[1] + j * pixelGap, 30);
-        //sleep(200);
-
-
-    };
-    toast(i + "/" + pixelCountX + "完成");
-
+switch (algo) {
+    case 0:
+        execAlgo0();
+        break;
+    case 1:
+        execAlgo1();
+        break;
+    default:
+        toast("算法错误！请检查算法参数"); //不会执行
+        exit();
+        break;
 };
-
-toast("绘画完成");
