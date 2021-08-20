@@ -235,7 +235,7 @@ if (shell("cat /proc/cmdline 1>/dev/null", true).error) deviceHasRoot = 0;
 
 //确定工作模式
 var operatingMode; //0:非root 1:root
-if (device.sdkInt < 24) {}
+if (device.sdkInt < 24) {
     if (deviceHasRoot) {
         console.log("当前工作模式:root模式");
         operatingMode = 1;s
