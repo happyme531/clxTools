@@ -1,4 +1,4 @@
-//@ts-check
+//@ts-nocheck
 var globalConfig = storages.create("hallo1_clxmidiplayer_config");
 try{
 var preDefinedRes = require("predefinedres.js");
@@ -25,6 +25,7 @@ function getPosInteractive(promptText) {
             </vertical>
         </frame>
     );
+    confirmWindow.setPosition(device.height/3, 0);
     confirmWindow.setTouchable(true);
 
     let fullScreenWindow = floaty.rawWindow(<frame id="fullScreen" bg="#00000000" />);
@@ -33,7 +34,7 @@ function getPosInteractive(promptText) {
     fullScreenWindow.fullScreen.setOnTouchListener(function(v, evt){
         if (evt.getAction() == evt.ACTION_DOWN || evt.getAction() == evt.ACTION_MOVE) {
             gotPos = true;
-            pos = [evt.getRawX().toFixed(0) , evt.getRawY().toFixed(0)];
+            pos = [parseInt(evt.getRawX().toFixed(0)) , parseInt(evt.getRawY().toFixed(0))];
         }    
         if (evt.getAction() == evt.ACTION_UP) {
             fingerReleased = true;
@@ -454,7 +455,7 @@ function runGlobalSetup() {
         case 3: //设置自定义坐标
             let clickx_pos = [];
             let clicky_pos = [];
-            let pos1 = getPosInteractive("最左上角的音符按键中心");
+            let pos1 =  getPosInteractive("最左上角的音符按键中心");
             let pos2 = getPosInteractive("最右下角的音符按键中心");
             //等距分布
             for (let i = 0; i < 7; i++) {
@@ -463,6 +464,7 @@ function runGlobalSetup() {
             for (let i = 2; i >= 0; i--) {
                 clicky_pos.push(pos1.y + (pos2.y - pos1.y) * i / 2);    //从下到上(y高->y低)
             }
+            
             setGlobalConfig("customPosX", clickx_pos);
             setGlobalConfig("customPosY", clicky_pos);
             dialogs.alert("", "设置完成");
@@ -662,7 +664,8 @@ if (!useCustomPos) {
         dialogs.alert("错误", "自定义坐标未设置");
         exit();
     }
-    console.log(clicky_pos);
+    console.log(clickx_pos.toString());
+    console.log(clicky_pos.toString());
 }
 
 //media.playMusic("/sdcard/test.mp3", 1);
@@ -693,7 +696,8 @@ let controlWindow = floaty.rawWindow(
     </frame>
 );
 
-controlWindow.setPosition(1, 0);
+//避免悬浮窗被屏幕边框挡住
+controlWindow.setPosition(device.height/3, 0);
 controlWindow.setTouchable(true);  
 
 let paused = true;  //手动启动播放
