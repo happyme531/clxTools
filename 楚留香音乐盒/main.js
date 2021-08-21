@@ -1,45 +1,82 @@
+//@ts-check
 var globalConfig = storages.create("hallo1_clxmidiplayer_config");
+try{
 var preDefinedRes = require("predefinedres.js");
+}catch(e){
+    toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
+}
+
 const musicDir = "/sdcard/楚留香音乐盒数据目录/"
 const scriptVersion = 9;
 
 
 function getPosInteractive(promptText) {
+    let gotPos = false;
+    let pos = [];
+    let fingerReleased = false;
     let confirmed = false;
     //提示和确认按钮的框
     let confirmWindow = floaty.rawWindow(
         <frame gravity="left|top">
             <vertical bg="#7fffff7f">
                 <text id="promptText" text="" textSize="14sp" />
-                {/* <button id= "up" style="Widget.AppCompat.Button.Colored" text="↑"/>
-            <button id= "down" style="Widget.AppCompat.Button.Colored" text="↓"/>
-            <button id= "left" style="Widget.AppCompat.Button.Colored" text="←"/>
-            <button id= "right" style="Widget.AppCompat.Button.Colored" text="→"/> */}
-                <button id="confirmBtn" style="Widget.AppCompat.Button.Colored" text="确定" />
+                <button id="confirmBtn"  style="Widget.AppCompat.Button.Colored" text="确定"  />
+                <button id="cancelBtn"  style="Widget.AppCompat.Button.Colored" text="取消" />
             </vertical>
         </frame>
     );
     confirmWindow.setTouchable(true);
-    ui.run(function(){
-        confirmWindow.promptText.setText("请将另一个悬浮窗口左上端移到" + promptText + "，之后点击确认来获取坐标");
+
+    let fullScreenWindow = floaty.rawWindow(<frame id="fullScreen" bg="#00000000" />);
+    fullScreenWindow.setTouchable(true);
+    fullScreenWindow.setSize(-1,-1);
+    fullScreenWindow.fullScreen.setOnTouchListener(function(v, evt){
+        if (evt.getAction() == evt.ACTION_DOWN || evt.getAction() == evt.ACTION_MOVE) {
+            gotPos = true;
+            pos = [evt.getRawX().toFixed(0) , evt.getRawY().toFixed(0)];
+        }    
+        if (evt.getAction() == evt.ACTION_UP) {
+            fingerReleased = true;
+        }
+        return true;
+    });
+
+    ui.run(()=>{
+        confirmWindow.promptText.setText("请点击" + promptText);
         confirmWindow.confirmBtn.click(()=>{
             confirmed = true;
         });
+        confirmWindow.cancelBtn.click(()=>{
+            fingerReleased = false;
+            gotPos = false;
+            fullScreenWindow.setTouchable(true);
+        }); 
     });
 
-    //只有一个箭头的框，用来获取坐标
-    let selectorWindow = floaty.window(
-        <frame gravity="left|top">
-            <img src="data:image/jpg;base64,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"/>
-        </frame>);
-        selectorWindow.setAdjustEnabled(true);
-        while(!confirmed) sleep(50);
-        confirmWindow.close();
-        selectorWindow.close();
-        return {
-            "x": selectorWindow.getX(),
-            "y": selectorWindow.getY()
-        };
+    while(!confirmed){ 
+        sleep(100);
+        if(fingerReleased){
+            fullScreenWindow.setTouchable(false);
+        }
+
+        ui.run(function(){
+            if (!gotPos) {
+                confirmWindow.promptText.setText("请点击" + promptText);
+            }else if(!fingerReleased){
+                confirmWindow.promptText.setText("当前坐标:" + pos.toString());
+            }else{
+                confirmWindow.promptText.setText("当前坐标:" + pos.toString() + ", 点击'确定'结束, 点击'取消'重新获取");
+            }
+        });
+    }
+
+    fullScreenWindow.close();
+    confirmWindow.close();
+
+    return {
+        "x" : pos[0],
+        "y" : pos[1]
+    }
 }
 
 function getJsonLength(json) {
@@ -78,6 +115,9 @@ let majorPitchOffset;
 let minorPitchOffset;
 let treatHalfAsCeiling;
 //将类似"C3"这样的音符名转换为音高
+/**
+ * @param {string} name
+ */
 function name2pitch(name) {
     const toneNames = ["C", "D", "E", "F", "G", "A", "B"];
     let pitch = -1;
@@ -102,6 +142,9 @@ function name2pitch(name) {
     return pitch;
 };
 //低效率的转换！
+/**
+ * @param {Number} midiPitch
+ */
 function midiPitch2pitch(midiPitch){
     function midiToPitchClass(midi){
         const scaleIndexToNote = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -115,6 +158,9 @@ function midiPitch2pitch(midiPitch){
     return name2pitch(midiToPitch(midiPitch));
 }
 
+/**
+ * @param {string} jsonFilePath
+ */
 function parseTonejsJSON(jsonFilePath){
     let jsonData;
     try {
@@ -184,6 +230,9 @@ function parseTonejsJSON(jsonFilePath){
     return noteData;
 }
 
+/**
+ * @param {string} midiFilePath
+ */
 function parseMIDI(midiFilePath){
     let dexPath = files.cwd() + "/MidiReader.dex"
     runtime.loadDex(dexPath);
@@ -234,6 +283,9 @@ function parseMIDI(midiFilePath){
     return noteData;
 }
 
+/**
+ * @param {string} filepath
+ */
 function initFileConfig(filepath) {
     console.info("初始化文件:" + filepath);
     files.create(filepath);
@@ -243,6 +295,9 @@ function initFileConfig(filepath) {
     files.write(filepath, JSON.stringify(cfg));
 };
 
+/**
+ * @param {number} timeSec
+ */
 function sec2timeStr(timeSec){
     return (Math.floor(timeSec/60)).toString() + ":" + (Math.floor(timeSec%60)).toString();
 }
@@ -341,6 +396,11 @@ function readFileConfig(key, filename) {
     return tmp[key];
 };
 
+
+function reRunSelf(){
+    engines.execScriptFile(files.cwd() + "/main.js");
+    exit();
+}
 
 
 
@@ -453,7 +513,7 @@ const fileList = getFileList();
 
 var index;
 var exportScore = false;
-switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更改全局设置", "🛠️更改乐曲设置", "🎼乐谱输出", "📃查看使用说明"])) {
+switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更改全局设置", "🛠️更改乐曲设置", "🎼乐谱输出", "📃查看使用说明","🚪离开"])) {
 
     case 0:
         index = dialogs.select("选择一首乐曲..", fileList);
@@ -474,6 +534,9 @@ switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更�
         app.viewFile(musicDir + "使用帮助.txt");
         exit();
         break;
+    case 5:
+        exit();
+        break;
 };
 
 const totalFiles = files.listDir(musicDir, function (name) {
@@ -483,6 +546,10 @@ const totalFiles = files.listDir(musicDir, function (name) {
 var fileName = totalFiles[index];
 
 let noteData;
+if (fileName == undefined) {
+    toast("脚本已退出");
+    exit();
+}
 if (fileName.endsWith(".json")) {
     noteData = parseTonejsJSON(musicDir + fileName);
 }else if(fileName.endsWith(".mid")){
@@ -626,6 +693,7 @@ let controlWindow = floaty.rawWindow(
     </frame>
 );
 
+controlWindow.setPosition(1, 0);
 controlWindow.setTouchable(true);  
 
 let paused = true;  //手动启动播放
@@ -653,7 +721,8 @@ threads.start(function(){
             }
         });
         controlWindow.stopBtn.click(()=>{
-            exit();
+           threads.shutDownAll();
+           reRunSelf();
         })
     });
     let totalTimeSec = noteData[noteData.length -1][1];
