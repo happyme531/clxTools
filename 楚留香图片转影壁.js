@@ -379,6 +379,10 @@ function execAlgo0(){
     var prevCol = "#FFFFFFFF";
     buildColorTable();
     sleep(600);
+    //把初始颜色设置为白色, 否则会出现直到遇到第一个颜色为非白色的点前，笔刷颜色可能会变成错误的颜色的问题
+    let defaultColId = findNearestColor("#FFFFFFFF", "#00000000", 0);
+    switchColor(defaultColId, true);
+    sleep(600);
     for (var i = 1; i <= pixelCountX; i++) {
         for (var j = 1; j <= pixelCountY; j++) {
             let searchx = (i - 1);
@@ -415,6 +419,10 @@ function execAlgo1(){
     sleep(600);
     let prevColId = 0;
     let prevCol = "#FFFFFFFF"
+    //把初始颜色设置为白色, 否则会出现直到遇到第一个颜色为非白色的点前，笔刷颜色可能会变成错误的颜色的问题
+    let defaultColId = findNearestColor("#FFFFFFFF", "#00000000", 0);
+    switchColor(defaultColId, true);
+    sleep(600);
     // a matrix of the same size as the image, filled with desired color
     toast("正在计算颜色");
     let m = new Array(pixelCountX);
