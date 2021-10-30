@@ -698,7 +698,9 @@ let controlWindow = floaty.rawWindow(
 
 //避免悬浮窗被屏幕边框挡住
 controlWindow.setPosition(device.height/3, 0);
-controlWindow.setTouchable(true);  
+//TODO: 这里写死大小可能会有问题, 但是没有足够的测试数据来证明
+controlWindow.setSize(900 + 180 + 180 + 180, -2);   
+controlWindow.setTouchable(true);
 
 let paused = true;  //手动启动播放
 //用来更新悬浮窗的线程
