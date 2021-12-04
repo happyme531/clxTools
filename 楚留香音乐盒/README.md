@@ -25,3 +25,21 @@
 ## 电脑版游戏支持?
 
   请移步[楚留香音乐盒_pc版](https://github.com/happyme531/clxTools/tree/master/%E6%A5%9A%E7%95%99%E9%A6%99%E9%9F%B3%E4%B9%90%E7%9B%92_pc%E7%89%88)。这个配置文件也支持除楚留香以外的多种游戏。
+
+## 格式支持说明
+  脚本支持的格式有：
+  
+ 1. Tone.js JSON 格式:
+    扩展名为.json的音乐文件将被解析为 Tone.js JSON 格式
+    目前, 此脚本对该格式的支持很好, 一般都可以正常解析
+    更多详情请参考: https://tonejs.github.io/
+
+ 2. 标准 MIDI 格式:
+    扩展名为.mid的音乐文件将被解析为标准 MIDI 格式
+    目前, 此脚本对该格式的支持较好, 少许情况下可能无法正常解析
+    如果发现无法正常解析, 可以在https://tonejs.github.io/Midi/ 将此音乐文件转换为 Tone.js JSON 格式
+
+ 3. DoMiSo(文本)格式
+    格式设计者为 nigh@github.com , 参见 https://github.com/Nigh/DoMiSo-genshin
+    扩展名为.dms.txt的音乐文件将被解析为 DoMiSo(文本)格式
+    目前, 此脚本对该格式的支持较好, 少许情况下可能无法正常解析
