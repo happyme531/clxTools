@@ -15,6 +15,7 @@ function ToneJsJSONParser() {
             jsonData = JSON.parse(files.read(filePath));
         } catch (err) {
             toast("文件解析失败！请检查格式是否正确");
+            toast(err);
             console.error("文件解析失败:" + err + ",数据文件可能缺失或不完整！");
         };
 

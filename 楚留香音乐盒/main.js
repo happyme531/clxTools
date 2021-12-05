@@ -103,15 +103,6 @@ function getFileList() {
     let titles = new Array(totalFiles.length);
     //log(totalFiles);
     for (let file in totalFiles) {
-        //log(musicDir + totalFiles[file]);
-        //读取json文件速度太慢
-
-        //let tmp = files.read(musicDir + totalFiles[file]);
-        //tmp = JSON.parse(tmp);
-        //if (tmp.header.name != "") {
-        //    titles[file] = tmp.header.name;
-        //} else {
-
         //直接读取文件名
         titles[file] = totalFiles[file].replace(".json", "").replace(".mid", "");
 

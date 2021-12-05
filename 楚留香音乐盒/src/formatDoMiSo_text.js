@@ -151,9 +151,9 @@ function DoMiSoTextParser(){
                 comment += '\n';
             });
             lines = lines.slice(commentLine + 1);
+            dialogs.alert("DoMiSo乐曲注释", comment);
         }
 
-        dialogs.alert("DoMiSo乐曲注释", comment);
         
 
         //把剩下的行按空格分割
