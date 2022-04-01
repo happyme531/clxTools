@@ -5,7 +5,7 @@ var globalConfig = storages.create("hallo1_clxmidiplayer_config");
 try{
   var preDefinedRes = require("./src/predefinedres.js");
   var MusicFormats = require("./src/musicFormats.js");
-
+  var MidiDeviceManager = require("./src/midiDeviceManager.js");
 }catch(e){
     toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
     toast(e);
@@ -110,41 +110,42 @@ function getFileList() {
     return titles;
 };
 
-let majorPitchOffset;
-let minorPitchOffset;
-let treatHalfAsCeiling;
-//将类似"C3"这样的音符名转换为音高
+let majorPitchOffset = 0;
+let minorPitchOffset = 0;
+let treatHalfAsCeiling = 0;
+
 /**
  * @param {string} name
+ * @abstract 将类似"C3"这样的音符名转换为按键
  */
-function name2pitch(name) {
+function name2key(name) {
     const toneNames = ["C", "D", "E", "F", "G", "A", "B"];
-    let pitch = -1;
+    let key = -1;
     let m = -majorPitchOffset + 3;
-    if (name.endsWith((m++).toString())) pitch += 0 + 1;
-    if (name.endsWith((m++).toString())) pitch += 7 + 1;
-    if (name.endsWith((m++).toString())) pitch += 14 + 1;
-    if (pitch == -1) { //结尾不是3,4,5
+    if (name.endsWith((m++).toString())) key += 0 + 1;
+    if (name.endsWith((m++).toString())) key += 7 + 1;
+    if (name.endsWith((m++).toString())) key += 14 + 1;
+    if (key == -1) { //结尾不是3,4,5
         return 0;
     };
     m = minorPitchOffset;
     for (let i in toneNames) {
         if (name.charAt(0) === toneNames[i]) {
-            pitch += parseInt(i) + 1 + minorPitchOffset;
+            key += parseInt(i) + 1 + minorPitchOffset;
             break;
         };
     };
     if (treatHalfAsCeiling){
-        if (name.charAt(1)==="#") pitch++;
+        if (name.charAt(1)==="#") key++;
     };
-    if (pitch > 21 || pitch < 1) return 0;
-    return pitch;
+    if (key > 21 || key < 1) return 0;
+    return key;
 };
 //低效率的转换！
 /**
  * @param {Number} midiPitch
  */
-function midiPitch2pitch(midiPitch){
+function midiPitch2key(midiPitch){
     function midiToPitchClass(midi){
         const scaleIndexToNote = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
         const note = midi % 12;
@@ -154,7 +155,7 @@ function midiPitch2pitch(midiPitch){
         const octave = Math.floor(midi / 12) - 1;
         return midiToPitchClass(midi) + octave.toString();
     }
-    return name2pitch(midiToPitch(midiPitch));
+    return name2key(midiToPitch(midiPitch));
 }
 
 /**
@@ -168,6 +169,150 @@ function initFileConfig(filepath) {
     cfg.minorPitchOffset = 0;
     files.write(filepath, JSON.stringify(cfg));
 };
+
+function getPosConfig() {
+    //注意，这是横屏状态的坐标:左上角(0,0),向右x增，向下y增
+    //检测分辨率
+    console.info("你的屏幕分辨率是:%dx%d", device.height, device.width);
+    let clickx_pos = [];
+    let clicky_pos = [];
+    let useCustomPos = readGlobalConfig("alwaysUseCustomPos", false);
+    if (!useCustomPos) {
+        console.log("正在使用内置坐标");
+        let screenWidth = device.width;
+        let screenHeight = device.height;
+        let gameType = readGlobalConfig("gameType", "楚留香");
+        let keyPos;
+        let res = new preDefinedRes();
+        try {
+            keyPos = res.getKeyPosition(screenHeight, screenWidth, gameType);
+        } catch (e) {
+            console.error(e);
+            setGlobalConfig("alwaysUseCustomPos", true);
+            dialogs.alert("错误", "没有找到合适的内置坐标，请进入全局设置, 修改自定义坐标");
+            exit();
+        };
+        clickx_pos = keyPos.clickx_pos;
+        clicky_pos = keyPos.clicky_pos;
+    } else {
+        console.log("正在使用自定义坐标");
+        clickx_pos = readGlobalConfig("customPosX", 0);
+        clicky_pos = readGlobalConfig("customPosY", 0);
+        if (clickx_pos === 0 || clicky_pos === 0) {
+            dialogs.alert("错误", "自定义坐标未设置");
+            exit();
+        }
+        console.log(clickx_pos.toString());
+        console.log(clicky_pos.toString());
+    }
+    return {
+        "x" : clickx_pos,
+        "y" : clicky_pos
+    };
+}
+
+function startMidiStream() {
+    let pos = getPosConfig();
+    let clickx_pos = pos.x;
+    let clicky_pos = pos.y;
+    let midi = new MidiDeviceManager();
+    let devNames = [];
+    while (1) {
+        devNames = midi.getMidiDeviceNames();
+        if (devNames.length == 0) {
+            if (!dialogs.confirm("错误", "没有找到MIDI设备, 点击确定重试, 点击取消退出")) {
+                exit();
+            }
+        }else{
+            break;
+        }
+    }
+    let deviceIndex = dialogs.select("选择MIDI设备", devNames);
+    if (deviceIndex == -1) {
+        toast("您取消了选择, 脚本将会退出");
+        exit();
+    }
+    portNames = midi.getMidiPortNames(deviceIndex);
+    if (portNames.length == 0) {
+        dialogs.alert("错误", "此MIDI设备没有可用的端口, 脚本将会退出");
+        exit();
+    }
+    let portIndex = 0;
+    if (portNames.length > 1) {  // 不太可能出现
+        portIndex = dialogs.select("选择MIDI端口", portNames);
+        if (portIndex == -1) {
+            toast("您取消了选择, 脚本将会退出");
+            exit();
+        }
+    }
+    midi.openDevicePort(deviceIndex, portIndex);
+    let receivedNoteCnt = 0;
+    //悬浮窗
+
+    //显示悬浮窗
+    let controlWindow = floaty.rawWindow(
+        <frame gravity="left">
+            <horizontal bg="#7fffff7f">
+                <text id="txt" text="串流已就绪" textSize="14sp" />
+                <button id="stopBtn" style="Widget.AppCompat.Button.Colored" w="180px" text="退出⏹" />
+            </horizontal>
+        </frame>
+    );
+
+    //避免悬浮窗被屏幕边框挡住
+    controlWindow.setPosition(device.height / 5, 0);
+    // //TODO: 这里写死大小可能会有问题, 但是没有足够的测试数据来证明
+    // controlWindow.setSize(900 + 180 + 180 + 180, -2);   
+    controlWindow.setTouchable(true);
+
+    //用来更新悬浮窗的线程
+    threads.start(function () {
+        ui.run(function () {
+            controlWindow.stopBtn.click(() => {
+                midi.close();
+                threads.shutDownAll();
+                exit();
+            });
+        });
+        while (true) {
+            sleep(300);
+            ui.run(function () {
+                controlWindow.txt.setText("正在串流中, 音符数量:" + receivedNoteCnt);
+            });
+        }
+    });
+    while(1){
+        let noteList = [];
+        while(!midi.dataAvailable()){
+            sleep(100);
+        }
+        while(midi.dataAvailable()){
+            let data = midi.read();
+            let cmd = data[0] & midi.STATUS_COMMAND_MASK;
+            //console.log("cmd: " + cmd);
+            if (cmd == midi.STATUS_NOTE_ON && data[2] != 0) { // velocity != 0
+                let key = midiPitch2key(data[1]);
+                if (key != 0 &&  noteList.indexOf(key) === -1) noteList.push(key);
+                receivedNoteCnt++;
+            }
+        }
+        let gestureList = new Array();
+        for (let j = 0; j < noteList.length; j++) { //遍历这个数组
+            tone = noteList[j];
+            if (tone != 0) {
+                let clicky = Math.floor((tone - 1) / 7) + 1; //得到x
+                let clickx = (tone - 1) % 7 + 1; //得到y
+                gestureList.push([0, 5, [clickx_pos[clickx - 1], clicky_pos[clicky - 1]]]);
+            };
+        };
+        if (gestureList.length > 10) gestureList.splice(9, gestureList.length - 10); //手势最多同时只能执行10个
+
+        if (gestureList.length != 0) {
+            gestures.apply(null, gestureList);
+        };
+        gestureList = [];
+    }
+}
 
 /**
  * @param {number} timeSec
@@ -382,13 +527,18 @@ console.verbose("等待无障碍服务..");
 //toast("请允许本应用的无障碍权限");
 auto.waitFor();
 const fileList = getFileList();
-
+if (!floaty.checkPermission()) {
+    // 没有悬浮窗权限，提示用户并跳转请求
+    toast("本脚本需要悬浮窗权限来显示悬浮窗，请在随后的界面中允许并重新运行本脚本。");
+    floaty.requestPermission();
+    exit();
+}
 
 //解析信息
 
 var index;
 var exportScore = false;
-switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更改全局设置", "🛠️更改乐曲设置", "🎼乐谱输出", "📃查看使用说明","🚪离开"])) {
+switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更改全局设置", "🛠️更改乐曲设置", "🎼乐谱输出", "📲MIDI串流", "📃查看使用说明","🚪离开"])) {
 
     case 0:
         index = dialogs.select("选择一首乐曲..", fileList);
@@ -406,10 +556,14 @@ switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更�
         exportScore = true;
         break;
     case 4:
-        app.viewFile(musicDir + "使用帮助.txt");
+        startMidiStream();
         exit();
         break;
     case 5:
+        app.viewFile(musicDir + "使用帮助.txt");
+        exit();
+        break;
+    case 6:
         exit();
         break;
 };
@@ -441,7 +595,7 @@ for (let i = 0; i < 10; i++) {
 };
 
 for(let i=0;i<noteData.length;i++){
-    noteData[i][0] = midiPitch2pitch(noteData[i][0]);
+    noteData[i][0] = midiPitch2key(noteData[i][0]);
     noteData[i][1] /= 1000;
 }
 
@@ -520,45 +674,10 @@ if(exportScore){
 
 //////////////////////////乐谱导出功能结束
 
-//exit();
+let pos = getPosConfig();
 
-//注意，这是横屏状态的坐标:左上角(0,0),向右x增，向下y增
-//检测分辨率
-console.info("你的屏幕分辨率是:%dx%d", device.height, device.width);
-
-let useCustomPos = readGlobalConfig("alwaysUseCustomPos", false);
-if (!useCustomPos) {
-    console.log("正在使用内置坐标");
-    let screenWidth = device.width;
-    let screenHeight = device.height;
-    let gameType = readGlobalConfig("gameType", "楚留香");
-    let keyPos;
-    let res = new preDefinedRes();
-    try {
-        keyPos = res.getKeyPosition(screenHeight, screenWidth, gameType);
-    }catch (e) {
-        console.error(e);
-        setGlobalConfig("alwaysUseCustomPos", true);
-        dialogs.alert("错误", "没有找到合适的内置坐标，请设置自定义坐标");
-        exit();
-    };
-    var clickx_pos = keyPos.clickx_pos;
-    var clicky_pos = keyPos.clicky_pos;
-} else {
-    console.log("正在使用自定义坐标");
-    var clickx_pos = readGlobalConfig("customPosX", 0);
-    var clicky_pos = readGlobalConfig("customPosY", 0);
-    if(clickx_pos == 0 || clicky_pos == 0){
-        dialogs.alert("错误", "自定义坐标未设置");
-        exit();
-    }
-    console.log(clickx_pos.toString());
-    console.log(clicky_pos.toString());
-}
-
-//media.playMusic("/sdcard/test.mp3", 1);
-//sleep(200);
-
+let clickx_pos = pos.x;
+let clicky_pos = pos.y;
 
 dialogs.alert("","音符总数:" + noteData.length);
 console.verbose("无障碍服务启动成功");
@@ -673,7 +792,7 @@ while (i < noteCount) {
                 } else {
                     var clickx = tone % 7;
                 };
-                gestureList[gestureList.length] = [0, 5, [clickx_pos[clickx - 1], clicky_pos[clicky - 1]]];
+                gestureList.push([0, 5, [clickx_pos[clickx - 1], clicky_pos[clicky - 1]]]);
             };
         };
         if (delaytime >= 6) {
