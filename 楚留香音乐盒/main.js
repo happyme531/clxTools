@@ -438,7 +438,7 @@ function runFileSetup(fileList) {
 };
 
 function runGlobalSetup() {
-    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "设置游戏类型","使用自定义坐标","设置自定义坐标"])) {
+    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "设置游戏类型","启用自定义坐标","设置自定义坐标"])) {
         case 0:
             setGlobalConfig("skipInit", dialogs.select("是否跳过乐曲开始前的空白?", ["否", "是"]));
             break;
@@ -473,7 +473,7 @@ function runGlobalSetup() {
         case 3: //设置自定义坐标
             let clickx_pos = [];
             let clicky_pos = [];
-            let pos1 =  getPosInteractive("最左上角的音符按键中心");
+            let pos1 = getPosInteractive("最左上角的音符按键中心");
             let pos2 = getPosInteractive("最右下角的音符按键中心");
             //等距分布
             for (let i = 0; i < 7; i++) {
@@ -485,7 +485,8 @@ function runGlobalSetup() {
             
             setGlobalConfig("customPosX", clickx_pos);
             setGlobalConfig("customPosY", clicky_pos);
-            dialogs.alert("", "设置完成");
+            setGlobalConfig("alwaysUseCustomPos", true);
+            dialogs.alert("", "设置完成, 自定义坐标已启用");
             break;
     };
 };
