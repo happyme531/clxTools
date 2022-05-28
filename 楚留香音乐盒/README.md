@@ -60,3 +60,9 @@
 
     你可以下载[SkyStudio](https://play.google.com/store/apps/details?id=com.Maple.SkyStudio)进行编曲, 或在 https://github.com/StageGuard/SkyAutoPlayerScript 找到一些乐谱。  
     注意: 这个格式中音符的范围只有C4-C6, 总计15个.
+
+## MIDI串流说明
+  
+  1. 在手机的**开发者选项**设置中, 将**默认USB配置**修改为**MIDI**  
+  2. 连接手机到电脑, 此时电脑上会识别到MIDI设备.  
+  3. 打开脚本的**MIDI串流**功能, 在电脑上选择MIDI输出设备为手机, 即可进行MIDI串流演奏.
