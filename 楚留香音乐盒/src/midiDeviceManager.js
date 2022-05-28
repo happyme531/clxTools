@@ -48,6 +48,7 @@ function MidiDeviceManager() {
         return midiPortNames;
     }
     let device = null;
+    let outputPort = null;
     let pktBuffer = [];
     let msgBuffer = [];
     let midiReceiver = new android.media.midi.MidiReceiver(
@@ -78,7 +79,7 @@ function MidiDeviceManager() {
             console.log("等待设备连接...");
             sleep(100);
         }
-        let outputPort = device.openOutputPort(midiPortIndex);
+        outputPort = device.openOutputPort(midiPortIndex);
         outputPort.connect(midiReceiver);
     }
     this.dataAvailable = function () {
@@ -97,6 +98,10 @@ function MidiDeviceManager() {
         return new Uint8Array(data[0]);
     }
     this.close = function () {
+        if (outputPort !== null) {
+            outputPort.close();
+            outputPort = null;
+        }
         device.close();
         device = null;
         msgBuffer = [];

@@ -45,6 +45,7 @@ function MidiFramer() {
         for (let i = 0; i < count; i++) {
             let currentByte = data[offset];
             let currentInt = currentByte & 0xFF;
+           // console.log("currentInt in hex: " + currentInt.toString(16));
             if (currentInt >= 0x80) { // status byte?
                 if (currentInt < 0xF0) { // channel message?
                     mRunningStatus = currentByte;
@@ -85,7 +86,8 @@ function MidiFramer() {
                         if (mRunningStatus != 0) {
                             mBuffer[0] = mRunningStatus;
                         }
-                        messagesBuffer.push([mBuffer, 0, mCount, timestamp]);
+                        let mBufferCopy = mBuffer.slice();
+                        messagesBuffer.push([mBufferCopy, 0, mCount, timestamp]);
                         mNeeded = getBytesPerMessage(mBuffer[0]) - 1;
                         mCount = 1;
                     }
