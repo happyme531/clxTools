@@ -35,21 +35,17 @@ if (mode == 1) {
 
     for (i; i < imax; i++) {
         var now = input.substring(i, i + 1);
-        if (mode == 0) {
-            output = output + "#" + letterset[random(0, 19)] + now;
-        } else {
-            //每个字符的颜色，10进制转16
-            r += dr;
-            g += dg;
-            b += db;
-            curcol = r.toString(16) + g.toString(16) + b.toString(16);
-            output = output + "#c" + curcol + now;
-        };
+        //每个字符的颜色，10进制转16
+        r += dr;
+        g += dg;
+        b += db;
+        curcol = r.toString(16) + g.toString(16) + b.toString(16);
+        output = output + "#c" + curcol + now;
     };
 } else if (mode == 0) {
     for (i; i < imax; i++) {
         var now = input.substring(i, i + 1);
-        output = output + "#" + letterset[random(0, letterset.length)] + now;
+        output = output + "#" + letterset[random(0, letterset.length - 1)] + now;
     };
 }else if (mode==2){
     for (i; i < imax; i++) {
