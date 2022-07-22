@@ -1,28 +1,20 @@
 # clxTools
 
-Automatic scripts of the game Netease chuLiuXiang.  一些为网易楚留香(一梦江湖)这个游戏设计的自动脚本。
+适用于某些RPG手游，例如《楚留香(一梦江湖)》的自动脚本。 Automatics scripts for some mobile RPGs, such as netease ChuLiuXiang.
 
-脚本文件:[点我下载](https://github.com/happyme531/clxTools/archive/master.zip)
+脚本文件:[点我下载](https://github.com/happyme531/clxTools/archive/master.zip)  
+脚本运行环境: AutoX(Auto.js的一个fork). [进入apk下载](https://github.com/kkevsekk1/AutoX/releases)/[进入项目主页](https://github.com/kkevsekk1/AutoX).  
 
-~~所有脚本请使用安卓端的Auto.js[点我下载](https://github.com/Ericwyn/Auto.js/releases)软件v4.1.1运行，由于分辨率不同，一些坐标可能需要修改。~~
-~~(由于github的缘故，下载速度可能非常非常慢，所以我找了另外一个链接:[点我下载](https://www.lanzous.com/b00t76gcb))~~  
-由于Auto.js的开源版本作者已经停止更新很久，因此建议使用仍在更新的fork版本 AutoX. 你可以[点这里进入项目主页](https://github.com/kkevsekk1/AutoX),或者[点这里进入apk下载](https://github.com/kkevsekk1/AutoX/releases).
-
-by 心慕流霞: 李芒果
-
-## 基础使用说明!!
+## 安装说明
 
 1.下载:
   先下载脚本文件(https://github.com/happyme531/clxTools/archive/master.zip)  
-  如果你无法下载上面的脚本文件，可以打开[这个网站](https://gh.api.99988866.xyz/)，之后把脚本文件的链接粘贴进去下载.  
-  再下载脚本运行软件(就是上面的autoX)
+  如果你无法下载上面的脚本文件，可以打开[GitHub 文件加速](https://gh.api.99988866.xyz/)，之后把上面脚本文件的链接粘贴进去下载.  
+  之后再下载脚本运行环境(autoX)
 
-2.安装:
-  打开autoX.js软件，然后退出  
-  把脚本的压缩包解压到手机存储里名叫“脚本”的文件夹里  
-  安装完成。
-  
-### 官方QQ交流群: 954694570
+2.安装:  
+  打开autoX.js软件，授予权限后退出.  
+  之后把脚本的压缩包解压到手机存储根目录名叫“脚本”的文件夹中, 安装完成。  
 
 ------
 
@@ -51,7 +43,7 @@ by 心慕流霞: 李芒果
 
 [查看详情](https://github.com/happyme531/clxTools/blob/master/%E6%A5%9A%E7%95%99%E9%A6%99%E9%9F%B3%E4%B9%90%E7%9B%92/README.md)  
 
-### 楚留香音乐盒_pc版
+### 楚留香音乐盒_pc版  
 
 基于Bome MIDI Translator的MIDI转键盘按键配置文件，适用于通过键盘按键在游戏中演奏的pc端游戏，只要演奏使用的键位相同即可使用，至少支持楚留香(一梦江湖)/原神。经过模拟器键盘映射后也适用于上述手游。  
 
@@ -61,7 +53,7 @@ by 心慕流霞: 李芒果
 
 ### 楚留香_密令终结者  
 
-自动爆破楚留香"江湖入梦来"活动中的密令的工具, 脚本内包含很多已知密令. 使用时需要自行打开脚本文件修改对话框坐标.
+自动爆破楚留香"江湖入梦来"活动中的密令的工具, 脚本内包含很多已知密令. 使用时需要自行打开脚本文件修改对话框坐标.  
 
 ### 楚留香_筑世刷人气  
 
@@ -73,12 +65,12 @@ by 心慕流霞: 李芒果
 
 ### 特性诗.txt
 
-仿照Minecraft特性诗的楚留香bug收集，我很久没有上线了，目前极少更新新的bug.  
+仿照Minecraft特性诗格式的楚留香bug收集, 目前很少更新新的bug.  
 
 ### 文字转彩字  
 
 给已知句子中插入颜色代码，生成彩虹字的工具。 很多网易手游使用同样的颜色代码，此工具也是可以使用的。  
-小技巧: 在楚留香中，悬浮的公共聊天窗口可以输入99个字符，而侧边栏的只能输入50个字符。 但悬浮窗口发送的信息无法被复制,回复,+1。
+小技巧: 在楚留香中，悬浮的公共聊天窗口可以输入99个字符，而侧边栏的只能输入50个字符。 但悬浮窗口发送的信息无法被复制,回复,+1。  
 
 ### 自动弹琴-nyan cat
 
@@ -87,3 +79,10 @@ by 心慕流霞: 李芒果
 ### 自动ai黑白棋
 
 针对楚留香 "无常棋" 开发的脚本，算法不是我写的。很破坏游戏公平性且计算很慢，建议只用来和npc对战("灵犀对战")。需要手动修改坐标，且对坐标精确度要求很高，建议截图后使用ps分析。  
+
+------  
+
+by 一梦江湖(楚留香)::声声慢::心慕流霞::李芒果  
+![1658421643](https://user-images.githubusercontent.com/20812356/180462109-b9971abc-ad18-4e2e-9284-fdbf1856a8e3.jpg)
+
+官方QQ交流群: 954694570  
