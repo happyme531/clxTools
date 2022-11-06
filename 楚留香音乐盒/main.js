@@ -117,6 +117,7 @@ let treatHalfAsCeiling = 0;
 /**
  * @param {string} name
  * @abstract 将类似"C3"这样的音符名转换为按键
+ * @returns {array[number]}
  */
 function name2key(name) {
     const toneNames = ["C", "D", "E", "F", "G", "A", "B"];
@@ -126,7 +127,7 @@ function name2key(name) {
     if (name.endsWith((m++).toString())) key += 7 + 1;
     if (name.endsWith((m++).toString())) key += 14 + 1;
     if (key == -1) { //结尾不是3,4,5
-        return 0;
+        return [];
     };
     m = minorPitchOffset;
     for (let i in toneNames) {
@@ -135,11 +136,29 @@ function name2key(name) {
             break;
         };
     };
-    if (treatHalfAsCeiling){
-        if (name.charAt(1)==="#") key++;
-    };
-    if (key > 21 || key < 1) return 0;
-    return key;
+
+    if (key > 21 || key < 1) return [];
+
+    switch (treatHalfAsCeiling) {
+        default:
+        case 0: // 智能处理策略
+        
+            if (name.charAt(1) === "#" && key + 1 <= 21) {
+                return [key, key + 1];
+            } else {
+                return [key];
+            }
+            break;
+        case 1: // 将半音向上取整
+        if (name.charAt(1) === "#")
+            return key + 1 > 21 ? [key + 1] : [];
+        else
+            return [key];
+            break;
+        case 2: // 将半音向下取整
+            return [key];
+            break;
+    }
 };
 //低效率的转换！
 /**
@@ -167,6 +186,7 @@ function initFileConfig(filepath) {
     let cfg = {};
     cfg.majorPitchOffset = 0;
     cfg.minorPitchOffset = 0;
+    cfg.treatHalfAsCeiling = 0;
     files.write(filepath, JSON.stringify(cfg));
 };
 
@@ -284,6 +304,7 @@ function startMidiStream() {
     while(1){
         let noteList = [];
         while(!midi.dataAvailable()){
+            //等待数据
             sleep(100);
         }
         while(midi.dataAvailable()){
@@ -291,10 +312,19 @@ function startMidiStream() {
             let cmd = data[0] & midi.STATUS_COMMAND_MASK;
             //console.log("cmd: " + cmd);
             if (cmd == midi.STATUS_NOTE_ON && data[2] != 0) { // velocity != 0
-                let key = midiPitch2key(data[1]);
-                if (key != 0 &&  noteList.indexOf(key) === -1) noteList.push(key);
+                let keys = midiPitch2key(data[1]);
+                if (keys.length !== 0){
+                    for (let i = 0; i < keys.length; i++) {
+                        if (noteList.indexOf(keys[i]) === -1) {
+                            noteList.push(keys[i]);
+                        }
+                    }
                 receivedNoteCnt++;
+                }
             }
+        }
+        if(noteList.length === 0){
+            continue;
         }
         let gestureList = new Array();
         for (let j = 0; j < noteList.length; j++) { //遍历这个数组
@@ -432,7 +462,7 @@ function runFileSetup(fileList) {
             setFileConfig("minorPitchOffset", dialogs.singleChoice("调整音高2", ["降低2个音阶", "降低1个音阶", "默认", "升高1个音阶", "升高2个音阶"], readFileConfig("minorPitchOffset", fileName) + 2) - 2, fileName);
             break;
         case 1:
-            setFileConfig("halfCeiling", dialogs.singleChoice("楚留香的乐器无法弹奏半音，所以对于半音..", ["降低", "升高"], readFileConfig("halfCeiling", fileName)), fileName);
+            setFileConfig("halfCeiling", dialogs.singleChoice("演奏界面中无法弹奏半音，所以对于半音..", ["智能处理", "升高", "降低"], readFileConfig("halfCeiling", fileName)), fileName);
 
     };
 };
@@ -586,18 +616,23 @@ if (fileName == undefined) {
 // }
 
 
-let noteData = musicFormats.parseFile(musicDir + fileName);
+let noteDataText = musicFormats.parseFile(musicDir + fileName);
 majorPitchOffset = readFileConfig("majorPitchOffset", fileName);
 minorPitchOffset = readFileConfig("minorPitchOffset", fileName);
 treatHalfAsCeiling = readFileConfig("halfCeiling",fileName);
 //print the first 10 elements of the noteData
 for (let i = 0; i < 10; i++) {
-    console.info(noteData[i]);
+    console.info(noteDataText[i]);
 };
 
-for(let i=0;i<noteData.length;i++){
-    noteData[i][0] = midiPitch2key(noteData[i][0]);
-    noteData[i][1] /= 1000;
+console.info("cur treateHalfAsCeiling:" + treatHalfAsCeiling);
+let noteData = [];
+for (let i = 0; i < noteDataText.length; i++) {
+    let keys = midiPitch2key(noteDataText[i][0]);
+   // console.info(keys);
+    for (let j = 0; j < keys.length; j++) {
+        noteData.push([keys[j], noteDataText[i][1] / 1000]);
+    }
 }
 
 
