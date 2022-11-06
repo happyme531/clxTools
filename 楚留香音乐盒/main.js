@@ -114,31 +114,54 @@ let majorPitchOffset = 0;
 let minorPitchOffset = 0;
 let treatHalfAsCeiling = 0;
 
+let outRangedNoteCnt = 0;
+let roundedNoteCnt = 0;
+
 /**
  * @param {string} name
  * @abstract 将类似"C3"这样的音符名转换为按键
+ * @return 按键序号(从1开始)或-1
  */
 function name2key(name) {
     const toneNames = ["C", "D", "E", "F", "G", "A", "B"];
-    let key = -1;
+    let key = 0;
+    //C3 -> 第1个按键
     let m = -majorPitchOffset + 3;
-    if (name.endsWith((m++).toString())) key += 0 + 1;
-    if (name.endsWith((m++).toString())) key += 7 + 1;
-    if (name.endsWith((m++).toString())) key += 14 + 1;
-    if (key == -1) { //结尾不是3,4,5
-        return 0;
-    };
+    let low = m;
+    let mid = m + 1;
+    let high = m + 2;
+    switch (parseInt(name.charAt(name.length - 1))) {
+        case low:
+            key += 0;
+            break;
+        case mid:
+            key += 7;
+            break;
+        case high:
+            key += 14;
+            break
+        default:
+            outRangedNoteCnt++;
+            return -1;
+    }
+
     m = minorPitchOffset;
-    for (let i in toneNames) {
+    for (let i = 0; i < toneNames.length; i++) {
         if (name.charAt(0) === toneNames[i]) {
-            key += parseInt(i) + 1 + minorPitchOffset;
+            key += i + 1 + minorPitchOffset;
             break;
         };
     };
-    if (treatHalfAsCeiling){
-        if (name.charAt(1)==="#") key++;
-    };
-    if (key > 21 || key < 1) return 0;
+    if (name.charAt(1) === "#") {
+        roundedNoteCnt++;
+        if (treatHalfAsCeiling) {
+            key++;
+        };
+    }
+    if (key > 21 || key < 1) {
+        outRangedNoteCnt++;
+        return -1;
+    }
     return key;
 };
 //低效率的转换！
@@ -292,7 +315,7 @@ function startMidiStream() {
             //console.log("cmd: " + cmd);
             if (cmd == midi.STATUS_NOTE_ON && data[2] != 0) { // velocity != 0
                 let key = midiPitch2key(data[1]);
-                if (key != 0 &&  noteList.indexOf(key) === -1) noteList.push(key);
+                if (key != -1 &&  noteList.indexOf(key) === -1) noteList.push(key);
                 receivedNoteCnt++;
             }
         }
@@ -591,9 +614,11 @@ majorPitchOffset = readFileConfig("majorPitchOffset", fileName);
 minorPitchOffset = readFileConfig("minorPitchOffset", fileName);
 treatHalfAsCeiling = readFileConfig("halfCeiling",fileName);
 //print the first 10 elements of the noteData
-for (let i = 0; i < 10; i++) {
-    console.info(noteData[i]);
-};
+// for (let i = 0; i < 10; i++) {
+//     console.info(noteData[i]);
+// };
+
+
 
 for(let i=0;i<noteData.length;i++){
     noteData[i][0] = midiPitch2key(noteData[i][0]);
@@ -619,14 +644,18 @@ if(exportScore){
             delaytime1 = delaytime0 + 0.1;
         };
         if (Math.abs(delaytime0 - delaytime1) < 0.01) { //如果两个音符时间相等，把这个音和后面的一起加入数组
-            noteList.push(noteData[i][0]);
+            if (noteData[i][0] != -1) {
+                keySeq.push(noteData[i][0]);
+            }
         } else {
-            noteList.push(noteData[i][0]);
-            let delaytime = (delaytime1 - delaytime0) * 1000;
-            if(delaytime > maxDelayTime) maxDelayTime = delaytime;
-            keySeq.push([noteList,delaytime]);
-            noteList = [];
-            gestureList = [];
+            if (noteData[i][0] != -1) {
+                noteList.push(noteData[i][0]);
+                let delaytime = (delaytime1 - delaytime0) * 1000;
+                if (delaytime > maxDelayTime) maxDelayTime = delaytime;
+                keySeq.push([noteList, delaytime]);
+                noteList = [];
+                gestureList = [];
+            }
         };
         i++;
     };
@@ -680,7 +709,12 @@ let pos = getPosConfig();
 let clickx_pos = pos.x;
 let clicky_pos = pos.y;
 
-dialogs.alert("","音符总数:" + noteData.length);
+let statString = "音符总数:" + noteData.length + 
+                 "\n超范围的音符数:" + outRangedNoteCnt + "(" + (outRangedNoteCnt / noteData.length * 100).toFixed(2) + "%)" +
+                 "\n被取整的音符数:" + roundedNoteCnt + "(" + (roundedNoteCnt / noteData.length * 100).toFixed(2) + "%)" + 
+                 "\n如果超范围/被取整的音符数过多,乐曲可能不适合在游戏中使用";
+
+dialogs.alert("乐曲信息",statString);
 console.verbose("无障碍服务启动成功");
 
 
@@ -786,7 +820,7 @@ while (i < noteCount) {
         var gestureList = new Array();
         for (var j = 0; j < noteList.length; j++) { //遍历这个数组
             tone = noteList[j];
-            if (tone != 0) {
+            if (tone != -1) {
                 var clicky = Math.floor((tone - 1) / 7) + 1; //得到x
                 if (tone % 7 == 0) { //得到y
                     var clickx = 7;
