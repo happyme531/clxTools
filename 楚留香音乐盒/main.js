@@ -116,6 +116,7 @@ let treatHalfAsCeiling = 0;
 
 let outRangedNoteCnt = 0;
 let roundedNoteCnt = 0;
+let timingDroppedNoteCnt = 0;
 
 /**
  * @param {string} name
@@ -179,6 +180,38 @@ function midiPitch2key(midiPitch){
         return midiToPitchClass(midi) + octave.toString();
     }
     return name2key(midiToPitch(midiPitch));
+}
+/**
+ * @param {Array<[Number, Number]>} noteData
+ * @abstract 时间优化--删除过于密集的音符
+ * @return {Array<[Number, Number]>} 
+ */
+ function timingRefine(noteData) {
+    const sameNoteGapMin = 0.12;
+    //const diffNoteGapMin = 0.05;
+
+    for (let i = 0; i < noteData.length; i++) {
+        let note = noteData[i];
+        let j = i + 1;
+        while (j < noteData.length) {
+            let nextNote = noteData[j];
+            if(note[0] === -1){
+                j++;
+                continue;
+            }
+            if (note[0] === nextNote[0]) {
+                if (nextNote[1] - note[1] < sameNoteGapMin) {
+                    noteData.splice(j, 1);
+                    timingDroppedNoteCnt++;
+                }
+            }
+            if (nextNote[1] - note[1] > sameNoteGapMin) {
+                break;
+            }
+            j++;
+        }
+    }
+    return noteData;
 }
 
 /**
@@ -624,10 +657,12 @@ for(let i=0;i<noteData.length;i++){
     noteData[i][0] = midiPitch2key(noteData[i][0]);
     noteData[i][1] /= 1000;
 }
+totalNoteCnt = noteData.length;
+noteData = timingRefine(noteData);
 
 
 jsonData = null;
-console.log("音符总数:%d",noteData.length);
+console.log("音符总数:%d",totalNoteCnt);
 
 //////////////////////////乐谱导出功能开始
 if(exportScore){
@@ -709,10 +744,11 @@ let pos = getPosConfig();
 let clickx_pos = pos.x;
 let clicky_pos = pos.y;
 
-let statString = "音符总数:" + noteData.length + 
-                 "\n超范围的音符数:" + outRangedNoteCnt + "(" + (outRangedNoteCnt / noteData.length * 100).toFixed(2) + "%)" +
+let statString = "音符总数:" + totalNoteCnt + 
+                 "\n超出范围被丢弃的音符数:" + outRangedNoteCnt + "(" + (outRangedNoteCnt / noteData.length * 100).toFixed(2) + "%)" +
                  "\n被取整的音符数:" + roundedNoteCnt + "(" + (roundedNoteCnt / noteData.length * 100).toFixed(2) + "%)" + 
-                 "\n如果超范围/被取整的音符数过多,乐曲可能不适合在游戏中使用";
+                 "\n过于密集被丢弃的音符数:" + timingDroppedNoteCnt + "(" + (timingDroppedNoteCnt / noteData.length * 100).toFixed(2) + "%)" +
+                 "\n如果被丢弃/取整的音符数过多,乐曲可能不适合在游戏中使用";
 
 dialogs.alert("乐曲信息",statString);
 console.verbose("无障碍服务启动成功");
