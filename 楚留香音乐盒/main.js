@@ -118,13 +118,90 @@ let outRangedNoteCnt = 0;
 let roundedNoteCnt = 0;
 let timingDroppedNoteCnt = 0;
 
+//对半音取整
+//C -> 1, C# -> 2, D -> 3, D# -> 4, E -> 5, F -> 6, F# -> 7, G -> 8, G# -> 9, A -> 10, A# -> 11, B -> 12
+function roundPitch(pitch) {
+    let newPitch = 0;
+    if(!treatHalfAsCeiling){
+        switch (pitch) {
+            case 1:
+            case 2:
+                newPitch = 1;
+                break;
+            case 3:
+            case 4:
+                newPitch = 3;
+                break;
+            case 5:
+                newPitch = 5;
+                break;
+            case 6:
+            case 7:
+                newPitch = 6;
+                break;
+            case 8:
+            case 9:
+                newPitch = 8;
+                break;
+            case 10:
+            case 11:
+                newPitch = 10;
+                break;
+            case 12:
+                newPitch = 12;
+                break;
+            default:
+                break;
+        }
+    }else{
+        switch (pitch) {
+            case 1:
+                newPitch = 1;
+                break;
+            case 2:
+            case 3:
+                newPitch = 3;
+                break;
+            case 4:
+            case 5:
+                newPitch = 5;
+                break;
+            case 6:
+                newPitch = 6;
+                break;
+            case 7:
+            case 8:
+                newPitch = 8;
+                break;
+            case 9:
+            case 10:
+                newPitch = 10;
+                break;
+            case 11:
+            case 12:
+                newPitch = 12;
+                break;
+            default:
+                break;
+        }
+    }
+    if (newPitch == 0) {
+        throw "无效的音高: " + pitch;
+    }
+    if (newPitch != pitch) {
+        roundedNoteCnt++;
+    }
+        
+    return newPitch;
+}
+
 /**
  * @param {string} name
  * @abstract 将类似"C3"这样的音符名转换为按键
  * @return 按键序号(从1开始)或-1
  */
 function name2key(name) {
-    const toneNames = ["C", "D", "E", "F", "G", "A", "B"];
+    const toneNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
     let key = 0;
     //C3 -> 第1个按键
     let m = -majorPitchOffset + 3;
@@ -146,19 +223,58 @@ function name2key(name) {
             return -1;
     }
 
-    m = minorPitchOffset;
+
+    let pitch = 0;
     for (let i = 0; i < toneNames.length; i++) {
-        if (name.charAt(0) === toneNames[i]) {
-            key += i + 1 + minorPitchOffset;
-            break;
-        };
-    };
-    if (name.charAt(1) === "#") {
-        roundedNoteCnt++;
-        if (treatHalfAsCeiling) {
-            key++;
-        };
+        if (name.startsWith(toneNames[i])) {
+            pitch = i + 1;
+        }
     }
+    if (pitch == 0) {
+        throw "无法识别的音符名:" + name;
+        return -1;
+    }
+
+    //移调的处理(模12)
+    pitch--;
+    pitch += minorPitchOffset;
+    if (pitch < 0) {
+        pitch += 12;
+        key -= 7;
+    }else if(pitch >= 12){
+        pitch -= 12;
+        key += 7;
+    }   
+    pitch++;
+
+    pitch = roundPitch(pitch);
+
+    switch (pitch) {
+        case 1:
+            key += 1;
+            break;
+        case 3:
+            key += 2;
+            break;
+        case 5:
+            key += 3;
+            break;
+        case 6:
+            key += 4;
+            break;
+        case 8:
+            key += 5;
+            break;
+        case 10:
+            key += 6;
+            break;
+        case 12:
+            key += 7;
+            break;
+        default:
+            throw "无效的音高" + pitch;
+    }
+
     if (key > 21 || key < 1) {
         outRangedNoteCnt++;
         return -1;
@@ -223,6 +339,7 @@ function initFileConfig(filepath) {
     let cfg = {};
     cfg.majorPitchOffset = 0;
     cfg.minorPitchOffset = 0;
+    cfg.halfCeiling = false;
     files.write(filepath, JSON.stringify(cfg));
 };
 
@@ -454,6 +571,8 @@ function setFileConfig(key, val, filename) {
 
     tmp[key] = val;
     files.write(filepath, JSON.stringify(tmp));
+    console.log("写入文件" + filepath + "成功");
+    console.verbose("配置信息: " + JSON.stringify(tmp));
     toast("设置保存成功");
     return 0;
 
@@ -468,6 +587,8 @@ function readFileConfig(key, filename) {
     };
     let tmp = files.read(filepath);
     tmp = JSON.parse(tmp);
+    console.log("读取文件:" + filepath);
+    console.verbose("读取配置信息: " + JSON.stringify(tmp));
     return tmp[key];
 };
 
@@ -482,10 +603,12 @@ function reRunSelf(){
 function runFileSetup(fileList) {
     let fileName = dialogs.singleChoice("选择一首乐曲..", fileList);
     fileName = fileList[fileName];
+    //清除后缀
+    fileName = fileName.split(".")[0];
     switch (dialogs.singleChoice("请选择一个设置，所有设置都会自动保存", ["调整音高", "半音处理方式"])) {
         case 0:
             setFileConfig("majorPitchOffset", dialogs.singleChoice("调整音高1", ["降低一个八度", "默认", "升高一个八度"], readFileConfig("majorPitchOffset", fileName) + 1) - 1, fileName);
-            setFileConfig("minorPitchOffset", dialogs.singleChoice("调整音高2", ["降低2个音阶", "降低1个音阶", "默认", "升高1个音阶", "升高2个音阶"], readFileConfig("minorPitchOffset", fileName) + 2) - 2, fileName);
+            setFileConfig("minorPitchOffset", dialogs.singleChoice("调整音高2", ["降低1个音阶", "降低1个半音", "默认", "升高1个半音", "升高1个音阶"], readFileConfig("minorPitchOffset", fileName) + 2) - 2, fileName);
             break;
         case 1:
             setFileConfig("halfCeiling", dialogs.singleChoice("楚留香的乐器无法弹奏半音，所以对于半音..", ["降低", "升高"], readFileConfig("halfCeiling", fileName)), fileName);
@@ -641,15 +764,22 @@ if (fileName == undefined) {
 //     noteData = parseMIDI(musicDir + fileName);
 // }
 
+let rawFileName = fileName.split(".")[0];
 
 let noteData = musicFormats.parseFile(musicDir + fileName);
-majorPitchOffset = readFileConfig("majorPitchOffset", fileName);
-minorPitchOffset = readFileConfig("minorPitchOffset", fileName);
-treatHalfAsCeiling = readFileConfig("halfCeiling",fileName);
+majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
+minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
+treatHalfAsCeiling = readFileConfig("halfCeiling",rawFileName);
 //print the first 10 elements of the noteData
 // for (let i = 0; i < 10; i++) {
 //     console.info(noteData[i]);
 // };
+
+console.log("当前乐曲:" + fileName);
+console.log("配置信息:");
+console.log("majorPitchOffset:" + majorPitchOffset);
+console.log("minorPitchOffset:" + minorPitchOffset);
+console.log("treatHalfAsCeiling:" + treatHalfAsCeiling);
 
 
 
@@ -748,7 +878,7 @@ let statString = "音符总数:" + totalNoteCnt +
                  "\n超出范围被丢弃的音符数:" + outRangedNoteCnt + "(" + (outRangedNoteCnt / noteData.length * 100).toFixed(2) + "%)" +
                  "\n被取整的音符数:" + roundedNoteCnt + "(" + (roundedNoteCnt / noteData.length * 100).toFixed(2) + "%)" + 
                  "\n过于密集被丢弃的音符数:" + timingDroppedNoteCnt + "(" + (timingDroppedNoteCnt / noteData.length * 100).toFixed(2) + "%)" +
-                 "\n如果被丢弃/取整的音符数过多,乐曲可能不适合在游戏中使用";
+                 "\n如果被取整的音符数过多,可以尝试在 调整音高 菜单中升高/降低一个半音";
 
 dialogs.alert("乐曲信息",statString);
 console.verbose("无障碍服务启动成功");
