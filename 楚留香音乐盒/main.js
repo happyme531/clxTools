@@ -363,7 +363,7 @@ function getPosConfig() {
             console.error(e);
             setGlobalConfig("alwaysUseCustomPos", true);
             dialogs.alert("错误", "没有找到合适的内置坐标，请进入全局设置, 修改自定义坐标");
-            exit();
+            reRunSelf();
         };
         clickx_pos = keyPos.clickx_pos;
         clicky_pos = keyPos.clicky_pos;
@@ -372,8 +372,8 @@ function getPosConfig() {
         clickx_pos = readGlobalConfig("customPosX", 0);
         clicky_pos = readGlobalConfig("customPosY", 0);
         if (clickx_pos === 0 || clicky_pos === 0) {
-            dialogs.alert("错误", "自定义坐标未设置");
-            exit();
+            dialogs.alert("错误", "自定义坐标未设置，请进入全局设置, 修改自定义坐标");
+            reRunSelf();
         }
         console.log(clickx_pos.toString());
         console.log(clicky_pos.toString());
@@ -725,11 +725,11 @@ switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更�
         break;
     case 1:
         runGlobalSetup();
-        exit();
+        reRunSelf();
         break;
     case 2:
         runFileSetup(fileList);
-        exit();
+        reRunSelf();
         break;
     case 3:
         index = dialogs.select("选择一首乐曲..", fileList);
@@ -737,7 +737,7 @@ switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更�
         break;
     case 4:
         startMidiStream();
-        exit();
+        reRunSelf();
         break;
     case 5:
         app.viewFile(musicDir + "使用帮助.txt");
@@ -755,8 +755,7 @@ const totalFiles = files.listDir(musicDir, function (name) {
 var fileName = totalFiles[index];
 
 if (fileName == undefined) {
-    toast("脚本已退出");
-    exit();
+    reRunSelf();
 }
 // if (fileName.endsWith(".json")) {
 //     noteData = parseTonejsJSON(musicDir + fileName);
