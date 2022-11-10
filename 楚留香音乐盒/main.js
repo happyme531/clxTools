@@ -275,7 +275,7 @@ function name2key(name) {
             throw "无效的音高" + pitch;
     }
 
-    if (key > 21 || key < 1) {
+    if (key > 15 || key < 1) {
         outRangedNoteCnt++;
         return -1;
     }
@@ -358,7 +358,8 @@ function getPosConfig() {
         let keyPos;
         let res = new preDefinedRes();
         try {
-            keyPos = res.getKeyPosition(screenHeight, screenWidth, gameType);
+            //keyPos = res.getKeyPosition(screenHeight, screenWidth, gameType);
+            throw "内置坐标已失效";
         } catch (e) {
             console.error(e);
             setGlobalConfig("alwaysUseCustomPos", true);
@@ -473,8 +474,10 @@ function startMidiStream() {
         for (let j = 0; j < noteList.length; j++) { //遍历这个数组
             tone = noteList[j];
             if (tone != 0) {
-                let clicky = Math.floor((tone - 1) / 7) + 1; //得到x
-                let clickx = (tone - 1) % 7 + 1; //得到y
+                let clicky = Math.floor((tone - 1) / 5) + 1; //得到x
+                let clickx = (tone - 1) % 5 + 1; //得到y
+                //反转y坐标(3->1, 2->2, 1->3)
+                clicky = 4 - clicky;
                 gestureList.push([0, 5, [clickx_pos[clickx - 1], clicky_pos[clicky - 1]]]);
             };
         };
@@ -655,8 +658,8 @@ function runGlobalSetup() {
             let pos1 = getPosInteractive("最左上角的音符按键中心");
             let pos2 = getPosInteractive("最右下角的音符按键中心");
             //等距分布
-            for (let i = 0; i < 7; i++) {
-                clickx_pos.push(pos1.x + (pos2.x - pos1.x) * i / 6);
+            for (let i = 0; i < 5; i++) {
+                clickx_pos.push(pos1.x + (pos2.x - pos1.x) * i / 4);
             }
             for (let i = 2; i >= 0; i--) {
                 clicky_pos.push(pos1.y + (pos2.y - pos1.y) * i / 2);    //从下到上(y高->y低)
@@ -986,12 +989,14 @@ while (i < noteCount) {
         for (var j = 0; j < noteList.length; j++) { //遍历这个数组
             tone = noteList[j];
             if (tone != -1) {
-                var clicky = Math.floor((tone - 1) / 7) + 1; //得到x
-                if (tone % 7 == 0) { //得到y
-                    var clickx = 7;
+                var clicky = Math.floor((tone - 1) / 5) + 1; //得到x
+                if (tone % 5 == 0) { //得到y
+                    var clickx = 5;
                 } else {
-                    var clickx = tone % 7;
+                    var clickx = tone % 5;
                 };
+                //反转y
+                clicky = 4 - clicky;
                 gestureList.push([0, 5, [clickx_pos[clickx - 1], clicky_pos[clicky - 1]]]);
             };
         };
