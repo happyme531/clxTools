@@ -302,7 +302,7 @@ function midiPitch2key(midiPitch){
  * @abstract 时间优化--删除过于密集的音符
  * @return {Array<[Number, Number]>} 
  */
- function timingRefine(noteData) {
+ function timingRefine(noteData, progressCallback){
     const sameNoteGapMin = 0.12;
     //const diffNoteGapMin = 0.05;
 
@@ -325,6 +325,9 @@ function midiPitch2key(midiPitch){
                 break;
             }
             j++;
+        }
+        if (progressCallback != null && i % 10 == 0) {
+            progressCallback(100 * i / noteData.length);
         }
     }
     return noteData;
@@ -763,9 +766,26 @@ if (fileName == undefined) {
 //     noteData = parseMIDI(musicDir + fileName);
 // }
 
+// 加载进度条
+let progressDialog = dialogs.build({
+    title: "加载中",
+    content: "正在解析文件...",
+    negative: "取消",
+    progress: {
+        max: 100,
+        showMinMax: false
+    },
+    cancelable: true,
+    canceledOnTouchOutside: false
+}).on("negative", () => {
+    reRunSelf();
+}).show();
+
 let rawFileName = fileName.split(".")[0];
 
+//解析文件
 let noteData = musicFormats.parseFile(musicDir + fileName);
+
 majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
 minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
 treatHalfAsCeiling = readFileConfig("halfCeiling",rawFileName);
@@ -781,13 +801,26 @@ console.log("minorPitchOffset:" + minorPitchOffset);
 console.log("treatHalfAsCeiling:" + treatHalfAsCeiling);
 
 
-
-for(let i=0;i<noteData.length;i++){
+// 生成音符
+progressDialog.setContent("正在生成音符...");
+progressDialog.setMaxProgress(noteData.length / 10);
+for (let i = 0; i < noteData.length; i++) {
     noteData[i][0] = midiPitch2key(noteData[i][0]);
     noteData[i][1] /= 1000;
+    if (i % 10 == 0) {
+        progressDialog.setProgress(i / 10);
+    }
 }
 totalNoteCnt = noteData.length;
-noteData = timingRefine(noteData);
+// 优化音符
+progressDialog.setContent("正在优化音符...");
+progressDialog.setMaxProgress(100);
+progressDialog.setProgress(0);
+noteData = timingRefine(noteData, (percentage) => {
+    progressDialog.setProgress(percentage);
+});
+
+progressDialog.dismiss();
 
 
 jsonData = null;
