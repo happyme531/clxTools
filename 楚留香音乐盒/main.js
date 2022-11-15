@@ -497,7 +497,12 @@ function startMidiStream() {
  * @param {number} timeSec
  */
 function sec2timeStr(timeSec){
-    return (Math.floor(timeSec/60)).toString() + ":" + (Math.floor(timeSec%60)).toString();
+    let minuteStr = Math.floor(timeSec / 60).toString();
+    let secondStr = Math.floor(timeSec % 60).toString();
+    if (minuteStr.length == 1) minuteStr = "0" + minuteStr;
+    if (secondStr.length == 1) secondStr = "0" + secondStr;
+    
+    return minuteStr + ":" + secondStr;
 }
 
 let cmp = (x, y) => {
@@ -928,22 +933,35 @@ var delaytime0, delaytime1;
 if (!readGlobalConfig("skipInit", 1)) sleep(noteData[0][1] * 1000);
 
 //显示悬浮窗
-let controlWindow = floaty.rawWindow(
+let controlWindow = floaty.window(
     <frame gravity="left">
         <horizontal bg="#7fffff7f">
             <text id="timerText" text="00:00/00:00" textSize="14sp"  />
-            <seekbar id="progressBar" layout_gravity="center_vertical" w='900px' />、
-            <button id="pauseResumeBtn" style="Widget.AppCompat.Button.Colored" w="180px" text="⏸" />
-            <button id="stopBtn" style="Widget.AppCompat.Button.Colored" w="180px" text="⏹" />
+            <seekbar id="progressBar" layout_gravity="center_vertical" w='850px' />、
+            <button id="pauseResumeBtn" style="Widget.AppCompat.Button.Colored" w="140px" text="⏸" />
+            <button id="stopBtn" style="Widget.AppCompat.Button.Colored" w="140px" text="⏹" />
         </horizontal>
     </frame>
 );
 
+toast("点击时间可调整悬浮窗位置");
+
+let windowPosition = readGlobalConfig("windowPosition", [device.height/3, 0]);
 //避免悬浮窗被屏幕边框挡住
-controlWindow.setPosition(device.height/3, 0);
+controlWindow.setPosition(windowPosition[0], windowPosition[1]);
 //TODO: 这里写死大小可能会有问题, 但是没有足够的测试数据来证明
 controlWindow.setSize(900 + 180 + 180 + 180, -2);   
-controlWindow.setTouchable(true);
+//controlWindow.setTouchable(true);
+
+//悬浮窗事件
+controlWindow.timerText.on("click", () => {
+    controlWindow.setAdjustEnabled(!controlWindow.isAdjustEnabled());
+    //记忆位置
+    if (!controlWindow.isAdjustEnabled()) {
+        setGlobalConfig("windowPosition", [controlWindow.getX(), controlWindow.getY()]);
+    }
+});
+
 
 let paused = true;  //手动启动播放
 //用来更新悬浮窗的线程
