@@ -1,5 +1,17 @@
 {
-  "assets": [],
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86",
+    "x86_64"
+  ],
+  "assets": [
+    {
+      "form": "/storage/emulated/0/脚本/楚留香音乐盒",
+      "to": "/project"
+    }
+  ],
+  "buildDir": "build",
   "build": {
     "build_id": "B2F60220-14",
     "build_number": 14,
@@ -7,10 +19,39 @@
   },
   "useFeatures": [],
   "icon": "res/logo.png",
-  "main": "main.js",
+  "ignoredDirs": [
+    "build"
+  ],
+  "launchConfig": {
+    "displaySplash": false,
+    "hideLauncher": false,
+    "hideLogs": false,
+    "stableMode": true,
+    "volumeUpcontrol": true,
+    "permissions": [
+      "accessibility_services",
+      "background_start",
+      "draw_overlay"
+    ],
+    "serviceDesc": "脚本需要无障碍服务来点击屏幕。",
+    "splashIcon": "res/splashIcon.png",
+    "splashText": "Powered by Autoxjs.com"
+  },
+  "libs": [
+    "libjackpal-androidterm5.so",
+    "libjackpal-termexec2.so"
+  ],
+  "main": "uiLauncher.js",
   "name": "楚留香音乐盒",
+  "outputPath": "/storage/emulated/0/脚本/楚留香音乐盒/build",
   "packageName": "dev.happyme531.clxmidiplayer",
+  "projectDirectory": "/storage/emulated/0/脚本/楚留香音乐盒",
   "scripts": {},
-  "versionCode": 10,
-  "versionName": "0.1.0"
+  "signingConfig": {
+    "alias": "default_ajs",
+    "keystore": "/storage/emulated/0/脚本/.keyStore/AutoX.keystore"
+  },
+  "sourcePath": "/storage/emulated/0/脚本/楚留香音乐盒/uiLauncher.js",
+  "versionCode": 34,
+  "versionName": "2.1.6"
 }
