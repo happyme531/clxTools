@@ -284,6 +284,7 @@ function name2key(name) {
 //低效率的转换！
 /**
  * @param {Number} midiPitch
+ * @abstract 将midi音高转换为按键编号(从1开始)
  */
 function midiPitch2key(midiPitch){
     function midiToPitchClass(midi){
@@ -297,12 +298,34 @@ function midiPitch2key(midiPitch){
     }
     return name2key(midiToPitch(midiPitch));
 }
+
+/**
+ * @param {Array<[Number, Number]>} noteList [midi音高, 开始时间(毫秒)]
+ * @param {function(Number):void} progressCallback 进度回调(百分比)
+ * @abstract 将音符列表转换为按键列表
+ * @return {Array<[Number, Number]>} 按键列表: [按键序号(从1开始), 开始时间(秒)]
+ */
+function noteListConvert(noteList, progressCallback) {
+    let keyList = [];
+    for (let i = 0; i < noteList.length; i++) {
+        let key = midiPitch2key(noteList[i][0]);
+        if (key == -1) {
+            continue;
+        }
+        keyList.push([key, noteList[i][1] / 1000]);
+        if (progressCallback != null && i % 10 == 0) {
+            progressCallback(100 * i / noteList.length);
+        }
+    }
+    return keyList;
+}
+
 /**
  * @param {Array<[Number, Number]>} noteData
  * @abstract 时间优化--删除过于密集的音符
  * @return {Array<[Number, Number]>} 
  */
- function timingRefine(noteData, progressCallback){
+function timingRefine(noteData, progressCallback){
     const sameNoteGapMin = 0.12;
     //const diffNoteGapMin = 0.05;
 
@@ -379,8 +402,8 @@ function getPosConfig() {
             dialogs.alert("错误", "自定义坐标未设置，请进入全局设置, 修改自定义坐标");
             reRunSelf();
         }
-        console.log(clickx_pos.toString());
-        console.log(clicky_pos.toString());
+        console.log("自定义坐标X:%s", JSON.stringify(clickx_pos));
+        console.log("自定义坐标Y:%s", JSON.stringify(clicky_pos));
     }
     return {
         "x" : clickx_pos,
@@ -730,9 +753,12 @@ if (!floaty.checkPermission()) {
 var index;
 var exportScore = false;
 switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更改全局设置", "🛠️更改乐曲设置", "🎼乐谱输出", "📲MIDI串流", "📃查看使用说明","🚪离开"])) {
-
+    case -1:
+        exit();
     case 0:
         index = dialogs.select("选择一首乐曲..", fileList);
+        if (index < 0) reRunSelf();
+
         break;
     case 1:
         runGlobalSetup();
@@ -811,15 +837,13 @@ console.log("treatHalfAsCeiling:" + treatHalfAsCeiling);
 
 // 生成音符
 progressDialog.setContent("正在生成音符...");
-progressDialog.setMaxProgress(noteData.length / 10);
-for (let i = 0; i < noteData.length; i++) {
-    noteData[i][0] = midiPitch2key(noteData[i][0]);
-    noteData[i][1] /= 1000;
-    if (i % 10 == 0) {
-        progressDialog.setProgress(i / 10);
-    }
-}
-totalNoteCnt = noteData.length;
+progressDialog.setMaxProgress(100);
+let totalNoteCnt = noteData.length;
+
+noteData = noteListConvert(noteData,(percentage)=>{
+    progressDialog.setProgress(percentage);
+});
+
 // 优化音符
 progressDialog.setContent("正在优化音符...");
 progressDialog.setMaxProgress(100);
@@ -915,9 +939,9 @@ let clickx_pos = pos.x;
 let clicky_pos = pos.y;
 
 let statString = "音符总数:" + totalNoteCnt + 
-                 "\n超出范围被丢弃的音符数:" + outRangedNoteCnt + "(" + (outRangedNoteCnt / noteData.length * 100).toFixed(2) + "%)" +
+                 "\n超出范围被丢弃的音符数:" + outRangedNoteCnt + "(" + (outRangedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%)" +
                  "\n被取整的音符数:" + roundedNoteCnt + "(" + (roundedNoteCnt / noteData.length * 100).toFixed(2) + "%)" + 
-                 "\n过于密集被丢弃的音符数:" + timingDroppedNoteCnt + "(" + (timingDroppedNoteCnt / noteData.length * 100).toFixed(2) + "%)" +
+                 "\n过于密集被丢弃的音符数:" + timingDroppedNoteCnt + "(" + (timingDroppedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%)" +
                  "\n如果被取整的音符数过多,可以尝试在 调整音高 菜单中升高/降低一个半音";
 
 dialogs.alert("乐曲信息",statString);
