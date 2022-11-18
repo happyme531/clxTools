@@ -119,7 +119,8 @@ let majorPitchOffset = 0;
 let minorPitchOffset = 0;
 let treatHalfAsCeiling = 0;
 
-let outRangedNoteCnt = 0;
+let overFlowedNoteCnt = 0;
+let underFlowedNoteCnt = 0;
 let roundedNoteCnt = 0;
 let timingDroppedNoteCnt = 0;
 
@@ -213,7 +214,8 @@ function name2key(name) {
     let low = m;
     let mid = m + 1;
     let high = m + 2;
-    switch (parseInt(name.charAt(name.length - 1))) {
+    let octave = parseInt(name.charAt(name.length - 1));
+    switch (octave) {
         case low:
             key += 0;
             break;
@@ -224,7 +226,12 @@ function name2key(name) {
             key += 14;
             break
         default:
-            outRangedNoteCnt++;
+            if (octave < low) {
+                underFlowedNoteCnt++;
+            }
+            if (octave > high) {
+                overFlowedNoteCnt++;
+            }
             return -1;
     }
 
@@ -280,8 +287,12 @@ function name2key(name) {
             throw "无效的音高" + pitch;
     }
 
-    if (key > 21 || key < 1) {
-        outRangedNoteCnt++;
+    if (key > 15) {
+        overFlowedNoteCnt++;
+        return -1;
+    }
+    if (key < 1) {
+        underFlowedNoteCnt++;
         return -1;
     }
     return key;
@@ -642,14 +653,22 @@ function reRunSelf(){
  */
 
 function evalFileConfig(fileName, targetMajorPitchOffset, targetMinorPitchOffset){
+    //丢弃音调高的音符的代价要高于丢弃音调低的音符的代价, 因此权重要高
+    const overFlowedNoteWeight = 10
+
     majorPitchOffset = targetMajorPitchOffset;
     minorPitchOffset = targetMinorPitchOffset;
-    outRangedNoteCnt = 0;
+    //重置计数器
+    overFlowedNoteCnt = 0;
+    underFlowedNoteCnt = 0;
     roundedNoteCnt = 0;
+    //运行
     let noteData = musicFormats.parseFile(musicDir + fileName);
     let keyList = noteListConvert(noteData);
+    //计算结果
+    outRangedNoteWeight = overFlowedNoteWeight * overFlowedNoteCnt + underFlowedNoteCnt;
 
-    return {"outRangedNoteCnt": outRangedNoteCnt, "roundedNoteCnt": roundedNoteCnt};
+    return {"outRangedNoteCnt": outRangedNoteWeight, "roundedNoteCnt": roundedNoteCnt};
 }
 
 function autoTuneFileConfig(fileName){
@@ -659,6 +678,8 @@ function autoTuneFileConfig(fileName){
     let bestMajorPitchOffset = 0;
     let bestMinorPitchOffset = 0;
     let bestResult = {"outRangedNoteCnt": 100000, "roundedNoteCnt": 100000};
+    let bestOverFlowedNoteCnt = 0;
+    let bestUnderFlowedNoteCnt = 0;
 
     //悬浮窗提示
     let dial = dialogs.build({
@@ -687,6 +708,8 @@ function autoTuneFileConfig(fileName){
         console.log("Pass " + i + " 结果: " + JSON.stringify(result));
         if (bestResult.roundedNoteCnt - result.roundedNoteCnt  > result.roundedNoteCnt * betterResultThreshold){
             bestMinorPitchOffset = possibleMinorPitchOffset[i];
+            bestOverFlowedNoteCnt = overFlowedNoteCnt;
+            bestUnderFlowedNoteCnt = underFlowedNoteCnt;
             bestResult = result;
         }
     }
@@ -694,7 +717,21 @@ function autoTuneFileConfig(fileName){
     console.log("最佳八度偏移: " + bestMajorPitchOffset);
     console.log("最佳半音偏移: " + bestMinorPitchOffset);
     dial.dismiss();
-    dialogs.alert("调整结果", "最佳结果: \n超出范围被丢弃的音符数: " + bestResult.outRangedNoteCnt + "\n被取整的音符数: " + bestResult.roundedNoteCnt + "\n\n最佳八度偏移: " + bestMajorPitchOffset + "\n最佳音阶偏移: " + bestMinorPitchOffset);
+    let realBestOutRangedNoteCnt = bestOverFlowedNoteCnt + bestUnderFlowedNoteCnt;
+    /**
+     * 最佳结果:
+     * 超出范围被丢弃的音符数: 123 (+10, -113)
+     * 被取整的音符数: 456
+     * 最佳八度偏移: 0
+     * 最佳半音偏移: 0
+     */
+    let resultStr = "最佳结果: \n" +
+                    "超出范围被丢弃的音符数: " + realBestOutRangedNoteCnt + " (+" + bestOverFlowedNoteCnt + ", -" + bestUnderFlowedNoteCnt + ")\n" +
+                    "被取整的音符数: " + bestResult.roundedNoteCnt + "\n" +
+                    "最佳八度偏移: " + bestMajorPitchOffset + "\n" +
+                    "最佳半音偏移: " + bestMinorPitchOffset;
+                
+    dialogs.alert("调整结果", resultStr);
 
     let rawFileName = fileName.split(".")[0];
 
@@ -1028,11 +1065,13 @@ let pos = getPosConfig();
 let clickx_pos = pos.x;
 let clicky_pos = pos.y;
 
-let statString = "音符总数:" + totalNoteCnt + 
-                 "\n超出范围被丢弃的音符数:" + outRangedNoteCnt + "(" + (outRangedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%)" +
-                 "\n被取整的音符数:" + roundedNoteCnt + "(" + (roundedNoteCnt / noteData.length * 100).toFixed(2) + "%)" + 
-                 "\n过于密集被丢弃的音符数:" + timingDroppedNoteCnt + "(" + (timingDroppedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%)" +
-                 "\n如果被取整的音符数过多,可以尝试在 调整音高 菜单中升高/降低一个半音";
+let outRangedNoteCnt = overFlowedNoteCnt + underFlowedNoteCnt;
+
+let statString = "音符总数:" + totalNoteCnt +
+    "\n超出范围被丢弃的音符数:" + outRangedNoteCnt + "" + " (+" + overFlowedNoteCnt + ", -" + underFlowedNoteCnt + ")(" + (outRangedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%)" +
+    "\n被取整的音符数:" + roundedNoteCnt + " (" + (roundedNoteCnt / noteData.length * 100).toFixed(2) + "%)" +
+    "\n过于密集被丢弃的音符数:" + timingDroppedNoteCnt + " (" + (timingDroppedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%)" +
+    "\n如果被取整的音符数过多,可以尝试在 调整音高 菜单中升高/降低一个半音";
 
 dialogs.alert("乐曲信息",statString);
 console.verbose("无障碍服务启动成功");
