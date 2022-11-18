@@ -647,6 +647,8 @@ function reRunSelf(){
     engines.execScriptFile(files.cwd() + "/main.js");
     exit();
 }
+
+var _cachedNoteData = null;
 /**
  * @param {string} fileName
  * @param {number} targetMajorPitchOffset
@@ -654,7 +656,6 @@ function reRunSelf(){
  * @brief 测试配置效果 
  * @return {Object} {outRangedNoteCnt, roundedNoteCnt} 
  */
-
 function evalFileConfig(fileName, targetMajorPitchOffset, targetMinorPitchOffset){
     //丢弃音调高的音符的代价要高于丢弃音调低的音符的代价, 因此权重要高
     const overFlowedNoteWeight = 10
@@ -666,8 +667,11 @@ function evalFileConfig(fileName, targetMajorPitchOffset, targetMinorPitchOffset
     underFlowedNoteCnt = 0;
     roundedNoteCnt = 0;
     //运行
-    let noteData = musicFormats.parseFile(musicDir + fileName);
-    let keyList = noteListConvert(noteData);
+    if (_cachedNoteData == null){
+        _cachedNoteData = musicFormats.parseFile(musicDir + fileName);
+    }
+    let keyList = noteListConvert(_cachedNoteData);
+    keyList = null;
     //计算结果
     outRangedNoteWeight = overFlowedNoteWeight * overFlowedNoteCnt + underFlowedNoteCnt;
 
@@ -721,20 +725,26 @@ function autoTuneFileConfig(fileName){
     console.log("最佳半音偏移: " + bestMinorPitchOffset);
     dial.dismiss();
     let realBestOutRangedNoteCnt = bestOverFlowedNoteCnt + bestUnderFlowedNoteCnt;
+    let totalNoteCnt = _cachedNoteData.length;
     /**
+     * example: 
      * 最佳结果:
-     * 超出范围被丢弃的音符数: 123 (+10, -113)
-     * 被取整的音符数: 456
+     * 超出范围被丢弃的音符数: 123 (+10, -113)(12.34%)
+     * 被取整的音符数: 456 (56.78%)
      * 最佳八度偏移: 0
      * 最佳半音偏移: 0
      */
+    let percentStr1 = (realBestOutRangedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%";
+    let percentStr2 = (bestResult.roundedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%";
     let resultStr = "最佳结果: \n" +
-                    "超出范围被丢弃的音符数: " + realBestOutRangedNoteCnt + " (+" + bestOverFlowedNoteCnt + ", -" + bestUnderFlowedNoteCnt + ")\n" +
-                    "被取整的音符数: " + bestResult.roundedNoteCnt + "\n" +
+                    "超出范围被丢弃的音符数: " + realBestOutRangedNoteCnt + " (+" + bestOverFlowedNoteCnt + ", -" + bestUnderFlowedNoteCnt + ")(" + percentStr1 + ")\n" +
+                    "被取整的音符数: " + bestResult.roundedNoteCnt + " (" + percentStr2 + ")\n" +
                     "最佳八度偏移: " + bestMajorPitchOffset + "\n" +
                     "最佳半音偏移: " + bestMinorPitchOffset;
                 
     dialogs.alert("调整结果", resultStr);
+
+    _cachedNoteData = null;
 
     let rawFileName = fileName.split(".")[0];
 
