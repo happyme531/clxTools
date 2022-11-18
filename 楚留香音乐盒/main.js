@@ -702,7 +702,7 @@ function autoTuneFileConfig(fileName){
         console.log("Pass " + i + " 结果: " + JSON.stringify(result));
         if (bestResult.outRangedNoteCnt - result.outRangedNoteCnt  > result.outRangedNoteCnt * betterResultThreshold){ 
             bestMajorPitchOffset = possibleMajorPitchOffset[i];
-            bestResult = result;
+            bestResult.outRangedNoteCnt = result.outRangedNoteCnt;
         }
     }
     for (let i = 0; i < possibleMinorPitchOffset.length; i++){
