@@ -95,10 +95,10 @@ function getJsonLength(json) {
     return jsonLength;
 };
 
-function getFileList() {
+function getRawFileNameList() {
     //遍历synth文件夹中所有文件，获得标题信息
     let totalFiles = files.listDir(musicDir, function (name) {
-        return (musicFormats.isMusicFile(name)) && files.isFile(files.join(musicDir, name));
+        return files.isFile(files.join(musicDir, name)) && musicFormats.isMusicFile(name);
     });
     let titles = new Array(totalFiles.length);
     //log(totalFiles);
@@ -110,6 +110,11 @@ function getFileList() {
     return titles;
 };
 
+function getFileList() {
+    return files.listDir(musicDir, function (name) {
+        return  files.isFile(files.join(musicDir, name)) && musicFormats.isMusicFile(name);
+    });
+}
 let majorPitchOffset = 0;
 let minorPitchOffset = 0;
 let treatHalfAsCeiling = 0;
@@ -628,21 +633,111 @@ function reRunSelf(){
     engines.execScriptFile(files.cwd() + "/main.js");
     exit();
 }
+/**
+ * @param {string} fileName
+ * @param {number} targetMajorPitchOffset
+ * @param {number} targetMinorPitchOffset
+ * @brief 测试配置效果 
+ * @return {Object} {outRangedNoteCnt, roundedNoteCnt} 
+ */
 
+function evalFileConfig(fileName, targetMajorPitchOffset, targetMinorPitchOffset){
+    majorPitchOffset = targetMajorPitchOffset;
+    minorPitchOffset = targetMinorPitchOffset;
+    outRangedNoteCnt = 0;
+    roundedNoteCnt = 0;
+    let noteData = musicFormats.parseFile(musicDir + fileName);
+    let keyList = noteListConvert(noteData);
 
+    return {"outRangedNoteCnt": outRangedNoteCnt, "roundedNoteCnt": roundedNoteCnt};
+}
 
-function runFileSetup(fileList) {
-    let fileName = dialogs.singleChoice("选择一首乐曲..", fileList);
+function autoTuneFileConfig(fileName){
+    const betterResultThreshold = 0.05; //如果新的结果比旧的结果好超过这个阈值，就认为新的结果更好
+    const possibleMajorPitchOffset = [0, -1, 1, -2, 2];
+    const possibleMinorPitchOffset = [0, 1, -1, 2, -2, 3, -3, 4, -4];
+    let bestMajorPitchOffset = 0;
+    let bestMinorPitchOffset = 0;
+    let bestResult = {"outRangedNoteCnt": 100000, "roundedNoteCnt": 100000};
+
+    //悬浮窗提示
+    let dial = dialogs.build({
+        title: "调整中...",
+        content: "正在调整音高偏移量，请稍候...",
+        progress: {
+            max: possibleMajorPitchOffset.length + possibleMinorPitchOffset.length,
+            showMinMax: true
+        },
+    });
+    dial.show();
+    for (let i = 0; i < possibleMajorPitchOffset.length; i++){
+        dial.setProgress(i);
+        //只考虑超范围的音符
+        let result = evalFileConfig(fileName, possibleMajorPitchOffset[i], 0);
+        console.log("Pass " + i + " 结果: " + JSON.stringify(result));
+        if (bestResult.outRangedNoteCnt - result.outRangedNoteCnt  > result.outRangedNoteCnt * betterResultThreshold){ 
+            bestMajorPitchOffset = possibleMajorPitchOffset[i];
+            bestResult = result;
+        }
+    }
+    for (let i = 0; i < possibleMinorPitchOffset.length; i++){
+        dial.setProgress(possibleMajorPitchOffset.length + i);
+        //只考虑被四舍五入的音符
+        let result = evalFileConfig(fileName, bestMajorPitchOffset, possibleMinorPitchOffset[i]);
+        console.log("Pass " + i + " 结果: " + JSON.stringify(result));
+        if (bestResult.roundedNoteCnt - result.roundedNoteCnt  > result.roundedNoteCnt * betterResultThreshold){
+            bestMinorPitchOffset = possibleMinorPitchOffset[i];
+            bestResult = result;
+        }
+    }
+    console.log("最佳结果: " + JSON.stringify(bestResult));
+    console.log("最佳八度偏移: " + bestMajorPitchOffset);
+    console.log("最佳半音偏移: " + bestMinorPitchOffset);
+    dial.dismiss();
+    dialogs.alert("调整结果", "最佳结果: \n超出范围被丢弃的音符数: " + bestResult.outRangedNoteCnt + "\n被取整的音符数: " + bestResult.roundedNoteCnt + "\n\n最佳八度偏移: " + bestMajorPitchOffset + "\n最佳音阶偏移: " + bestMinorPitchOffset);
+
+    let rawFileName = fileName.split(".")[0];
+
+    setFileConfig("majorPitchOffset", bestMajorPitchOffset, rawFileName);
+    setFileConfig("minorPitchOffset", bestMinorPitchOffset, rawFileName);
+    toast("自动调整完成");
+    return 0;
+}
+
+function runFileListSetup(fileList) {
+    let fileName = dialogs.select("选择一首乐曲..", fileList);
     fileName = fileList[fileName];
     //清除后缀
-    fileName = fileName.split(".")[0];
-    switch (dialogs.singleChoice("请选择一个设置，所有设置都会自动保存", ["调整音高", "半音处理方式"])) {
+    rawFileName = fileName.split(".")[0];
+    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", [ "自动调整音高", "调整音高", "半音处理方式"])) {
+        case -1:
+            break;
         case 0:
-            setFileConfig("majorPitchOffset", dialogs.singleChoice("调整音高1", ["降低一个八度", "默认", "升高一个八度"], readFileConfig("majorPitchOffset", fileName) + 1) - 1, fileName);
-            setFileConfig("minorPitchOffset", dialogs.singleChoice("调整音高2", ["降低1个音阶", "降低1个半音", "默认", "升高1个半音", "升高1个音阶"], readFileConfig("minorPitchOffset", fileName) + 2) - 2, fileName);
+            autoTuneFileConfig(fileName);
             break;
         case 1:
-            setFileConfig("halfCeiling", dialogs.singleChoice("楚留香的乐器无法弹奏半音，所以对于半音..", ["降低", "升高"], readFileConfig("halfCeiling", fileName)), fileName);
+            let majorPitchOffsetStr = ["降低2个八度", "降低1个八度", "默认", "升高1个八度", "升高2个八度"];
+            let minorPitchOffsetStr = ["降低4个半音", "降低3个半音", "降低2个半音", "降低1个半音", "默认", "升高1个半音", "升高2个半音", "升高3个半音", "升高4个半音"];
+            let currentMajorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
+            let currentMinorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
+
+            let res1 = dialogs.singleChoice("调整音高1", majorPitchOffsetStr, currentMajorPitchOffset + 2);
+            if (res1 == -1) {
+                toastLog("设置没有改变");
+            } else {
+                setFileConfig("majorPitchOffset", res1 - 2, rawFileName);
+            }
+
+            let res2 = dialogs.singleChoice("调整音高2", minorPitchOffsetStr, currentMinorPitchOffset + 4);
+            if (res2 == -1) {
+                toastLog("设置没有改变");
+            } else {
+                setFileConfig("minorPitchOffset", res2 - 4, rawFileName);
+            }
+            break;
+        case 2:
+            setFileConfig("halfCeiling", dialogs.singleChoice("楚留香的乐器无法弹奏半音，所以对于半音..", ["降低", "升高"], readFileConfig("halfCeiling", rawFileName)), rawFileName);
+            break;
 
     };
 };
@@ -737,7 +832,8 @@ console.info("\
 console.verbose("等待无障碍服务..");
 //toast("请允许本应用的无障碍权限");
 auto.waitFor();
-const fileList = getFileList();
+const rawFileNameList = getRawFileNameList();
+const totalFiles = getFileList();
 if (!floaty.checkPermission()) {
     // 没有悬浮窗权限，提示用户并跳转请求
     toast("本脚本需要悬浮窗权限来显示悬浮窗，请在随后的界面中允许并重新运行本脚本。");
@@ -753,7 +849,7 @@ switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更�
     case -1:
         exit();
     case 0:
-        index = dialogs.select("选择一首乐曲..", fileList);
+        index = dialogs.select("选择一首乐曲..", rawFileNameList);
         if (index < 0) reRunSelf();
 
         break;
@@ -762,11 +858,11 @@ switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更�
         reRunSelf();
         break;
     case 2:
-        runFileSetup(fileList);
+        runFileListSetup(totalFiles);
         reRunSelf();
         break;
     case 3:
-        index = dialogs.select("选择一首乐曲..", fileList);
+        index = dialogs.select("选择一首乐曲..", rawFileNameList);
         exportScore = true;
         break;
     case 4:
@@ -782,9 +878,6 @@ switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更�
         break;
 };
 
-const totalFiles = files.listDir(musicDir, function (name) {
-    return (musicFormats.isMusicFile(name) ) && files.isFile(files.join(musicDir, name));
-});
 
 var fileName = totalFiles[index];
 
