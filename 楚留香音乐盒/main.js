@@ -287,7 +287,7 @@ function name2key(name) {
             throw "无效的音高" + pitch;
     }
 
-    if (key > 15) {
+    if (key > 21) {
         overFlowedNoteCnt++;
         return -1;
     }
@@ -1186,6 +1186,9 @@ threads.start(function(){
 while (paused) {
     sleep(500);
 }
+
+let nextNotes = new Set();
+let gestureList = new Array();
 while (i < noteCount) {
     delaytime0 = noteData[i][1]; //这个音符的时间，单位:秒
     if (i != (noteCount - 1)) {
@@ -1194,14 +1197,12 @@ while (i < noteCount) {
         delaytime1 = delaytime0 + 0.1;
     };
     if (Math.abs(delaytime0 - delaytime1) < 0.01) { //如果两个音符时间相等，把这个音和后面的一起加入数组
-        noteList.push(noteData[i][0]);
+        nextNotes.add(noteData[i][0]);
     } else {
-        noteList.push(noteData[i][0]);
+        nextNotes.add(noteData[i][0]);
         let delaytime = delaytime1 - delaytime0;
         //console.log(noteList);
-        var gestureList = new Array();
-        for (var j = 0; j < noteList.length; j++) { //遍历这个数组
-            tone = noteList[j];
+        nextNotes.forEach((tone) => {
             if (tone != -1) {
                 var clicky = Math.floor((tone - 1) / 7) + 1; //得到x
                 if (tone % 7 == 0) { //得到y
@@ -1211,7 +1212,8 @@ while (i < noteCount) {
                 };
                 gestureList.push([0, 5, [clickx_pos[clickx - 1], clicky_pos[clicky - 1]]]);
             };
-        };
+        });
+
         if (delaytime >= 6) {
             //长音
             //gestureList[gestureList.length] = [0, delaytime * 1000 / 2, longclick_pos];
@@ -1219,7 +1221,10 @@ while (i < noteCount) {
         //执行手势
         //console.log(gestureList);
 
-        if (gestureList.length > 10) gestureList.splice(9, gestureList.length - 10); //手势最多同时只能执行10个
+        if (gestureList.length > 10) {
+            console.log("手势太长!:" + gestureList.length);
+            gestureList.splice(9, gestureList.length - 10); //手势最多同时只能执行10个
+        }
 
         if (gestureList.length != 0) {
             gestures.apply(null, gestureList);
@@ -1228,8 +1233,9 @@ while (i < noteCount) {
         while (paused) {
             sleep(1000);
         }
-        noteList = [];
+        nextNotes.clear();
         gestureList = [];
+
     };
     i++
 };
