@@ -2,11 +2,12 @@
 
 var globalConfig = storages.create("hallo1_clxmidiplayer_config");
 
-try{
-  var preDefinedRes = require("./src/predefinedres.js");
-  var MusicFormats = require("./src/musicFormats.js");
-  var MidiDeviceManager = require("./src/midiDeviceManager.js");
-}catch(e){
+try {
+    var preDefinedRes = require("./src/predefinedres.js");
+    var MusicFormats = require("./src/musicFormats.js");
+    var MidiDeviceManager = require("./src/midiDeviceManager.js");
+    var Humanifyer = require("./src/humanify.js");
+} catch (e) {
     toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
     toast(e);
 }
@@ -15,7 +16,7 @@ const musicDir = "/sdcard/楚留香音乐盒数据目录/"
 const scriptVersion = 11;
 
 let musicFormats = new MusicFormats();
-
+let humanifyer = new Humanifyer();
 
 function getPosInteractive(promptText) {
     let gotPos = false;
@@ -592,9 +593,11 @@ function setGlobalConfig(key, val) {
     globalConfig.put(key, val);
     let tmp = globalConfig.get(key);
     if (cmp(tmp, val)) {
+        console.log("设置全局配置成功: " + key + " = " + val);
         toast("设置保存成功");
         return 1;
     } else {
+        console.log("设置全局配置失败: " + key + " = " + val);
         toast("设置保存失败！");
         return 0;
     };
@@ -602,7 +605,12 @@ function setGlobalConfig(key, val) {
 };
 
 function readGlobalConfig(key, defaultValue) {
-    return globalConfig.get(key, defaultValue);
+    let res = globalConfig.get(key, defaultValue);
+    if (res == null) {
+        return defaultValue;
+    } else {
+        return res;
+    }
 };
 
 function setFileConfig(key, val, filename) {
@@ -753,6 +761,9 @@ function autoTuneFileConfig(fileName){
 
 function runFileListSetup(fileList) {
     let fileName = dialogs.select("选择一首乐曲..", fileList);
+    if (fileName == -1) {
+        return;
+    }
     fileName = fileList[fileName];
     //清除后缀
     rawFileName = fileName.split(".")[0];
@@ -790,7 +801,9 @@ function runFileListSetup(fileList) {
 };
 
 function runGlobalSetup() {
-    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "设置游戏类型","启用自定义坐标","设置自定义坐标"])) {
+    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "设置游戏类型","启用自定义坐标","设置自定义坐标", "伪装手弹模式"])) {
+        case -1:
+            break;
         case 0:
             setGlobalConfig("skipInit", dialogs.select("是否跳过乐曲开始前的空白?", ["否", "是"]));
             break;
@@ -839,6 +852,50 @@ function runGlobalSetup() {
             setGlobalConfig("customPosY", clicky_pos);
             setGlobalConfig("alwaysUseCustomPos", true);
             dialogs.alert("", "设置完成, 自定义坐标已启用");
+            break;
+        
+        case 4: //伪装手弹模式
+            let humanifyEnabled = readGlobalConfig("humanifyEnabled", false);
+            let setupFinished = false;
+            let enterDetailedSetup = false;
+            let dial = dialogs.build({
+                title: "伪装手弹模式",
+                content: "要开启假装手弹模式吗？",
+                positive: "开启",
+                negative: "关闭",
+                neutral: "更改设置...",
+                cancelable: true,
+                canceledOnTouchOutside: false,
+            }).on("positive", () => {
+                setGlobalConfig("humanifyEnabled", true);
+                setupFinished = true;
+                dial.dismiss();
+            }).on("negative", () => {
+                setGlobalConfig("humanifyEnabled", false);
+                setupFinished = true;
+                dial.dismiss();
+            }).on("neutral", () => {
+                enterDetailedSetup = true;
+                setupFinished = true;
+            }).show();
+            while (!setupFinished) {
+                sleep(100);
+            }
+            if (enterDetailedSetup) {
+                let humanifyNoteAbsTimeStdDev = readGlobalConfig("humanifyNoteAbsTimeStdDev", 50);
+
+                let res = dialogs.rawInput("设置平均偏差时间(毫秒), 越高->偏差越大", humanifyNoteAbsTimeStdDev.toString());
+                if (res === null) {
+                    toastLog("设置没有改变");
+                } else {
+                    try {
+                        setGlobalConfig("humanifyNoteAbsTimeStdDev", parseInt(res));
+                    } catch (error) {
+                        toastLog("输入无效, 设置没有改变");
+                        console.error(error);
+                    }
+                }
+            }
             break;
     };
 };
@@ -953,9 +1010,13 @@ let progressDialog = dialogs.build({
 }).show();
 
 let rawFileName = fileName.split(".")[0];
+let startTime = new Date().getTime();
 
 //解析文件
 let noteData = musicFormats.parseFile(musicDir + fileName);
+let durationSecond = (new Date().getTime() - startTime) / 1000;
+let nps = (noteData.length / durationSecond).toFixed(0);
+console.log("解析文件耗时" + durationSecond + "秒(" + nps + "nps)");
 
 majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
 minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
@@ -971,8 +1032,19 @@ console.log("majorPitchOffset:" + majorPitchOffset);
 console.log("minorPitchOffset:" + minorPitchOffset);
 console.log("treatHalfAsCeiling:" + treatHalfAsCeiling);
 
+//伪装
 
-// 生成音符
+let humanifyEnabled = readGlobalConfig("humanifyEnabled", false);
+
+if (humanifyEnabled) {
+    let noteAbsTimeStdDev = readGlobalConfig("humanifyNoteAbsTimeStdDev", 50);
+    progressDialog.setMaxProgress(100);
+    humanifyer.setNoteAbsTimeStdDev(noteAbsTimeStdDev);
+    noteData = humanifyer.humanify(noteData);
+}
+
+//生成音符
+startTime = new Date().getTime();
 progressDialog.setContent("正在生成音符...");
 progressDialog.setMaxProgress(100);
 let totalNoteCnt = noteData.length;
@@ -981,13 +1053,22 @@ noteData = noteListConvert(noteData,(percentage)=>{
     progressDialog.setProgress(percentage);
 });
 
+durationSecond = (new Date().getTime() - startTime) / 1000;
+nps = (noteData.length / durationSecond).toFixed(0);
+console.log("生成音符耗时" + durationSecond + "秒(" + nps + "nps)");
+
 // 优化音符
 progressDialog.setContent("正在优化音符...");
 progressDialog.setMaxProgress(100);
 progressDialog.setProgress(0);
+startTime = new Date().getTime();
 noteData = timingRefine(noteData, (percentage) => {
     progressDialog.setProgress(percentage);
 });
+
+durationSecond = (new Date().getTime() - startTime) / 1000;
+nps = (noteData.length / durationSecond).toFixed(0);
+console.log("优化音符耗时" + durationSecond + "秒(" + nps + "nps)");
 
 progressDialog.dismiss();
 
