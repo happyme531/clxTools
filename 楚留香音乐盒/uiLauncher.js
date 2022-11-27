@@ -9,7 +9,7 @@ const 说明文字 = "\
 6. 感谢autoX.js作者提供的框架\n\
 \n\
 当前版本支持的游戏: \n\
-理论全部3x7键位的游戏, 包括楚留香, 原神, 天刀, 还有更多...\n\
+3x7键位(楚留香, 原神, 天刀...(基本所有的3x7游戏都支持)), 3x5(光遇), 2x4(光遇)\n\
 \n\
 当前版本支持的音乐格式: \n\
 MIDI(.mid), ToneJS(.json), DoMiSo(.dms.txt), SkyStudio(.skystudio.txt)\n\

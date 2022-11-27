@@ -25,7 +25,7 @@ function MidiPitch() {
                     return pitch[note] + 12 * 5 + 12 * (parseInt(name[1]) - 4);
                 }
             case 3: // eg. C5#
-                return pitch[note] + 12 * (name[1] - '0') + 1;
+                return pitch[note] + 12 * 5 + 1 + 12 * (parseInt(name[1]) - 4);
         }
     }
     

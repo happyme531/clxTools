@@ -7,16 +7,68 @@ try {
     var MusicFormats = require("./src/musicFormats.js");
     var MidiDeviceManager = require("./src/midiDeviceManager.js");
     var Humanifyer = require("./src/humanify.js");
+    var GameProfile = require("./src/gameProfile.js");
 } catch (e) {
     toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
     toast(e);
+    console.error(e);
 }
 
 const musicDir = "/sdcard/楚留香音乐盒数据目录/"
 const scriptVersion = 11;
 
+//在日志中打印脚本生成的中间结果, 可选项: parse, humanify, key, timing, gestures
+const debugDumpPass = "";
+
+
 let musicFormats = new MusicFormats();
 let humanifyer = new Humanifyer();
+let gameProfile = new GameProfile();
+//setGlobalConfig("userGameProfile", null);
+//加载配置文件
+try {
+    //启动无障碍服务
+    console.verbose("等待无障碍服务..");
+    //toast("请允许本应用的无障碍权限");
+    auto.waitFor();
+    console.verbose("无障碍服务已启动");
+    let userGameProfile = readGlobalConfig("userGameProfile", null);
+    if (userGameProfile != null) {
+        gameProfile.loadGameConfigs(userGameProfile);
+    } else {
+        gameProfile.loadDefaultGameConfigs();
+    }
+    //尝试加载用户设置的游戏配置
+    let activeConfigName = readGlobalConfig("activeConfigName", null);
+    let res = gameProfile.setConfigByName(activeConfigName);
+    if (res == false) {
+        console.log("尝试加载用户设置的游戏配置...失败!");
+    }else{
+        console.log("尝试加载用户设置的游戏配置...成功, 当前配置: " + gameProfile.getCurrentConfigName());
+    }
+
+    //尝试通过包名加载游戏配置 (加载失败后保留当前配置)
+    let currentPackageName = currentPackage();
+    console.log("当前包名:" + currentPackageName);
+    res = gameProfile.setConfigByPackageName(currentPackageName);
+    if (res == false){
+        console.log("尝试通过包名加载游戏配置...失败!");
+    }else{
+        console.log("尝试通过包名加载游戏配置...成功, 当前配置: " + gameProfile.getCurrentConfigName());
+    }
+
+    if (gameProfile.getCurrentConfig() == null){
+        console.error("未找到合适配置, 已加载默认配置!");
+        toast("未找到合适配置, 已加载默认配置!");
+        gameProfile.setConfigByName("楚留香");
+    }
+    
+} catch (error) {
+    toastLog("加载配置文件失败! 已自动加载默认配置!");
+    toastLog(error);
+    gameProfile.loadDefaultGameConfigs();
+    setGlobalConfig("userGameProfile", null);
+}
 
 function getPosInteractive(promptText) {
     let gotPos = false;
@@ -113,7 +165,7 @@ function getRawFileNameList() {
 
 function getFileList() {
     return files.listDir(musicDir, function (name) {
-        return  files.isFile(files.join(musicDir, name)) && musicFormats.isMusicFile(name);
+        return files.isFile(files.join(musicDir, name)) && musicFormats.isMusicFile(name);
     });
 }
 let majorPitchOffset = 0;
@@ -125,196 +177,38 @@ let underFlowedNoteCnt = 0;
 let roundedNoteCnt = 0;
 let timingDroppedNoteCnt = 0;
 
-//对半音取整
-//C -> 1, C# -> 2, D -> 3, D# -> 4, E -> 5, F -> 6, F# -> 7, G -> 8, G# -> 9, A -> 10, A# -> 11, B -> 12
-function roundPitch(pitch) {
-    let newPitch = 0;
-    if(!treatHalfAsCeiling){
-        switch (pitch) {
-            case 1:
-            case 2:
-                newPitch = 1;
-                break;
-            case 3:
-            case 4:
-                newPitch = 3;
-                break;
-            case 5:
-                newPitch = 5;
-                break;
-            case 6:
-            case 7:
-                newPitch = 6;
-                break;
-            case 8:
-            case 9:
-                newPitch = 8;
-                break;
-            case 10:
-            case 11:
-                newPitch = 10;
-                break;
-            case 12:
-                newPitch = 12;
-                break;
-            default:
-                break;
-        }
-    }else{
-        switch (pitch) {
-            case 1:
-                newPitch = 1;
-                break;
-            case 2:
-            case 3:
-                newPitch = 3;
-                break;
-            case 4:
-            case 5:
-                newPitch = 5;
-                break;
-            case 6:
-                newPitch = 6;
-                break;
-            case 7:
-            case 8:
-                newPitch = 8;
-                break;
-            case 9:
-            case 10:
-                newPitch = 10;
-                break;
-            case 11:
-            case 12:
-                newPitch = 12;
-                break;
-            default:
-                break;
-        }
-    }
-    if (newPitch == 0) {
-        throw "无效的音高: " + pitch;
-    }
-    if (newPitch != pitch) {
-        roundedNoteCnt++;
-    }
-        
-    return newPitch;
-}
-
-/**
- * @param {string} name
- * @abstract 将类似"C3"这样的音符名转换为按键
- * @return 按键序号(从1开始)或-1
- */
-function name2key(name) {
-    const toneNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    let key = 0;
-    //C3 -> 第1个按键
-    let m = -majorPitchOffset + 3;
-    let low = m;
-    let mid = m + 1;
-    let high = m + 2;
-    let octave = parseInt(name.charAt(name.length - 1));
-    switch (octave) {
-        case low:
-            key += 0;
-            break;
-        case mid:
-            key += 7;
-            break;
-        case high:
-            key += 14;
-            break
-        default:
-            if (octave < low) {
-                underFlowedNoteCnt++;
-            }
-            if (octave > high) {
-                overFlowedNoteCnt++;
-            }
-            return -1;
-    }
-
-
-    let pitch = 0;
-    for (let i = 0; i < toneNames.length; i++) {
-        if (name.startsWith(toneNames[i])) {
-            pitch = i + 1;
-        }
-    }
-    if (pitch == 0) {
-        throw "无法识别的音符名:" + name;
-        return -1;
-    }
-
-    //移调的处理(模12)
-    pitch--;
-    pitch += minorPitchOffset;
-    if (pitch < 0) {
-        pitch += 12;
-        key -= 7;
-    }else if(pitch >= 12){
-        pitch -= 12;
-        key += 7;
-    }   
-    pitch++;
-
-    pitch = roundPitch(pitch);
-
-    switch (pitch) {
-        case 1:
-            key += 1;
-            break;
-        case 3:
-            key += 2;
-            break;
-        case 5:
-            key += 3;
-            break;
-        case 6:
-            key += 4;
-            break;
-        case 8:
-            key += 5;
-            break;
-        case 10:
-            key += 6;
-            break;
-        case 12:
-            key += 7;
-            break;
-        default:
-            throw "无效的音高" + pitch;
-    }
-
-    if (key > 21) {
-        overFlowedNoteCnt++;
-        return -1;
-    }
-    if (key < 1) {
-        underFlowedNoteCnt++;
-        return -1;
-    }
-    return key;
-};
-//低效率的转换！
 /**
  * @param {Number} midiPitch
  * @abstract 将midi音高转换为按键编号(从1开始)
+ * @return 按键序号(从1开始)或-1
  */
-function midiPitch2key(midiPitch){
-    function midiToPitchClass(midi){
-        const scaleIndexToNote = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-        const note = midi % 12;
-        return scaleIndexToNote[note];
+function midiPitch2key(midiPitch) {
+    midiPitch += majorPitchOffset * 12;
+    midiPitch += minorPitchOffset;
+    let key = gameProfile.getKeyByPitch(midiPitch);
+    if (key == -1) {
+        let noteRange = gameProfile.getNoteRange();
+        if (midiPitch < noteRange[0]) {
+            underFlowedNoteCnt++;
+            return -1;
+        }
+        if (midiPitch > noteRange[1]) {
+            overFlowedNoteCnt++;
+            return -1;
+        }
+        if(treatHalfAsCeiling){
+            key = gameProfile.getKeyByPitch(midiPitch + 1);
+        }else{
+            key = gameProfile.getKeyByPitch(midiPitch - 1);
+        }
+        if (key == -1) {
+            return -1;
+        }
+        roundedNoteCnt++;
     }
-    function midiToPitch(midi) {
-        const octave = Math.floor(midi / 12) - 1;
-        return midiToPitchClass(midi) + octave.toString();
-    }
-    return name2key(midiToPitch(midiPitch));
-}
+    return key;
+};
+
 
 /**
  * @param {Array<[Number, Number]>} noteList [midi音高, 开始时间(毫秒)]
@@ -343,7 +237,7 @@ function noteListConvert(noteList, progressCallback) {
  * @return {Array<[Number, Number]>} 
  */
 function timingRefine(noteData, progressCallback){
-    const sameNoteGapMin = 0.12;
+    const sameNoteGapMin = gameProfile.getSameKeyMinInterval() / 1000;
     //const diffNoteGapMin = 0.05;
 
     for (let i = 0; i < noteData.length; i++) {
@@ -358,6 +252,7 @@ function timingRefine(noteData, progressCallback){
             if (note[0] === nextNote[0]) {
                 if (nextNote[1] - note[1] < sameNoteGapMin) {
                     noteData.splice(j, 1);
+                    //console.log("删除过于密集的音符:" + nextNote[0] + "(diff:" + (nextNote[1] - note[1]) + ")");
                     timingDroppedNoteCnt++;
                 }
             }
@@ -428,9 +323,14 @@ function getPosConfig() {
 }
 
 function startMidiStream() {
-    let pos = getPosConfig();
-    let clickx_pos = pos.x;
-    let clicky_pos = pos.y;
+    if(!gameProfile.checkKeyPosition()){
+        dialogs.alert("错误", "坐标未设置，请设置坐标");
+        runGlobalSetup();
+        reRunSelf();
+    }
+    majorPitchOffset = 0;
+    minorPitchOffset = 0;
+    halfCeiling = false;
     let midi = new MidiDeviceManager();
     let devNames = [];
     while (1) {
@@ -500,7 +400,7 @@ function startMidiStream() {
     while(1){
         let noteList = [];
         while(!midi.dataAvailable()){
-            sleep(100);
+            sleep(20);
         }
         while(midi.dataAvailable()){
             let data = midi.read();
@@ -516,9 +416,7 @@ function startMidiStream() {
         for (let j = 0; j < noteList.length; j++) { //遍历这个数组
             tone = noteList[j];
             if (tone != 0) {
-                let clicky = Math.floor((tone - 1) / 7) + 1; //得到x
-                let clickx = (tone - 1) % 7 + 1; //得到y
-                gestureList.push([0, 5, [clickx_pos[clickx - 1], clicky_pos[clicky - 1]]]);
+                gestureList.push([0, 5, gameProfile.getKeyPosition(tone - 1)]);
             };
         };
         if (gestureList.length > 10) gestureList.splice(9, gestureList.length - 10); //手势最多同时只能执行10个
@@ -542,66 +440,12 @@ function sec2timeStr(timeSec){
     return minuteStr + ":" + secondStr;
 }
 
-let cmp = (x, y) => {
-    // If both x and y are null or undefined and exactly the same
-    if (x === y) {
-        return true;
-    }
-
-    // If they are not strictly equal, they both need to be Objects
-    if (!(x instanceof Object) || !(y instanceof Object)) {
-        return false;
-    }
-
-    //They must have the exact same prototype chain,the closest we can do is
-    //test the constructor.
-    if (x.constructor !== y.constructor) {
-        return false;
-    }
-    for (var p in x) {
-        //Inherited properties were tested using x.constructor === y.constructor
-        if (x.hasOwnProperty(p)) {
-            // Allows comparing x[ p ] and y[ p ] when set to undefined
-            if (!y.hasOwnProperty(p)) {
-                return false;
-            }
-            // If they have the same strict value or identity then they are equal
-            if (x[p] === y[p]) {
-                continue;
-            }
-            // Numbers, Strings, Functions, Booleans must be strictly equal
-            if (typeof(x[p]) !== "object") {
-                return false;
-            }
-            // Objects and Arrays must be tested recursively
-            if (!Object.equals(x[p], y[p])) {
-                return false;
-            }
-        }
-    }
-
-    for (p in y) {
-        // allows x[ p ] to be set to undefined
-        if (y.hasOwnProperty(p) && !x.hasOwnProperty(p)) {
-            return false;
-        }
-    }
-    return true;
-};
 
 function setGlobalConfig(key, val) {
     globalConfig.put(key, val);
-    let tmp = globalConfig.get(key);
-    if (cmp(tmp, val)) {
-        console.log("设置全局配置成功: " + key + " = " + val);
-        toast("设置保存成功");
-        return 1;
-    } else {
-        console.log("设置全局配置失败: " + key + " = " + val);
-        toast("设置保存失败！");
-        return 0;
-    };
-
+    console.log("设置全局配置成功: " + key + " = " + val);
+    toast("设置保存成功");
+    return 1;
 };
 
 function readGlobalConfig(key, defaultValue) {
@@ -647,6 +491,20 @@ function readFileConfig(key, filename) {
     return tmp[key];
 };
 
+function saveUserGameProfile() {
+    let profile = gameProfile.getGameConfigs();
+    setGlobalConfig("userGameProfile", profile);
+    console.log("保存用户游戏配置成功");
+    toast("保存用户游戏配置成功");
+};
+
+function debugDump(obj, name) {
+    console.log("====================" + name + "====================");
+    console.log("Type: " + typeof (obj));
+    let tmp = JSON.stringify(obj);
+    console.log(tmp);
+    console.log("====================" + name + "====================");
+}
 
 function reRunSelf(){
     engines.execScriptFile(files.cwd() + "/main.js");
@@ -801,60 +659,38 @@ function runFileListSetup(fileList) {
 };
 
 function runGlobalSetup() {
-    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "设置游戏类型","启用自定义坐标","设置自定义坐标", "伪装手弹模式"])) {
+    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "设置配置类型","设置坐标", "伪装手弹模式"])) {
         case -1:
             break;
         case 0:
             setGlobalConfig("skipInit", dialogs.select("是否跳过乐曲开始前的空白?", ["否", "是"]));
             break;
         case 1:
-            let sel = dialogs.select("选择此脚本的目标游戏(此选项只会影响预设的坐标)", ["楚留香(一梦江湖)", "天涯明月刀", "原神", "摩尔庄园"]);
-            switch (sel) {
-                case 0:
-                    setGlobalConfig("gameType", "楚留香");
-                    break;
-                case 1:
-                    setGlobalConfig("gameType", "天涯明月刀");
-                    break;
-                case 2:
-                    setGlobalConfig("gameType", "原神");
-                    break;
-                case 3:
-                    setGlobalConfig("gameType", "摩尔庄园");
-                    break;
-            };
-            break;
-        case 2:
-            if (!dialogs.confirm("", "总是使用自定义坐标吗")) {
-                setGlobalConfig("alwaysUseCustomPos", false);
+            let configList = gameProfile.getConfigNameList();
+            let sel = dialogs.select("选择此脚本的目标配置", configList);
+            if (sel == -1) {
+                toastLog("设置没有改变");
             } else {
-                if (readGlobalConfig("customPosX", 0) === 0) {    //无效的配置
-                    dialogs.alert("", "你还没有设置自定义坐标!");
-                } else {
-                    setGlobalConfig("alwaysUseCustomPos", true);
-                }
+                let configName = configList[sel];
+                setGlobalConfig("activeConfigName", configName);
+                gameProfile.setConfigByName(configName);
+                toastLog("设置已保存");
             }
             break;
-        case 3: //设置自定义坐标
+        case 2: //设置自定义坐标
             let clickx_pos = [];
             let clicky_pos = [];
             let pos1 = getPosInteractive("最左上角的音符按键中心");
             let pos2 = getPosInteractive("最右下角的音符按键中心");
-            //等距分布
-            for (let i = 0; i < 7; i++) {
-                clickx_pos.push(pos1.x + (pos2.x - pos1.x) * i / 6);
-            }
-            for (let i = 2; i >= 0; i--) {
-                clicky_pos.push(pos1.y + (pos2.y - pos1.y) * i / 2);    //从下到上(y高->y低)
-            }
+
+            console.log("自定义坐标:左上[" + pos1.x + "," + pos1.y + "],右下[" + pos2.x + "," + pos2.y + "]");
             
-            setGlobalConfig("customPosX", clickx_pos);
-            setGlobalConfig("customPosY", clicky_pos);
-            setGlobalConfig("alwaysUseCustomPos", true);
-            dialogs.alert("", "设置完成, 自定义坐标已启用");
+            gameProfile.setKeyPosition([pos1.x, pos1.y], [pos2.x, pos2.y]);
+            saveUserGameProfile();
+
             break;
         
-        case 4: //伪装手弹模式
+        case 3: //伪装手弹模式
             let humanifyEnabled = readGlobalConfig("humanifyEnabled", false);
             let setupFinished = false;
             let enterDetailedSetup = false;
@@ -925,17 +761,6 @@ if (readGlobalConfig("lastVersion", 0) != scriptVersion) {
 
 };
 
-console.info("\
-1.为了点击屏幕，本程序需要辅助功能权限，这是必须的，剩下的权限拒绝就行\n\
-2.使用方法:在游戏中切换到演奏界面，打开这个脚本，点击播放按钮即可开始\n\
-3.你可以随时按音量上键结束运行\n\
-4.如果脚本输出一些文字就没反应了，请允许脚本的悬浮窗权限！！(坑爹的小米手机)\n\
-5.脚本制作:声声慢:心慕流霞 李芒果，也强烈感谢auto.js作者提供的框架\n\
-");
-
-console.verbose("等待无障碍服务..");
-//toast("请允许本应用的无障碍权限");
-auto.waitFor();
 const rawFileNameList = getRawFileNameList();
 const totalFiles = getFileList();
 if (!floaty.checkPermission()) {
@@ -945,17 +770,17 @@ if (!floaty.checkPermission()) {
     exit();
 }
 
-//解析信息
+let currentConfigName = gameProfile.getCurrentConfigName();
+let titleStr = "当前配置: " + currentConfigName;
 
 var index;
 var exportScore = false;
-switch (dialogs.select("选择一项操作..", ["🎶演奏乐曲", "🛠️更改全局设置", "🛠️更改乐曲设置", "🎼乐谱输出", "📲MIDI串流", "📃查看使用说明","🚪离开"])) {
+switch (dialogs.select(titleStr, ["🎶演奏乐曲", "🛠️更改全局设置", "🛠️更改乐曲设置", "🎼乐谱输出", "📲MIDI串流", "📃查看使用说明","🚪离开"])) {
     case -1:
         exit();
     case 0:
         index = dialogs.select("选择一首乐曲..", rawFileNameList);
         if (index < 0) reRunSelf();
-
         break;
     case 1:
         runGlobalSetup();
@@ -1012,11 +837,29 @@ let progressDialog = dialogs.build({
 let rawFileName = fileName.split(".")[0];
 let startTime = new Date().getTime();
 
+//加载配置
+if(gameProfile.getCurrentConfig().leftTop[0] == 0){
+    dialogs.alert("错误", "坐标未设置，请先设置坐标");
+    progressDialog.dismiss();
+    runGlobalSetup();
+    reRunSelf();
+}else{
+    leftTop = gameProfile.getCurrentConfig().leftTop;
+    rightBottom = gameProfile.getCurrentConfig().rightBottom;
+    leftTop = JSON.stringify(leftTop);
+    rightBottom = JSON.stringify(rightBottom);
+    console.log("当前坐标:左上角" + leftTop + "右下角" + rightBottom);
+}
+
+keyRange = gameProfile.getKeyRange();
+
+
 //解析文件
 let noteData = musicFormats.parseFile(musicDir + fileName);
 let durationSecond = (new Date().getTime() - startTime) / 1000;
 let nps = (noteData.length / durationSecond).toFixed(0);
 console.log("解析文件耗时" + durationSecond + "秒(" + nps + "nps)");
+if(debugDumpPass.indexOf("parse") != -1) debugDump(noteData, "parse");
 
 majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
 minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
@@ -1038,9 +881,13 @@ let humanifyEnabled = readGlobalConfig("humanifyEnabled", false);
 
 if (humanifyEnabled) {
     let noteAbsTimeStdDev = readGlobalConfig("humanifyNoteAbsTimeStdDev", 50);
+    progressDialog.setContent("正在伪装音符...");
+    console.log("正在伪装音符...");
     progressDialog.setMaxProgress(100);
     humanifyer.setNoteAbsTimeStdDev(noteAbsTimeStdDev);
     noteData = humanifyer.humanify(noteData);
+   if(debugDumpPass.indexOf("humanify") != -1) debugDump(noteData, "humanify");
+
 }
 
 //生成音符
@@ -1056,7 +903,7 @@ noteData = noteListConvert(noteData,(percentage)=>{
 durationSecond = (new Date().getTime() - startTime) / 1000;
 nps = (noteData.length / durationSecond).toFixed(0);
 console.log("生成音符耗时" + durationSecond + "秒(" + nps + "nps)");
-
+if(debugDumpPass.indexOf("key") != -1) debugDump(noteData, "key");
 // 优化音符
 progressDialog.setContent("正在优化音符...");
 progressDialog.setMaxProgress(100);
@@ -1072,6 +919,7 @@ console.log("优化音符耗时" + durationSecond + "秒(" + nps + "nps)");
 
 progressDialog.dismiss();
 
+if(debugDumpPass.indexOf("timing") != -1) debugDump(noteData, "timing");
 
 jsonData = null;
 console.log("音符总数:%d",totalNoteCnt);
@@ -1151,10 +999,37 @@ if(exportScore){
 
 //////////////////////////乐谱导出功能结束
 
-let pos = getPosConfig();
+//生成点击坐标序列
 
-let clickx_pos = pos.x;
-let clicky_pos = pos.y;
+const pressDuration = 5; //按压时间，单位:毫秒
+const mergeThreshold = 0.01; //合并时间阈值，单位:秒
+let gestureTimeList = new Array();
+let lastGestures = new Set();
+let lastGesturesTime = -1; //秒
+noteData.forEach(note => {
+    let key = note[0];
+    let time = note[1];
+    let clickPos = gameProfile.getKeyPosition(key - 1);
+    let gesture = [0, pressDuration, clickPos];
+    if (time - lastGesturesTime < mergeThreshold && lastGestures.size < 10) { //一次最多10个手势
+        lastGestures.add(gesture);
+    } else {
+        let lastGesturesArray = Array.from(lastGestures);
+        if (lastGesturesArray.length > 0) {
+            gestureTimeList.push([lastGesturesArray, lastGesturesTime]);
+        }
+        lastGestures = new Set();
+        lastGestures.add(gesture);
+        lastGesturesTime = time;
+    }
+});
+let lastGesturesArray = Array.from(lastGestures);
+if (lastGesturesArray.length > 0) {
+    gestureTimeList.push([lastGesturesArray, lastGesturesTime]);
+}
+
+if(debugDumpPass.indexOf("gesture") != -1) debugDump(gestureTimeList, "gesture");
+
 
 let outRangedNoteCnt = overFlowedNoteCnt + underFlowedNoteCnt;
 
@@ -1169,10 +1044,9 @@ console.verbose("无障碍服务启动成功");
 
 
 //主循环
-var noteList = new Array();
-var i = 0
-const noteCount = noteData.length;
-var delaytime0, delaytime1;
+var currentGestureIndex = 0
+const gestureCount = gestureTimeList.length;
+var progressBarDragged = false;
 
 if (!readGlobalConfig("skipInit", 1)) sleep(noteData[0][1] * 1000);
 
@@ -1236,24 +1110,25 @@ threads.start(function(){
            reRunSelf();
         })
     });
-    let totalTimeSec = noteData[noteData.length -1][1];
+    let totalTimeSec = gestureTimeList[gestureCount - 1][1];
     let totalTimeStr = sec2timeStr(totalTimeSec);
 
     while (true) {
         //如果进度条被拖动，更新播放进度
         if(progressChanged){
             progressChanged = false;
+            progressBarDragged = true;
             let targetTimeSec = totalTimeSec * progress / 100;
-            for (let j = 0; j < noteData.length; j++) {
-                if (noteData[j][1] > targetTimeSec) {
-                    i = j - 1;
+            for (let j = 0; j < gestureTimeList.length; j++) {
+                if (gestureTimeList[j][1] > targetTimeSec) {
+                    currentGestureIndex = j - 1;
                     break;
                 }
             }
         }
-        if(i < 0) i = 0;
+        if(currentGestureIndex < 0) currentGestureIndex = 0;
         //计算时间
-        let curTimeSec = noteData[i][1];
+        let curTimeSec = gestureTimeList[currentGestureIndex][1];
         let curTimeStr = sec2timeStr(curTimeSec);
         let timeStr = curTimeStr + "/" + totalTimeStr;
         //更新窗口
@@ -1268,57 +1143,31 @@ while (paused) {
     sleep(500);
 }
 
-let nextNotes = new Set();
-let gestureList = new Array();
-while (i < noteCount) {
-    delaytime0 = noteData[i][1]; //这个音符的时间，单位:秒
-    if (i != (noteCount - 1)) {
-        delaytime1 = noteData[i+1][1];
-    } else {
-        delaytime1 = delaytime0 + 0.1;
-    };
-    if (Math.abs(delaytime0 - delaytime1) < 0.01) { //如果两个音符时间相等，把这个音和后面的一起加入数组
-        nextNotes.add(noteData[i][0]);
-    } else {
-        nextNotes.add(noteData[i][0]);
-        let delaytime = delaytime1 - delaytime0;
-        //console.log(noteList);
-        nextNotes.forEach((tone) => {
-            if (tone != -1) {
-                var clicky = Math.floor((tone - 1) / 7) + 1; //得到x
-                if (tone % 7 == 0) { //得到y
-                    var clickx = 7;
-                } else {
-                    var clickx = tone % 7;
-                };
-                gestureList.push([0, 5, [clickx_pos[clickx - 1], clicky_pos[clicky - 1]]]);
-            };
-        });
+let lastTime = 0;
+while (currentGestureIndex < gestureCount) {
+    let gesturesList = gestureTimeList[currentGestureIndex][0];
+    let time = gestureTimeList[currentGestureIndex][1];
 
-        if (delaytime >= 6) {
-            //长音
-            //gestureList[gestureList.length] = [0, delaytime * 1000 / 2, longclick_pos];
-        };
-        //执行手势
-        //console.log(gestureList);
+    let delay = time - lastTime - pressDuration / 1000;
+    lastTime = time;
+    if (delay > 0){
+        sleep(delay * 1000);
+    }
+    
 
-        if (gestureList.length > 10) {
-            console.log("手势太长!:" + gestureList.length);
-            gestureList.splice(9, gestureList.length - 10); //手势最多同时只能执行10个
-        }
+    gestures.apply(null, gesturesList);
 
-        if (gestureList.length != 0) {
-            gestures.apply(null, gestureList);
-        };
-        sleep(delaytime * 1000 - 8);
-        while (paused) {
-            sleep(1000);
-        }
-        nextNotes.clear();
-        gestureList = [];
+    currentGestureIndex++;
 
-    };
-    i++
+
+    while (paused) {
+        sleep(500);
+    }
+    while (progressBarDragged) {
+        progressBarDragged = false;
+        lastTime = 999999999;
+        sleep(500);
+    }
 };
 toast("播放结束");
 threads.shutDownAll();

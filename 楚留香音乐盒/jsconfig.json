@@ -3,7 +3,6 @@
         "module": "commonjs",
         "moduleResolution": "Node",
         "target": "ES5",
-        "noLib": true,
         "strictNullChecks": true,
         "strictFunctionTypes": true
     },
