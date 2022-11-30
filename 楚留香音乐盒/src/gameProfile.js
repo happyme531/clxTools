@@ -371,6 +371,14 @@ function GameProfile() {
         currentGameConfig = config;
     }
 
+    /**
+     * 获取当前按键参数
+     * @returns {Object} 按键参数
+     */
+    this.getKeyType = function() {
+        return keyTypes[currentGameConfig.keyType];
+    }
+
     this.setKeyPosition = function(leftTop, rightBottom) {
         currentGameConfig.leftTop = leftTop;
         currentGameConfig.rightBottom = rightBottom;

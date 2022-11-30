@@ -8,6 +8,7 @@ try {
     var MidiDeviceManager = require("./src/midiDeviceManager.js");
     var Humanifyer = require("./src/humanify.js");
     var GameProfile = require("./src/gameProfile.js");
+    var Visualizer = require("./src/visualizer.js");
 } catch (e) {
     toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
     toast(e);
@@ -24,6 +25,7 @@ const debugDumpPass = "";
 let musicFormats = new MusicFormats();
 let humanifyer = new Humanifyer();
 let gameProfile = new GameProfile();
+let visualizer = new Visualizer();
 //setGlobalConfig("userGameProfile", null);
 //加载配置文件
 try {
@@ -659,7 +661,7 @@ function runFileListSetup(fileList) {
 };
 
 function runGlobalSetup() {
-    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "设置配置类型","设置坐标", "伪装手弹模式"])) {
+    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "设置配置类型","设置坐标", "伪装手弹模式", "乐谱可视化"])) {
         case -1:
             break;
         case 0:
@@ -732,6 +734,10 @@ function runGlobalSetup() {
                     }
                 }
             }
+            break;
+        case 4: //乐谱可视化
+            let visualizerEnabled = dialogs.confirm("乐谱可视化", "是否要开启乐谱可视化?");
+            setGlobalConfig("visualizerEnabled", visualizerEnabled);
             break;
     };
 };
@@ -999,6 +1005,11 @@ if(exportScore){
 
 //////////////////////////乐谱导出功能结束
 
+//可视化设置
+visualizer.setKeyLayout(gameProfile.getKeyType().row, gameProfile.getKeyType().column);
+visualizer.loadNoteData(noteData);
+visualizer.goto(-1);
+
 //生成点击坐标序列
 
 const pressDuration = 5; //按压时间，单位:毫秒
@@ -1105,9 +1116,14 @@ threads.start(function(){
                 controlWindow.pauseResumeBtn.setText("▶️");
             }
         });
-        controlWindow.stopBtn.click(()=>{
-           threads.shutDownAll();
-           reRunSelf();
+        controlWindow.stopBtn.click(() => {
+            visualizerWindowClose();
+            controlWindow.close();
+            setTimeout(() => {
+                threads.shutDownAll();
+                reRunSelf();
+            }, 500);
+            
         })
     });
     let totalTimeSec = gestureTimeList[gestureCount - 1][1];
@@ -1139,6 +1155,61 @@ threads.start(function(){
         sleep(500);
     }
 })
+
+//可视化悬浮窗口
+let visualizerWindow = floaty.window(
+    <canvas id="canv" w="*" h="*" />
+);
+
+let visualizerWindowPosition = readGlobalConfig("visualizerWindowPosition", [100, 100]);
+visualizerWindow.setPosition(visualizerWindowPosition[0], visualizerWindowPosition[1]);
+let visualizerWindowSize = readGlobalConfig("visualizerWindowSize", [device.width/2, device.height/2]);
+visualizerWindow.setSize(visualizerWindowSize[0], visualizerWindowSize[1]);
+
+let visualizerWindowRequestClose = false;
+visualizerWindow.canv.on("draw", function (canvas) {
+        visualizer.draw(canvas);
+        //如果在绘制时窗口被关闭, app会直接崩溃, 所以这里要等待一下
+        if (visualizerWindowRequestClose) {
+            sleep(1000);
+        }
+});
+
+//上一次点击的时间
+let visualizerLastClickTime = 0;
+
+//触摸事件(这里on("click",...) 又失灵了, AutoXjs的文档真是够烂的)
+visualizerWindow.canv.click(function () {
+    let now = new Date().getTime();
+    if (now - visualizerLastClickTime < 500) {
+        toast("重置悬浮窗大小与位置");
+        visualizerWindow.setSize(device.height*2/3, device.width*2/3);
+        visualizerWindow.setPosition(100, 100);
+    }
+    visualizerLastClickTime = now;
+    visualizerWindow.setAdjustEnabled(!visualizerWindow.isAdjustEnabled());
+    if (!visualizerWindow.isAdjustEnabled()) {
+        //保存当前位置与大小
+        setGlobalConfig("visualizerWindowPosition", [visualizerWindow.getX(), visualizerWindow.getY()]);
+        setGlobalConfig("visualizerWindowSize", [visualizerWindow.getWidth(), visualizerWindow.getHeight()]);
+    }
+});
+//关闭
+visualizerWindowClose = function () {
+    visualizerWindowRequestClose = true;
+    setTimeout(() => {
+       visualizerWindow.close();
+    }, 200);
+}
+//是否显示可视化窗口
+let visualizerEnabled = readGlobalConfig("visualizerEnabled", false);
+if (!visualizerEnabled) {
+    visualizerWindowClose();
+}else{
+    toast("单击可视化窗口调整大小与位置, 双击重置");
+}
+
+
 while (paused) {
     sleep(500);
 }
@@ -1154,20 +1225,23 @@ while (currentGestureIndex < gestureCount) {
         sleep(delay * 1000);
     }
     
+    visualizer.next();
 
     gestures.apply(null, gesturesList);
 
     currentGestureIndex++;
-
 
     while (paused) {
         sleep(500);
     }
     while (progressBarDragged) {
         progressBarDragged = false;
+        visualizer.goto(currentGestureIndex);
         lastTime = 999999999;
         sleep(500);
     }
 };
 toast("播放结束");
+visualizerWindowClose();
+controlWindow.close();
 threads.shutDownAll();
