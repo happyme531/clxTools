@@ -165,9 +165,21 @@ if (dialogs.select("君欲何为？", ["开始绘画", "更改设置"])) { //进
 dialogs.alert("","请在开始运行之前，切换到画板的\"画刷\"页面，并且调整滑块到最细的一端稍往上一点的位置！");
 
 let imgPath = dialogs.rawInput("选择图片的路径", config.get("defaultImgPath","/sdcard/test.jpg"));
-const img = images.read(imgPath);
-
-let algo = dialogs.select("请选择绘图算法", ["算法0:速度很慢，效果较好", "算法1: 速度较快，效果较差"]);
+if(!files.exists(imgPath)){
+    dialogs.alert("","图片不存在！");
+    exit();
+}
+let gcodeMode = false;
+let gcodeStr = "";
+let img = null;
+let algo = null;
+if (imgPath.endsWith(".gcode") || imgPath.endsWith(".gc") || imgPath.endsWith(".ngc")) {
+    gcodeStr = files.read(imgPath);
+    gcodeMode = true;
+} else {
+    img = images.read(imgPath);
+    algo = dialogs.select("请选择绘图算法", ["算法0:速度很慢，效果较好", "算法1: 速度较快，效果较差"]);
+}
 
 let useCustomPos = config.get("alwaysUseCustomPos", false);
 
@@ -260,6 +272,10 @@ if(!useCustomPos){
     var printAreaEnd = config.get("printAreaEnd");
     var colorSelecterX = config.get("colorSelecterX");
     var colorSelecterY = config.get("colorSelecterY");
+}
+if (gcodeMode){
+    console.log("绘图区域尺寸为"+(printAreaEnd[0]-printAreaBegin[0])+"x"+(printAreaEnd[1]-printAreaBegin[1]));
+    drawGcode(gcodeStr);
 }
 const pixelGap = pixelWidth / 2;
 const maxWidth = (printAreaEnd[0] - printAreaBegin[0] - pixelWidth) / pixelGap;
@@ -489,8 +505,304 @@ switch (algo) {
     case 1:
         execAlgo1();
         break;
+    case 2:
+        break;
     default:
         toast("算法错误！请检查算法参数"); //不会执行
         exit();
         break;
 };
+
+///////////GCode处理部分///////////
+
+function GCodeGestureGenerator(){
+
+    const arcSegLength = 4; //弧线的每段长度
+
+    //GCode坐标系, 左下角为原点, x轴向右, y轴向上
+    var absPos = [0, 0]; //绝对坐标
+
+    //G90/G91
+    var isRelative = false; //是否使用相对坐标
+
+    //进给速度, 像素/分钟
+    var feedRate = 0;
+
+    //是否使用笔刷
+    var isPenDown = false;
+
+    //屏幕坐标系, 左上角为原点, x轴向右, y轴向下
+    var drawingAreaTopLeft = [0,0];
+    var drawingAreaBottomRight = [0,0];
+
+    //手势列表
+    var gestures = [];
+
+    //缩放
+    var scale = 1;
+
+    //速度缩放
+    var speedScale = 1;
+
+    /**
+     * 设置绘图区域
+     * @param {[number, number]} topLeft 左上角坐标
+     * @param {[number, number]} bottomRight 右下角坐标
+     */
+    this.setDrawingArea = function(topLeft, bottomRight){
+        drawingAreaTopLeft = topLeft;
+        drawingAreaBottomRight = bottomRight;
+    }
+
+    /**
+     * GCode坐标系转换为屏幕坐标系
+     * @param {[number, number]} absPos_ 绝对坐标
+     * @returns {[number, number]} 屏幕坐标系坐标
+     */
+    this.GCode2Screen = function(absPos_){
+        absPos_ = absPos_.map(x => x * scale);
+        let pos =  [drawingAreaTopLeft[0] + absPos_[0], drawingAreaBottomRight[1] - absPos_[1]];
+        let origPos = pos.slice();
+        let outRange = false;
+        if(pos[0] < drawingAreaTopLeft[0]){
+            pos[0] = drawingAreaTopLeft[0];
+            outRange = true;
+        }
+        if(pos[0] > drawingAreaBottomRight[0]){
+            pos[0] = drawingAreaBottomRight[0];
+            outRange = true;
+        }
+        if(pos[1] < drawingAreaTopLeft[1]){
+           pos[1] = drawingAreaTopLeft[1];
+              outRange = true;
+        }
+        if(pos[1] > drawingAreaBottomRight[1]){
+            pos[1] = drawingAreaBottomRight[1];
+            outRange = true;
+        }
+        if(outRange){
+            console.warn("坐标超出绘图区域！" + origPos + " -> " + pos);
+        }
+        return pos;
+
+    }
+
+    /**
+     * 更新坐标, 考虑当前的坐标模式
+     * @param {[number, number]} newPos 新的坐标
+     */
+    this.updatePos = function (newPos) {
+        if (isRelative) {
+            if (newPos[0] != null) {
+                absPos[0] += newPos[0];
+            }
+            if (newPos[1] != null) {
+                absPos[1] += newPos[1];
+            }
+        } else {
+            if (newPos[0] != null) {
+                absPos[0] = newPos[0];
+            }
+            if (newPos[1] != null) {
+                absPos[1] = newPos[1];
+            }
+        }
+    }
+            
+    /**
+     * 添加手势
+     * @param {Array<[number,number]>} posList 经过的点的坐标列表(GCode坐标系, 绝对坐标)
+     * @param {number} duration 持续时间(毫秒)
+     */
+    this.addGesture = function(posList, duration){
+        if(duration == 0){
+            return;
+        }
+        if(duration < 1) duration = 1;
+        //转换为屏幕坐标系
+        var posList_ = [];
+        for(let i = 0; i < posList.length; i++){
+            posList_.push(this.GCode2Screen(posList[i]));
+        }
+        gestures.push([duration].concat(posList_));
+    }
+
+    /** 
+     * 计算两点之间的直线距离
+     * @param {[number, number]} pos1 点1
+     * @param {[number, number]} pos2 点2
+     * @returns {number} 两点之间的直线距离
+    */
+    this.distance = function(pos1, pos2){
+        return Math.sqrt(Math.pow(pos1[0] - pos2[0], 2) + Math.pow(pos1[1] - pos2[1], 2));
+    }
+
+    /**
+     * 计算移动需要的时间
+     * @param {number} distance 移动距离
+     * @returns {number} 移动需要的时间(毫秒)
+     */
+    this.calcDuration = function(distance){
+        return distance / feedRate * 60 * 1000 / speedScale;
+    }
+
+    /**
+     * G0/G1
+     * @param {number|null} x x坐标
+     * @param {number|null} y y坐标
+     * @param {number|null} z z坐标, 用来控制笔刷
+     * @param {number|null} f 进给速度
+     */
+    this.G0G1 = function(x, y, z, f){
+        if(x == null && y == null && z == null && f == null){
+            return;
+        }
+        if(f != null){
+            feedRate = f;
+        }
+        if (z > 0)  isPenDown = false;
+        if (z < 0)  isPenDown = true;
+            
+        let lastPos = absPos.slice();
+        this.updatePos([x, y]);
+        
+        if(feedRate == 0){
+            return;
+        }
+        if(isPenDown){
+            let duration = this.calcDuration(this.distance(lastPos, absPos));
+            this.addGesture([lastPos, absPos], duration);
+        }
+    }
+
+    /**
+     * G2/G3
+     * @param {number|null} x x坐标
+     * @param {number|null} y y坐标
+     * @param {number|null} z z坐标, 用来控制笔刷
+     * @param {number|null} i x轴圆心偏移量
+     * @param {number|null} j y轴圆心偏移量
+     * @param {number|null} f 进给速度
+     * @param {boolean} isClockwise 是否顺时针
+     */
+    this.G2G3 = function(x, y, z, i, j, f, isClockwise){
+        if(f != null){
+            feedRate = f;
+        }
+        if (z > 0)  isPenDown = false;
+        if (z < 0)  isPenDown = true;
+        let lastPos = absPos.slice();
+        this.updatePos([x, y]);
+        let centerPos = [lastPos[0] + i, lastPos[1] + j];
+        let radius = this.distance(centerPos, lastPos);
+        let startAngle = Math.atan2(lastPos[1] - centerPos[1], lastPos[0] - centerPos[0]);
+        let endAngle = Math.atan2(absPos[1] - centerPos[1], absPos[0] - centerPos[0]);
+        if(isClockwise){
+            if(endAngle > startAngle){
+                endAngle -= 2 * Math.PI;
+            }
+        }else{
+            if(endAngle < startAngle){
+                endAngle += 2 * Math.PI;
+            }
+        }
+        let angle = endAngle - startAngle;
+        let distance = radius * angle;
+        let duration = this.calcDuration(distance);
+        let segmentCount = Math.ceil(distance / arcSegLength);
+        let posList = [];
+        for(let i = 0; i <= segmentCount; i++){
+            let angle_ = startAngle + angle * i / segmentCount;
+            let pos = [centerPos[0] + radius * Math.cos(angle_), centerPos[1] + radius * Math.sin(angle_)];
+            posList.push(pos);
+        }
+        this.addGesture(posList, duration);
+    }
+
+    /**
+     * 解析GCode
+     * @param {string} gcode GCode
+     */
+    this.parseGCodeLine = function(gcode){
+        let gcode_ = gcode.trim();
+        //删除括号内的内容
+        gcode_ = gcode_.replace(/\(.*?\)/g, "");
+        //删除注释
+        gcode_ = gcode_.replace(/;.*/g, "");
+        //删除多余空格
+        gcode_ = gcode_.replace(/\s+/g, " ");
+
+        //是否是空行
+        if(gcode_ == ""){
+            return;
+        }
+
+        //分割
+        let gcodeList = gcode_.split(" ");
+        let cmd = gcodeList[0];
+        let params = {};
+        for(let i = 1; i < gcodeList.length; i++){
+            let param = gcodeList[i];
+            let key = param[0];
+            let value = parseFloat(param.substr(1));
+            params[key] = value;
+        }
+        switch(cmd){
+            case "G00":
+            case "G01":
+                this.G0G1(params["X"], params["Y"], params["Z"], params["F"]);
+                break;
+            case "G02":
+                this.G2G3(params["X"], params["Y"], params["Z"], params["I"], params["J"], params["F"], true);
+                break;
+            case "G03":
+                this.G2G3(params["X"], params["Y"], params["Z"], params["I"], params["J"], params["F"], false);
+                break;
+            case "G90":
+                isRelative = false;
+                break;
+            case "G91":
+                isRelative = true;
+                break;
+            default:
+                console.warn("未实现的GCode指令: " + gcode);
+                break;
+        }
+    }
+    
+    /**
+     * 解析GCode
+     * @param {string} gcode GCode
+     */
+    this.parseGCode = function(gcode){
+        let gcodeList = gcode.split("\n");
+
+        for(let i = 0; i < gcodeList.length; i++){
+            this.parseGCodeLine(gcodeList[i]);
+            if(i % 500 == 0){
+                console.log(i + "/" + gcodeList.length);
+            }
+        }
+        return gestures;
+    }
+}
+
+function drawGcode(gcode){
+    let gCodeGestureGenerator = new GCodeGestureGenerator();
+    gCodeGestureGenerator.setDrawingArea(printAreaBegin, printAreaEnd);
+    let gestureList = gCodeGestureGenerator.parseGCode(gcode);
+    for(let i = 0; i < gestureList.length; i++){
+        try{
+          gesture.apply(null, gestureList[i]);
+        }catch(e){
+            console.log(e);
+            console.log("gestureList[i]: " + JSON.stringify(gestureList[i]));
+        }
+        //sleep(gestureList[i][0]);
+        if(i % 20 == 0){
+            console.log("进度: " + (i + 1) + "/" + gestureList.length);
+            //暂停一会
+            sleep(100);
+        }
+    }
+}
