@@ -169,6 +169,7 @@ if(!files.exists(imgPath)){
     dialogs.alert("","图片不存在！");
     exit();
 }
+setConfigSafe("defaultImgPath", imgPath);
 let gcodeMode = false;
 let gcodeStr = "";
 let img = null;
@@ -544,6 +545,18 @@ function GCodeGestureGenerator(){
     //速度缩放
     var speedScale = 1;
 
+    //是否允许合并路径
+    var allowMergePath = true;
+
+    //一条路径的最大长度
+    var maxPathLength = 10;
+
+    //合并路径时两点之间的最大距离
+    var maxMergeDistance = 2;
+
+    var lastPosList = [];
+    var lastDuration = 0;
+
     /**
      * 设置绘图区域
      * @param {[number, number]} topLeft 左上角坐标
@@ -596,8 +609,12 @@ function GCodeGestureGenerator(){
             if (newPos[0] != null) {
                 absPos[0] += newPos[0];
             }
-            if (newPos[1] != null) {
-                absPos[1] += newPos[1];
+            if (newPos[1] != null) {let lastPos = lastPosList[lastPosList.length - 1];
+                let firstPos = posList_[0];
+                let distance = Math.sqrt(Math.pow(lastPos[0] - firstPos[0], 2) + Math.pow(lastPos[1] - firstPos[1], 2));
+                if(distance < maxMergeDistance){
+                    posList_ = lastPosList.concat(posList_);
+                }
             }
         } else {
             if (newPos[0] != null) {
@@ -615,16 +632,50 @@ function GCodeGestureGenerator(){
      * @param {number} duration 持续时间(毫秒)
      */
     this.addGesture = function(posList, duration){
-        if(duration == 0){
+        if(duration == 0 || posList == null || posList.length == 0){
             return;
         }
         if(duration < 1) duration = 1;
+
+
         //转换为屏幕坐标系
         var posList_ = [];
         for(let i = 0; i < posList.length; i++){
             posList_.push(this.GCode2Screen(posList[i]));
         }
-        gestures.push([duration].concat(posList_));
+
+        //合并路径
+        if(allowMergePath){
+            let mergedLength = lastPosList.length + posList_.length;
+            if (mergedLength <= maxPathLength) {
+                let firstPos = posList_[0];
+                let distance = 0;
+                if (lastPosList.length > 0) {
+                    let lastPos = lastPosList[lastPosList.length - 1];
+                    distance = this.distance(lastPos, firstPos);
+                }
+                if (distance <= maxMergeDistance) { //可以合并
+                    lastPosList = lastPosList.concat(posList_);
+                    lastDuration += duration;
+                } else { //不能合并
+                    if (lastPosList.length > 0) {
+                        gestures.push([lastDuration].concat(lastPosList));
+                    }
+                    lastPosList = posList_;
+                    lastDuration = duration;
+                }
+            }else{
+                if(lastPosList.length > 0){
+                    gestures.push([lastDuration].concat(lastPosList));
+                }
+                lastPosList = posList_;
+                lastDuration = duration;
+            }
+        } else {
+            if (posList_.length > 0) {
+                gestures.push([duration].concat(posList_));
+            }
+        }
     }
 
     /** 
@@ -764,6 +815,17 @@ function GCodeGestureGenerator(){
             case "G91":
                 isRelative = true;
                 break;
+            case "M03":
+            case "M3":
+                isPenDown = true;
+                break;
+            case "M05":
+            case "M5":
+                isPenDown = false;
+                break;
+            case "M2":
+            case "M30":
+                console.log("GCode解析完成");
             default:
                 console.warn("未实现的GCode指令: " + gcode);
                 break;
@@ -799,10 +861,6 @@ function drawGcode(gcode){
             console.log("gestureList[i]: " + JSON.stringify(gestureList[i]));
         }
         //sleep(gestureList[i][0]);
-        if(i % 20 == 0){
-            console.log("进度: " + (i + 1) + "/" + gestureList.length);
-            //暂停一会
-            sleep(100);
-        }
+        console.log("进度: " + (i + 1) + "/" + gestureList.length + " (" + ((i + 1) / gestureList.length * 100).toFixed(2) + "%)");
     }
 }
