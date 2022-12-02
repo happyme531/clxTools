@@ -9,8 +9,11 @@ function Visualizer(){
     var boardRow = 3;
     var boardCol = 5;
     var step = 0;
+    var lastStep = -1;
+    var lastFirstKeyIndex = -2;
 
-
+    var keysBitmap = null;
+    var backgroundBitmap = null;
 
     /**
      * 加载乐曲数据
@@ -51,6 +54,7 @@ function Visualizer(){
      * 下一个按键
      */
     this.next = function(){
+        lastStep = step;
         step++;
     }
 
@@ -60,35 +64,18 @@ function Visualizer(){
      */
     this.goto = function(step_){
         step = step_;
+        lastStep = step - 1;
+        lastFirstKeyIndex = -2;
     }
 
+
     /**
-     * 绘画!
+     * 绘制按键
      * @param {android.graphics.Canvas} canvas 画布
      */
-    this.draw = function(canvas){
-        // let drawStartTime = Date.now();
-        // console.log("draw!");
-        // console.log("canvas size: " + canvas.getWidth() + "x" + canvas.getHeight());
-        //清空画布为透明
-        canvas.drawColor(android.graphics.Color.TRANSPARENT, android.graphics.PorterDuff.Mode.CLEAR);
-        
-        // 
-        // 画面1    画面2    画面3 ...
-        //
-        // 画面4    画面5    画面6 ...
-        //
-        //其中每个画面为一个board
-        //board
-        // ...
-        // 按键4  按键5  按键6 ...
-        // 按键1 按键2 按键3 ...
-        let Color = android.graphics.Color;
-
+    this.drawKeys = function(canvas){
         let paint = new Paint(); //android.graphics.Paint
         paint.setStyle(Paint.Style.FILL);
-        //只有setARGB是正常的, 其它都会变成白色!!!
-
         //计算board的大小 //长方形
         let boardWidth = canvas.getWidth() / boardCol;
         let boardHeight = canvas.getHeight() / boardRow;
@@ -98,14 +85,10 @@ function Visualizer(){
         let keyRadius = keyDiameter / 2;
         let keySpacingX = boardWidth / (col + 1);
         let keySpacingY = boardHeight / (row + 1);
-        // console.log("col: " + col + " row: " + row);
-        // console.log("key size: " + keyDiameter + "x" + keyDiameter);
-        // console.log("key spacing: " + keySpacingX + "x" + keySpacingY);
-
-        if(step < 0) step = 0;
+        let drawStep = Math.max(0, step);
  
         //第一个board对应那一个按键
-        let firstKeyIndex = Math.floor(step / (boardRow * boardCol)) * boardRow * boardCol;
+        let firstKeyIndex = Math.floor(drawStep / (boardRow * boardCol)) * boardRow * boardCol;
         //逐一绘制画面
         for(let i = 0; i < boardRow; i++){
             for(let j = 0; j < boardCol; j++){
@@ -113,23 +96,11 @@ function Visualizer(){
                 let x = j * boardWidth;
                 let y = i * boardHeight;
 
-                //确定颜色
-                if (i * boardCol + j + firstKeyIndex == step) {
-                    //"当前"画面, 白色
-                    paint.setARGB(80, 255, 255, 255);
-                } else {
-                    //"非当前"画面, 灰色
-                    paint.setARGB(80, 128, 128, 128);
-                }
-
-                //绘制画面
-                canvas.drawRect(x, y, x + boardWidth, y + boardHeight, paint);
-
                 //计算当前画面的按键
                 let currentKeyIndex = firstKeyIndex + i * boardCol + j;
                 if (currentKeyIndex >= mergedNoteData.length) {
                     break;
-                }      //console.log("draw end!");
+                }      
                 let currentKeys = mergedNoteData[currentKeyIndex][0];
 
                 //绘制按键
@@ -148,16 +119,92 @@ function Visualizer(){
                         canvas.drawRoundRect(keyX - keyRadius, keyY - keyRadius, keyX + keyRadius, keyY + keyRadius, 3, 3, paint);
                     }
                 }
-
                 //绘制编号
                 paint.setARGB(128, 255, 255, 255);
                 paint.setTextSize(20);
                 canvas.drawText(i * boardCol + j + firstKeyIndex, x + 10, y + 30, paint);
             }
         }
-        // let drawEndTime = Date.now();
-        // let drawDuration = drawEndTime - drawStartTime;
-        // console.log("draw duration: " + drawDuration + "ms" + " fps: " + (1000 / drawDuration));
+    }
+
+    /**
+     * 绘制背景
+     * @param {android.graphics.Canvas} canvas 画布
+     */
+    this.drawBackground = function(canvas){
+        let paint = new Paint(); //android.graphics.Paint
+        paint.setStyle(Paint.Style.FILL);
+        //计算board的大小 //长方形
+        let boardWidth = canvas.getWidth() / boardCol;
+        let boardHeight = canvas.getHeight() / boardRow;
+        let drawStep = Math.max(0, step);
+ 
+        //第一个board对应那一个按键
+        let firstKeyIndex = Math.floor(drawStep / (boardRow * boardCol)) * boardRow * boardCol;
+        //逐一绘制画面
+        for(let i = 0; i < boardRow; i++){
+            for(let j = 0; j < boardCol; j++){
+                //计算当前画面的位置
+                let x = j * boardWidth;
+                let y = i * boardHeight;
+
+                //确定颜色
+                if (i * boardCol + j + firstKeyIndex == drawStep) {
+                    //"当前"画面, 白色
+                    paint.setARGB(80, 255, 255, 255);
+                } else {
+                    //"非当前"画面, 灰色
+                    paint.setARGB(80, 128, 128, 128);
+                }
+
+                //绘制画面
+                canvas.drawRect(x, y, x + boardWidth, y + boardHeight, paint);
+            }
+        }
+    }
+
+    /**
+     * 绘画!
+     * @param {android.graphics.Canvas} canvas 画布
+     */
+    this.draw = function (canvas) {
+        let Color = android.graphics.Color;
+        let PorterDuff = android.graphics.PorterDuff;
+        //创建bitmap
+        if(keysBitmap == null || keysBitmap.getWidth() != canvas.getWidth() || keysBitmap.getHeight() != canvas.getHeight()){
+            keysBitmap = android.graphics.Bitmap.createBitmap(canvas.getWidth(), canvas.getHeight(), android.graphics.Bitmap.Config.ARGB_8888);
+            //强制重绘
+            lastStep = -2;
+            console.log("create keysBitmap: " + keysBitmap.getWidth() + "x" + keysBitmap.getHeight());
+        }
+        if(backgroundBitmap == null || backgroundBitmap.getWidth() != canvas.getWidth() || backgroundBitmap.getHeight() != canvas.getHeight()){
+            backgroundBitmap = android.graphics.Bitmap.createBitmap(canvas.getWidth(), canvas.getHeight(), android.graphics.Bitmap.Config.ARGB_8888);
+            //强制重绘
+            lastFirstKeyIndex = -2;
+            console.log("create backgroundBitmap: " + backgroundBitmap.getWidth() + "x" + backgroundBitmap.getHeight());
+        }
+        
+        if (lastStep != step) {
+            //如果step变化了, 则重绘背景
+            let backgroundCanvas = new Canvas(backgroundBitmap);
+            //清空画布
+            backgroundCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+            this.drawBackground(backgroundCanvas);
+            lastStep = step;
+
+            let firstKeyIndex = Math.floor(step / (boardRow * boardCol)) * boardRow * boardCol;
+            if (firstKeyIndex != lastFirstKeyIndex) {
+                //如果第一个按键变化了, 则重绘按键
+                let keysCanvas = new Canvas(keysBitmap);
+                //清空画布
+                keysCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+                this.drawKeys(keysCanvas);
+                lastFirstKeyIndex = firstKeyIndex;
+            }
+        }
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+        canvas.drawBitmap(backgroundBitmap, 0, 0, null);
+        canvas.drawBitmap(keysBitmap, 0, 0, null);
     }
 }
 

@@ -21,6 +21,8 @@ const scriptVersion = 11;
 //在日志中打印脚本生成的中间结果, 可选项: parse, humanify, key, timing, gestures
 const debugDumpPass = "";
 
+//将间隔小于mergeThreshold的音符合并, 单位: 秒
+const mergeThreshold = 0.01; 
 
 let musicFormats = new MusicFormats();
 let humanifyer = new Humanifyer();
@@ -57,6 +59,8 @@ try {
         console.log("尝试通过包名加载游戏配置...失败!");
     }else{
         console.log("尝试通过包名加载游戏配置...成功, 当前配置: " + gameProfile.getCurrentConfigName());
+        //保存当前配置
+        globalConfig.put("activeConfigName", gameProfile.getCurrentConfigName());
     }
 
     if (gameProfile.getCurrentConfig() == null){
@@ -252,7 +256,7 @@ function timingRefine(noteData, progressCallback){
                 continue;
             }
             if (note[0] === nextNote[0]) {
-                if (nextNote[1] - note[1] < sameNoteGapMin) {
+                if (nextNote[1] - note[1] < sameNoteGapMin && nextNote[1] - note[1] > mergeThreshold) {
                     noteData.splice(j, 1);
                     //console.log("删除过于密集的音符:" + nextNote[0] + "(diff:" + (nextNote[1] - note[1]) + ")");
                     timingDroppedNoteCnt++;
@@ -1013,7 +1017,6 @@ visualizer.goto(-1);
 //生成点击坐标序列
 
 const pressDuration = 5; //按压时间，单位:毫秒
-const mergeThreshold = 0.01; //合并时间阈值，单位:秒
 let gestureTimeList = new Array();
 let lastGestures = new Set();
 let lastGesturesTime = -1; //秒
@@ -1189,13 +1192,15 @@ visualizerWindow.canv.click(function () {
     visualizerLastClickTime = now;
     visualizerWindow.setAdjustEnabled(!visualizerWindow.isAdjustEnabled());
     if (!visualizerWindow.isAdjustEnabled()) {
+        //更新大小 (使用窗口上的拖动手柄缩放时, 窗口的大小实际上是不会变的, 所以这里要手动更新)
+        visualizerWindow.setSize(visualizerWindow.getWidth(), visualizerWindow.getHeight());
         //保存当前位置与大小
         setGlobalConfig("visualizerWindowPosition", [visualizerWindow.getX(), visualizerWindow.getY()]);
         setGlobalConfig("visualizerWindowSize", [visualizerWindow.getWidth(), visualizerWindow.getHeight()]);
     }
 });
 //关闭
-visualizerWindowClose = function () {
+function visualizerWindowClose() {
     visualizerWindowRequestClose = true;
     setTimeout(() => {
        visualizerWindow.close();
@@ -1215,19 +1220,25 @@ while (paused) {
 }
 
 let lastTime = 0;
+let lastGestureStartTime = 0;
+let lastGestureEndTime = 0;
 while (currentGestureIndex < gestureCount) {
     let gesturesList = gestureTimeList[currentGestureIndex][0];
     let time = gestureTimeList[currentGestureIndex][1];
 
-    let delay = time - lastTime - pressDuration / 1000;
+    let delay = time - lastTime - (lastGestureEndTime - lastGestureStartTime) / 1000;
     lastTime = time;
     if (delay > 0){
         sleep(delay * 1000);
+    }else{
+        console.log("Stall! " + (-delay*1000) + "ms");
     }
     
     visualizer.next();
 
+    lastGestureStartTime = new Date().getTime(); //毫秒
     gestures.apply(null, gesturesList);
+    lastGestureEndTime = new Date().getTime();
 
     currentGestureIndex++;
 
@@ -1236,7 +1247,7 @@ while (currentGestureIndex < gestureCount) {
     }
     while (progressBarDragged) {
         progressBarDragged = false;
-        visualizer.goto(currentGestureIndex);
+        visualizer.goto(currentGestureIndex - 1);
         lastTime = 999999999;
         sleep(500);
     }
