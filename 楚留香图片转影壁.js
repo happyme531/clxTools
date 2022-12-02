@@ -1,6 +1,9 @@
 //使用auto.js 4.0.1 beta版本 编写&运行
 var config = storages.create("hallo1_clximgplotter_config");
 
+console.show(true);
+const colorTableMaxAllowedDiff = 10; //获取颜色表时允许的最大颜色差异
+
 function getPosInteractive(promptText) {
     let confirmed = false;
     //提示和确认按钮的框
@@ -134,6 +137,8 @@ function runSetup() {
             pos = getPosInteractive("从上往下第六个颜色的按钮中心");
             colorSelecterY.push(pos.y);
             pos = getPosInteractive("从上往下第七个颜色的按钮中心");
+            colorSelecterY.push(pos.y);
+            pos = getPosInteractive("从上往下第八个颜色的按钮中心");
             colorSelecterY.push(pos.y);
             pos = getPosInteractive("画布左上角");
             let printAreaBegin = [pos.x,pos.y];
@@ -274,15 +279,17 @@ if(!useCustomPos){
     var colorSelecterX = config.get("colorSelecterX");
     var colorSelecterY = config.get("colorSelecterY");
 }
+console.log("绘图区域尺寸为"+(printAreaEnd[0]-printAreaBegin[0])+"x"+(printAreaEnd[1]-printAreaBegin[1]));
+
 if (gcodeMode){
-    console.log("绘图区域尺寸为"+(printAreaEnd[0]-printAreaBegin[0])+"x"+(printAreaEnd[1]-printAreaBegin[1]));
     drawGcode(gcodeStr);
 }
 const pixelGap = pixelWidth / 2;
 const maxWidth = (printAreaEnd[0] - printAreaBegin[0] - pixelWidth) / pixelGap;
 const maxHeight = (printAreaEnd[1] - printAreaBegin[1] - pixelWidth) / pixelGap;
+console.log("图片最大尺寸为" + maxWidth + "x" + maxHeight);
 
-//const colorTable = new Array("#FFFDFFFF", "#FFE7B81A", "#FF1BE6E4", "#FFE71A62", "#FFB51AE6", "#FF1BE675", "#FF010000", "#FF3700A7"); //画板里仅有的几个颜色(差评)
+const knownColors = new Array("#FFFDFFFF", "#FFE7B81A", "#FF1BE6E4", "#FFE71A62", "#FFB51AE6", "#FF1BE675", "#FF010000", "#FF3700A7"); //画板里仅有的几个颜色
 var colorTable = new Array();
 //const hsvColorTable = [[180, 1, 1], [46, 0.89, 0.91], [179, 0.88, 0.90], [339, 0.89, 0.91], [286, 0.89, 0.90], [147, 0.88, 0.90], [0, 1, 0], [260, 1, 0.65]];
 //现在颜色顺序会变化了！所以自动检测顺序
@@ -291,22 +298,64 @@ function buildColorTable() {
         dialogs.alert("","脚本需要截图来获取颜色顺序，请允许这项权限！");
         exit();
     };
-    swipe(colorSelecterX, colorSelecterY[0], colorSelecterX, device.width, 600); //滑到第一页
-    sleep(650);
+    let buildComplete = false;
+    while (!buildComplete) {
+        swipe(colorSelecterX, colorSelecterY[0], colorSelecterX, device.width, 600); //滑到第一页
+        sleep(650);
+        let img = images.captureScreen();
+        for (let i = 0; i < 5; i++) {
+            colorTable.push(img.pixel(colorSelecterX, colorSelecterY[i]));  //获取第一页中的颜色
+        };
+        swipe(colorSelecterX, colorSelecterY[4], colorSelecterX, 0, 600); //滑到第二页
+        sleep(600);
+        img = images.captureScreen();
+        for (let i = 5; i < colorSelecterY.length; i++) {
+            colorTable.push(img.pixel(colorSelecterX, colorSelecterY[i])); //获取第二页中的颜色
+        };
+        sleep(600);
+        swipe(colorSelecterX, colorSelecterY[0], colorSelecterX, device.width, 600); //滑到第一页
+        console.log("获得的颜色为" + JSON.stringify(colorTable));
+        //和已知颜色对比, 判断是否有漏掉的颜色, 使用colors.isSimilar()函数
+        buildComplete = true;
+        let colorTableCopy = colorTable.slice(0);
+        for (let i = 0; i < knownColors.length; i++) {
+            let haveSimilarColor = false;
+            let knownColor = colors.parseColor(knownColors[i]);
+            for (let j = 0; j < colorTableCopy.length; j++) {
+                if (colors.isSimilar(knownColor, colorTableCopy[j], colorTableMaxAllowedDiff, "rgb+")) {
+                    haveSimilarColor = true;
+                    break;
+                };
+            };
+            if (!haveSimilarColor) {
+                buildComplete = false;
+                console.log("颜色 %s 没有找到, 重新获取", knownColors[i]);
+                colorTable = new Array();
+                break;
+            }
+        }
+    };
+    console.log("获取完成, 颜色顺序为" + JSON.stringify(colorTable));
+}
+
+
+/**
+ * 判断是否滑动到位 (也不知道是bug还是为了反制这个脚本, 现在滑动颜色选择器会有一定概率会在半途卡住)
+ * @param {boolean} isUp 是否向上滑动(滑动到底部)
+ * @returns  {boolean} 是否滑动到位
+ */
+function isScrollComplete(isUp) {
     let img = images.captureScreen();
-    for (let i = 0; i < 5; i++) {
-        colorTable.push(img.pixel(colorSelecterX, colorSelecterY[i]));  //获取第一页中的颜色
-    };
-    swipe(colorSelecterX, colorSelecterY[4], colorSelecterX, 0, 600); //滑到第二页
-    sleep(600);
-    img = images.captureScreen();
-    for (let i = 5; i < colorSelecterY.length; i++) {
-        colorTable.push(img.pixel(colorSelecterX, colorSelecterY[i])); //获取第二页中的颜色
-    };
-    sleep(600);
-    swipe(colorSelecterX, colorSelecterY[0], colorSelecterX, device.width, 600); //滑到第一页
-    //toast((JSON.stringify(colorTable)));
-};
+    if (isUp) {
+        let actrualColor = img.pixel(colorSelecterX, colorSelecterY[colorSelecterY.length - 1]);
+        let expectedColor = colorTable[colorTable.length - 1];
+        return colors.isSimilar(actrualColor, expectedColor, colorTableMaxAllowedDiff, "rgb+");
+    }else{
+        let actrualColor = img.pixel(colorSelecterX, colorSelecterY[0]);
+        let expectedColor = colorTable[0];
+        return colors.isSimilar(actrualColor, expectedColor, colorTableMaxAllowedDiff, "rgb+");
+    }
+}
 
 function compareRGB(r1, g1, b1, r2, g2, b2) {
     let rmean = (r1 + r2) / 2;
@@ -376,10 +425,27 @@ function findNearestColor(col, prevCol, prevColId) { //根据图片颜色确定�
 
 function switchColor(colId, needSwipe) { //更换当前笔刷颜色
     if (needSwipe) {
-        swipe(colorSelecterX, colorSelecterY[0], colorSelecterX, device.width, 600); //滑到第一页
-        sleep(50);
+        let swipeSuccess = false;
+        while (!swipeSuccess) {
+            swipe(colorSelecterX, colorSelecterY[0], colorSelecterX, device.width, 600); //滑到第一页
+            sleep(50);
+            swipeSuccess = isScrollComplete(false);
+            if(!swipeSuccess){
+                console.log("滑动到第一页失败, 重试");
+                swipe(colorSelecterX, colorSelecterY[4], colorSelecterX, 0, 600); //滑回第二页
+            }
+        }
+        swipeSuccess = false;
         if (colId >= 5) {
-            swipe(colorSelecterX, colorSelecterY[4], colorSelecterX, 0, 600); //滑到第二页
+            while (!swipeSuccess) {
+                swipe(colorSelecterX, colorSelecterY[4], colorSelecterX, 0, 600); //滑到第二页
+                sleep(50);
+                swipeSuccess = isScrollComplete(true);
+                if(!swipeSuccess){
+                    console.log("滑动到第二页失败, 重试");
+                    swipe(colorSelecterX, colorSelecterY[0], colorSelecterX, device.width, 600); //滑到第一页
+                }
+            }
         };
     } else {
         //sleep(10);
@@ -422,7 +488,7 @@ function execAlgo0(){
     
         };
         toast(i + "/" + pixelCountX + "完成");
-    
+        console.log(i + "/" + pixelCountX + "完成");
     };
     
     toast("绘画完成");
@@ -496,6 +562,8 @@ if (pixelCountY > maxHeight) {
 if(!optimalSize){
     img = images.scale(img, maxWidth/pixelCountX, maxHeight/pixelCountY);
     img = images.clip(img, 0,0, maxWidth,maxHeight);
+    pixelCountX = img.getWidth();
+    pixelCountY = img.getHeight();
     toast("图片已被缩放来满足比例");
 }
 
@@ -543,7 +611,7 @@ function GCodeGestureGenerator(){
     var scale = 1;
 
     //速度缩放
-    var speedScale = 1;
+    var speedScale = 4;
 
     //是否允许合并路径
     var allowMergePath = true;
