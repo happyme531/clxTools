@@ -527,7 +527,7 @@ var _cachedNoteData = null;
  */
 function evalFileConfig(fileName, targetMajorPitchOffset, targetMinorPitchOffset){
     //丢弃音调高的音符的代价要高于丢弃音调低的音符的代价, 因此权重要高
-    const overFlowedNoteWeight = 10
+    const overFlowedNoteWeight = 5;
 
     majorPitchOffset = targetMajorPitchOffset;
     minorPitchOffset = targetMinorPitchOffset;
@@ -553,7 +553,7 @@ function autoTuneFileConfig(fileName){
     const possibleMinorPitchOffset = [0, 1, -1, 2, -2, 3, -3, 4, -4];
     let bestMajorPitchOffset = 0;
     let bestMinorPitchOffset = 0;
-    let bestResult = {"outRangedNoteCnt": 100000, "roundedNoteCnt": 100000};
+    let bestResult = {"outRangedNoteCnt": 10000000, "roundedNoteCnt": 10000000};
     let bestOverFlowedNoteCnt = 0;
     let bestUnderFlowedNoteCnt = 0;
 
@@ -638,23 +638,54 @@ function runFileListSetup(fileList) {
             autoTuneFileConfig(fileName);
             break;
         case 1:
-            let majorPitchOffsetStr = ["降低2个八度", "降低1个八度", "默认", "升高1个八度", "升高2个八度"];
-            let minorPitchOffsetStr = ["降低4个半音", "降低3个半音", "降低2个半音", "降低1个半音", "默认", "升高1个半音", "升高2个半音", "升高3个半音", "升高4个半音"];
-            let currentMajorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
-            let currentMinorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
+            let setupFinished = false;
+            _cachedNoteData = null;
+            while (!setupFinished) {
+                let majorPitchOffsetStr = ["降低2个八度", "降低1个八度", "默认", "升高1个八度", "升高2个八度"];
+                let minorPitchOffsetStr = ["降低4个半音", "降低3个半音", "降低2个半音", "降低1个半音", "默认", "升高1个半音", "升高2个半音", "升高3个半音", "升高4个半音"];
+                let currentMajorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
+                let currentMinorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
 
-            let res1 = dialogs.singleChoice("调整音高1", majorPitchOffsetStr, currentMajorPitchOffset + 2);
-            if (res1 == -1) {
-                toastLog("设置没有改变");
-            } else {
-                setFileConfig("majorPitchOffset", res1 - 2, rawFileName);
-            }
+                let res1 = dialogs.singleChoice("调整音高1", majorPitchOffsetStr, currentMajorPitchOffset + 2);
+                if (res1 == -1) {
+                    toastLog("设置没有改变");
+                } else {
+                    setFileConfig("majorPitchOffset", res1 - 2, rawFileName);
+                }
 
-            let res2 = dialogs.singleChoice("调整音高2", minorPitchOffsetStr, currentMinorPitchOffset + 4);
-            if (res2 == -1) {
-                toastLog("设置没有改变");
-            } else {
-                setFileConfig("minorPitchOffset", res2 - 4, rawFileName);
+                let res2 = dialogs.singleChoice("调整音高2", minorPitchOffsetStr, currentMinorPitchOffset + 4);
+                if (res2 == -1) {
+                    toastLog("设置没有改变");
+                } else {
+                    setFileConfig("minorPitchOffset", res2 - 4, rawFileName);
+                }
+                let res3 = dialogs.confirm("测试设置", "设置已经保存，是否测试一下？");
+                if (res3) {
+                    currentMajorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
+                    currentMinorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
+                    overFlowedNoteCnt = 0;
+                    underFlowedNoteCnt = 0;
+                    outRangedNoteCnt = 0;
+                    let result = evalFileConfig(fileName, currentMajorPitchOffset, currentMinorPitchOffset);
+                    let totalNoteCnt = _cachedNoteData.length;
+                    let realBestOutRangedNoteCnt = overFlowedNoteCnt + underFlowedNoteCnt;
+                    let percentStr1 = (realBestOutRangedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%";
+                    let percentStr2 = (result.roundedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%";
+                    let resultStr = 
+                    "超出范围被丢弃的音符数: " + realBestOutRangedNoteCnt + " (+" + overFlowedNoteCnt + ", -" + underFlowedNoteCnt + ")(" + percentStr1 + ")\n" +
+                    "被取整的音符数: " + result.roundedNoteCnt + " (" + percentStr2 + ")\n" + 
+                    "点击确认退出, 点击取消继续调整";
+                    let res4 = dialogs.confirm("测试结果", resultStr);
+                    overFlowedNoteCnt = 0;
+                    underFlowedNoteCnt = 0;
+                    outRangedNoteCnt = 0;
+                    if (res4) {
+                        setupFinished = true;
+                       _cachedNoteData = null;
+                    }
+                }else{
+                    break;
+                }
             }
             break;
         case 2:
