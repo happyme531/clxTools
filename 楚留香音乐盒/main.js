@@ -18,7 +18,7 @@ try {
 const musicDir = "/sdcard/楚留香音乐盒数据目录/"
 const scriptVersion = 11;
 
-//在日志中打印脚本生成的中间结果, 可选项: parse, humanify, key, timing, gestures
+//在日志中打印脚本生成的中间结果, 可选项: parse, humanify, key, timing, merge, gestures
 const debugDumpPass = "";
 
 //将间隔小于mergeThreshold的音符合并, 单位: 秒
@@ -434,6 +434,72 @@ function startMidiStream() {
     }
 }
 
+
+/**
+ * @param {Array<number, number>} noteData 音符数据
+ * @param {string} exportType 导出类型, 可选值: "keyboardScore"
+ * @brief 导出音符数据
+ */
+function exportNoteDataInteractive(noteData, exportType) {
+    switch (exportType) {
+        case "keyboardScore":
+            let maxDelayTime = 0;
+            let confirmed = false;
+            let gapTime = 0;
+            while (!confirmed) {
+                gapTime = dialogs.input("输入在你打算把两个音符分到两小段的时候,它们间的时间差(单位:毫秒)", maxDelayTime.toString());
+                if (gapTime < 10) dialogs.alert("", "输入无效,请重新输入");
+                let segmentCnt = 1;
+                noteData.forEach(key => {
+                    if (key[1] >= gapTime) segmentCnt++;
+                });
+                confirmed = dialogs.confirm("", "乐谱将分为" + segmentCnt.toString() + "个小段,是否满意?");
+            }
+
+            let toneStr;
+            switch (dialogs.select("选择导出格式", ["楚留香(键盘)", "原神(键盘)","_简谱_"])) {
+                case 0:
+                    toneStr = "ZXCVBNMASDFGHJQWERTYU";
+                    break;
+                case 1:
+                    toneStr = "ZXCVBNMASDFGHJQWERTYU";
+                    break;
+                case 2:
+                    toneStr = "₁₂₃₄₅₆₇1234567¹²³⁴⁵⁶⁷"; //TODO: 这里的简谱格式可能需要调整
+            }
+            //开始转换
+            let outPutStr = "";
+            noteData.forEach(key => {
+                if (key[0].length > 1) {
+                    outPutStr += "(";
+                    key[0].forEach(element => {
+                        outPutStr += toneStr[element];
+                    });
+                    outPutStr += ")";
+                } else {
+                    outPutStr += toneStr[key[0][0]];
+                }
+                if (key[1] >= gapTime) outPutStr += " ";
+            });
+            //导出到文件
+            let baseName = "乐谱导出";
+            let path = musicDir + baseName + ".txt";
+            i = 1;
+            while (files.exists(path)) {
+                console.log("路径 " + path + " 已存在");
+                path = musicDir + baseName + "(" + i.toString() + ")" + ".txt";
+                i++;
+            }
+            files.write(path, outPutStr);
+            dialogs.alert("导出成功", "已导出至" + path);
+            console.log("导出成功: " + path);
+            break;
+        default:
+            dialogs.alert("导出失败", "未知的导出类型");
+    }
+}
+
+
 /**
  * @param {number} timeSec
  */
@@ -506,7 +572,7 @@ function saveUserGameProfile() {
 
 function debugDump(obj, name) {
     console.log("====================" + name + "====================");
-    console.log("Type: " + typeof (obj));
+    console.log("Type of " + name + ": " + Object.prototype.toString.call(obj));
     let tmp = JSON.stringify(obj);
     console.log(tmp);
     console.log("====================" + name + "====================");
@@ -860,7 +926,7 @@ if (fileName == undefined) {
 //     noteData = parseMIDI(musicDir + fileName);
 // }
 
-// 加载进度条
+//////////////显示加载进度条
 let progressDialog = dialogs.build({
     title: "加载中",
     content: "正在解析文件...",
@@ -878,7 +944,7 @@ let progressDialog = dialogs.build({
 let rawFileName = fileName.split(".")[0];
 let startTime = new Date().getTime();
 
-//加载配置
+//////////////加载配置
 if(gameProfile.getCurrentConfig().leftTop[0] == 0){
     dialogs.alert("错误", "坐标未设置，请先设置坐标");
     progressDialog.dismiss();
@@ -892,23 +958,11 @@ if(gameProfile.getCurrentConfig().leftTop[0] == 0){
     console.log("当前坐标:左上角" + leftTop + "右下角" + rightBottom);
 }
 
-keyRange = gameProfile.getKeyRange();
-
-
-//解析文件
-let noteData = musicFormats.parseFile(musicDir + fileName);
-let durationSecond = (new Date().getTime() - startTime) / 1000;
-let nps = (noteData.length / durationSecond).toFixed(0);
-console.log("解析文件耗时" + durationSecond + "秒(" + nps + "nps)");
-if(debugDumpPass.indexOf("parse") != -1) debugDump(noteData, "parse");
-
+let humanifyEnabled = readGlobalConfig("humanifyEnabled", false);
 majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
 minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
 treatHalfAsCeiling = readFileConfig("halfCeiling",rawFileName);
-//print the first 10 elements of the noteData
-// for (let i = 0; i < 10; i++) {
-//     console.info(noteData[i]);
-// };
+keyRange = gameProfile.getKeyRange();
 
 console.log("当前乐曲:" + fileName);
 console.log("配置信息:");
@@ -916,10 +970,14 @@ console.log("majorPitchOffset:" + majorPitchOffset);
 console.log("minorPitchOffset:" + minorPitchOffset);
 console.log("treatHalfAsCeiling:" + treatHalfAsCeiling);
 
-//伪装
+/////////////解析文件
+let noteData = musicFormats.parseFile(musicDir + fileName);
+let durationSecond = (new Date().getTime() - startTime) / 1000;
+let nps = (noteData.length / durationSecond).toFixed(0);
+console.log("解析文件耗时" + durationSecond + "秒(" + nps + "nps)");
+if(debugDumpPass.indexOf("parse") != -1) debugDump(noteData, "parse");
 
-let humanifyEnabled = readGlobalConfig("humanifyEnabled", false);
-
+/////////////伪装手弹
 if (humanifyEnabled) {
     let noteAbsTimeStdDev = readGlobalConfig("humanifyNoteAbsTimeStdDev", 50);
     progressDialog.setContent("正在伪装音符...");
@@ -927,13 +985,13 @@ if (humanifyEnabled) {
     progressDialog.setMaxProgress(100);
     humanifyer.setNoteAbsTimeStdDev(noteAbsTimeStdDev);
     noteData = humanifyer.humanify(noteData);
-   if(debugDumpPass.indexOf("humanify") != -1) debugDump(noteData, "humanify");
-
+    if(debugDumpPass.indexOf("humanify") != -1) debugDump(noteData, "humanify");
 }
 
-//生成音符
+/////////////生成音符
 startTime = new Date().getTime();
 progressDialog.setContent("正在生成音符...");
+console.log("正在生成音符...");
 progressDialog.setMaxProgress(100);
 let totalNoteCnt = noteData.length;
 
@@ -945,8 +1003,10 @@ durationSecond = (new Date().getTime() - startTime) / 1000;
 nps = (noteData.length / durationSecond).toFixed(0);
 console.log("生成音符耗时" + durationSecond + "秒(" + nps + "nps)");
 if(debugDumpPass.indexOf("key") != -1) debugDump(noteData, "key");
-// 优化音符
+
+/////////////优化音符
 progressDialog.setContent("正在优化音符...");
+console.log("正在优化音符...");
 progressDialog.setMaxProgress(100);
 progressDialog.setProgress(0);
 startTime = new Date().getTime();
@@ -958,137 +1018,81 @@ durationSecond = (new Date().getTime() - startTime) / 1000;
 nps = (noteData.length / durationSecond).toFixed(0);
 console.log("优化音符耗时" + durationSecond + "秒(" + nps + "nps)");
 
-progressDialog.dismiss();
-
 if(debugDumpPass.indexOf("timing") != -1) debugDump(noteData, "timing");
-
+//最终保留的音符数 (之后noteData将被合并）
+let realNoteCnt = noteData.length;
 jsonData = null;
 console.log("音符总数:%d",totalNoteCnt);
 
-//////////////////////////乐谱导出功能开始
-if(exportScore){
-    let keySeq = [];
-    let noteList =[];
-    let noteCount = noteData.length;
-    let i = 0;
-    let maxDelayTime = 0;
-    while (i < noteCount) {
-        delaytime0 = noteData[i][1]; //这个音符的时间，单位:秒
-        if (i != (noteCount - 1)) {
-            delaytime1 = noteData[i+1][1];
-        } else {
-            delaytime1 = delaytime0 + 0.1;
-        };
-        if (Math.abs(delaytime0 - delaytime1) < 0.01) { //如果两个音符时间相等，把这个音和后面的一起加入数组
-            if (noteData[i][0] != -1) {
-                keySeq.push(noteData[i][0]);
-            }
-        } else {
-            if (noteData[i][0] != -1) {
-                noteList.push(noteData[i][0]);
-                let delaytime = (delaytime1 - delaytime0) * 1000;
-                if (delaytime > maxDelayTime) maxDelayTime = delaytime;
-                keySeq.push([noteList, delaytime]);
-                noteList = [];
-                gestureList = [];
-            }
-        };
-        i++;
-    };
-    let confirmed = false;
-    let gapTime = 0;
-    while (!confirmed) {
-        gapTime = dialogs.input("输入在你打算把两个音符分到两小段的时候,它们间的时间差(单位:毫秒)", maxDelayTime.toString());
-        if(gapTime < 10) dialogs.alert("","输入无效,请重新输入");
-        let segmentCnt = 1;
-        keySeq.forEach(key => {
-            if(key[1] >= gapTime) segmentCnt++;
-        }); 
-        confirmed = dialogs.confirm("","乐谱将分为" + segmentCnt.toString() + "个小段,是否满意?");
-    }
-
-   
-    let toneStr;
-    switch (dialogs.select("选择导出格式", ["楚留香(键盘)", "原神(键盘)"])) {
-        case 0:
-            toneStr = "ZXCVBNMASDFGHJQWERTYU";
-            break;
-        case 1:
-            toneStr = "ZXCVBNMASDFGHJQWERTYU";
-            break;
-    }
-    //开始转换
-    let outPutStr = "";
-    keySeq.forEach(key => {
-        if(key[0].length > 1){
-            outPutStr += "(";
-            key[0].forEach(element => {
-                outPutStr += toneStr[element-1];
-            });
-            outPutStr += ")";
-        }else{
-            outPutStr += toneStr[key[0][0]-1];
+/////////////合并音符
+progressDialog.setContent("正在合并音符...");
+console.log("正在合并音符...");
+let mergedNoteData = new Array();
+let lastTime = 0;
+let lastNotes = new Set();
+for(let i = 0; i < noteData.length; i++){
+    let note = noteData[i];
+    if(note[1] - lastTime < mergeThreshold && lastNotes.size < 10){
+        lastNotes.add(note[0] - 1);
+    }else{
+        if (lastNotes.size > 0) {
+            mergedNoteData.push([Array.from(lastNotes), lastTime]);
         }
-        if(key[1] >= gapTime) outPutStr += " ";
-    }); 
-    //导出到文件
-    let path = musicDir + "乐谱导出.txt";
-    files.write(path, outPutStr);
-    dialogs.alert("导出成功","已导出至" + path);
+        lastNotes = new Set([note[0] - 1]);
+        lastTime = note[1];
+    }
+}
+if (lastNotes.size > 0)
+    mergedNoteData.push([Array.from(lastNotes), lastTime]);
+noteData = mergedNoteData;
+if(debugDumpPass.indexOf("merge") != -1) debugDump(noteData, "merge");
+
+//////////////////////////乐谱导出
+if (exportScore) {
+    progressDialog.dismiss();
+    exportNoteDataInteractive(noteData, "keyboardScore");
     exit();
 }
-
-//////////////////////////乐谱导出功能结束
-
-//可视化设置
+/////////////可视化设置
 visualizer.setKeyLayout(gameProfile.getKeyType().row, gameProfile.getKeyType().column);
 visualizer.loadNoteData(noteData);
 visualizer.goto(-1);
 
-//生成点击坐标序列
-
+/////////////生成手势
+progressDialog.setContent("正在生成手势...");
+console.log("正在生成手势...");
 const pressDuration = 5; //按压时间，单位:毫秒
 let gestureTimeList = new Array();
-let lastGestures = new Set();
-let lastGesturesTime = -1; //秒
-noteData.forEach(note => {
-    let key = note[0];
+noteData.forEach((note) => {
     let time = note[1];
-    let clickPos = gameProfile.getKeyPosition(key - 1);
-    let gesture = [0, pressDuration, clickPos];
-    if (time - lastGesturesTime < mergeThreshold && lastGestures.size < 10) { //一次最多10个手势
-        lastGestures.add(gesture);
-    } else {
-        let lastGesturesArray = Array.from(lastGestures);
-        if (lastGesturesArray.length > 0) {
-            gestureTimeList.push([lastGesturesArray, lastGesturesTime]);
+    let gestureArray = new Array();
+    note[0].forEach((key) => {
+        let clickPos = gameProfile.getKeyPosition(key);
+        if (clickPos == null) {
+            console.log("音符超出范围，被丢弃");
+            console.log("key:" + key);
+            return;
         }
-        lastGestures = new Set();
-        lastGestures.add(gesture);
-        lastGesturesTime = time;
-    }
-});
-let lastGesturesArray = Array.from(lastGestures);
-if (lastGesturesArray.length > 0) {
-    gestureTimeList.push([lastGesturesArray, lastGesturesTime]);
-}
+        gestureArray.push([0, pressDuration, clickPos]);
+    });
+    gestureTimeList.push([gestureArray, time]);
+}); 
 
 if(debugDumpPass.indexOf("gesture") != -1) debugDump(gestureTimeList, "gesture");
+progressDialog.dismiss();
 
-
+//////////////解析完成，数据汇总
 let outRangedNoteCnt = overFlowedNoteCnt + underFlowedNoteCnt;
 
 let statString = "音符总数:" + totalNoteCnt +
     "\n超出范围被丢弃的音符数:" + outRangedNoteCnt + "" + " (+" + overFlowedNoteCnt + ", -" + underFlowedNoteCnt + ")(" + (outRangedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%)" +
-    "\n被取整的音符数:" + roundedNoteCnt + " (" + (roundedNoteCnt / noteData.length * 100).toFixed(2) + "%)" +
+    "\n被取整的音符数:" + roundedNoteCnt + " (" + (roundedNoteCnt / realNoteCnt  * 100).toFixed(2) + "%)" +
     "\n过于密集被丢弃的音符数:" + timingDroppedNoteCnt + " (" + (timingDroppedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%)" +
     "\n如果被取整的音符数过多,可以尝试在 调整音高 菜单中升高/降低一个半音";
 
 dialogs.alert("乐曲信息",statString);
-console.verbose("无障碍服务启动成功");
 
-
-//主循环
+//////////////主循环
 var currentGestureIndex = 0
 const gestureCount = gestureTimeList.length;
 var progressBarDragged = false;
@@ -1250,7 +1254,7 @@ while (paused) {
     sleep(500);
 }
 
-let lastTime = 0;
+lastTime = 0;
 let lastGestureStartTime = 0;
 let lastGestureEndTime = 0;
 while (currentGestureIndex < gestureCount) {

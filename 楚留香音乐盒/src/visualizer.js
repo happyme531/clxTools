@@ -17,26 +17,10 @@ function Visualizer(){
 
     /**
      * 加载乐曲数据
-     * @param {Array<[number, number]>} data 乐曲数据[按键编号(从1开始), 所在时间[s]]
+     * @param {Array<[Array<number>, number]>} data 乐曲数据[[按键编号(从0开始),...], 所在时间[s]]
      */
     this.loadNoteData = function(data){
-        //将相邻时间间隔小于mergeThreshold的按键合并
-        let lastTime = 0;
-        let lastNotes = new Set();
-        for(let i = 0; i < data.length; i++){
-            let note = data[i];
-            if(note[1] - lastTime < mergeThreshold){
-                lastNotes.add(note[0] - 1);
-            }else{
-                if (lastNotes.size > 0) {
-                    mergedNoteData.push([Array.from(lastNotes), lastTime]);
-                }
-                lastNotes = new Set([note[0] - 1]);
-                lastTime = note[1];
-            }
-        }
-        mergedNoteData.push([Array.from(lastNotes), lastTime]);
-        //console.log(JSON.stringify(mergedNoteData));
+        mergedNoteData = data.slice();
     }
 
 
