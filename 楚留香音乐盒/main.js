@@ -11,6 +11,7 @@ try {
     var Visualizer = require("./src/visualizer.js");
 } catch (e) {
     toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
+    toast("模块加载错误");
     toast(e);
     console.error(e);
 }
@@ -21,8 +22,12 @@ const scriptVersion = 11;
 //在日志中打印脚本生成的中间结果, 可选项: parse, humanify, key, timing, merge, gestures
 const debugDumpPass = "";
 
-//将间隔小于mergeThreshold的音符合并, 单位: 秒
-const mergeThreshold = 0.01; 
+//将两个/几个彼此间隔时间小于以下阈值的音符合并, 单位: 秒
+
+//用于自动演奏的合并阈值
+const autoPlayMergeThreshold = 0.01; 
+//用于乐谱导出的合并阈值
+const scoreExportMergeThreshold = 0.2; 
 
 let musicFormats = new MusicFormats();
 let humanifyer = new Humanifyer();
@@ -962,6 +967,7 @@ let humanifyEnabled = readGlobalConfig("humanifyEnabled", false);
 majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
 minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
 treatHalfAsCeiling = readFileConfig("halfCeiling",rawFileName);
+let mergeThreshold = exportScore ? scoreExportMergeThreshold : autoPlayMergeThreshold;
 keyRange = gameProfile.getKeyRange();
 
 console.log("当前乐曲:" + fileName);
