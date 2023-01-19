@@ -1270,7 +1270,19 @@ while (currentGestureIndex < gestureCount) {
     let delay = time - lastTime - (lastGestureEndTime - lastGestureStartTime) / 1000;
     lastTime = time;
     if (delay > 0){
-        sleep(delay * 1000);
+        if (delay < 1) {
+           sleep(delay * 1000);
+        }else{
+            while (delay > 0.997) {
+                sleep(997);
+                delay -= 0.997;
+                if (progressBarDragged) {
+                    delay = 0;
+                    break;
+                }
+            }
+            sleep(delay * 1000);
+        }
     }else{
         console.log("Stall! " + (-delay*1000) + "ms");
     }
