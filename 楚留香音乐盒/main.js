@@ -534,9 +534,15 @@ function readGlobalConfig(key, defaultValue) {
     }
 };
 
-function setFileConfig(key, val, filename) {
+function haveFileConfig(filename) {
+    filename = musicFormats.getFileNameWithoutExtension(filename);
+    filename += ".json.cfg";
+    let filepath = musicDir + filename;
+    return files.exists(filepath);
+}
 
-    filename = filename.replace(".json", ""); //如果原先有.json后缀，删除它
+function setFileConfig(key, val, filename) {
+    filename = musicFormats.getFileNameWithoutExtension(filename);
     filename += ".json.cfg";
     let filepath = musicDir + filename;
     if (!files.exists(filepath)) {
@@ -555,7 +561,7 @@ function setFileConfig(key, val, filename) {
 };
 
 function readFileConfig(key, filename) {
-    filename = filename.replace(".json", ""); //如果原先有.json后缀，删除它
+    filename = musicFormats.getFileNameWithoutExtension(filename);
     filename += ".json.cfg";
     let filepath = musicDir + filename;
     if (!files.exists(filepath)) {
@@ -686,23 +692,16 @@ function autoTuneFileConfig(fileName){
 
     _cachedNoteData = null;
 
-    let rawFileName = fileName.split(".")[0];
-
-    setFileConfig("majorPitchOffset", bestMajorPitchOffset, rawFileName);
-    setFileConfig("minorPitchOffset", bestMinorPitchOffset, rawFileName);
+    setFileConfig("majorPitchOffset", bestMajorPitchOffset, fileName);
+    setFileConfig("minorPitchOffset", bestMinorPitchOffset, fileName);
     toast("自动调整完成");
     return 0;
 }
 
-function runFileListSetup(fileList) {
-    let fileName = dialogs.select("选择一首乐曲..", fileList);
-    if (fileName == -1) {
-        return;
-    }
-    fileName = fileList[fileName];
-    //清除后缀
-    rawFileName = fileName.split(".")[0];
-    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", [ "自动调整音高", "调整音高", "半音处理方式"])) {
+function runFileConfigSetup(fullFileName){
+    let fileName = fullFileName;
+    let rawFileName = musicFormats.getFileNameWithoutExtension(fileName);
+    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["一键自动优化", "调整音高", "半音处理方式"])) {
         case -1:
             break;
         case 0:
@@ -762,8 +761,17 @@ function runFileListSetup(fileList) {
         case 2:
             setFileConfig("halfCeiling", dialogs.singleChoice("楚留香的乐器无法弹奏半音，所以对于半音..", ["降低", "升高"], readFileConfig("halfCeiling", rawFileName)), rawFileName);
             break;
-
     };
+}
+
+function runFileListSetup(fileList) {
+    let rawFileNameList = fileList.map((fileName) => musicFormats.getFileNameWithoutExtension(fileName));
+    let fileIndex = dialogs.select("选择一首乐曲..", rawFileNameList);
+    if (fileIndex == -1) {
+        return;
+    }
+    let fileName = fileList[fileIndex];
+    runFileConfigSetup(fileName);
 };
 
 function runGlobalSetup() {
@@ -925,11 +933,6 @@ var fileName = totalFiles[index];
 if (fileName == undefined) {
     reRunSelf();
 }
-// if (fileName.endsWith(".json")) {
-//     noteData = parseTonejsJSON(musicDir + fileName);
-// }else if(fileName.endsWith(".mid")){
-//     noteData = parseMIDI(musicDir + fileName);
-// }
 
 //////////////显示加载进度条
 let progressDialog = dialogs.build({
@@ -946,7 +949,7 @@ let progressDialog = dialogs.build({
     reRunSelf();
 }).show();
 
-let rawFileName = fileName.split(".")[0];
+let rawFileName = musicFormats.getFileNameWithoutExtension(fileName);
 let startTime = new Date().getTime();
 
 //////////////加载配置
@@ -962,6 +965,16 @@ if(gameProfile.getCurrentConfig().leftTop[0] == 0){
     rightBottom = JSON.stringify(rightBottom);
     console.log("当前坐标:左上角" + leftTop + "右下角" + rightBottom);
 }
+
+//如果是第一次运行，显示设置向导
+if (!haveFileConfig(rawFileName)) {
+    let res = dialogs.confirm("设置向导", "检测到您是第一次演奏这首乐曲，是否要运行设置?");
+    if (res) {
+        progressDialog.dismiss();
+        runFileConfigSetup(fileName);
+    };
+};
+
 
 let humanifyEnabled = readGlobalConfig("humanifyEnabled", false);
 majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);

@@ -33,58 +33,67 @@ const DoMiSoTextParser = require('./formatDoMiSo_text.js');
 const SkyStudioJSONParser = require('./formatSkyStudioJSON.js');
 
 function MusicFormats() {
-    this.formats = {
-        "tonejsjson" : {
-            "friendlyName" : "Tone.js JSON 格式",
+    const formats =
+        [{
+            "name": "tonejsjson",
+            "friendlyName": "Tone.js JSON 格式",
+            "fileExtension": ".json"
         },
-        "midi" : {
-            "friendlyName" : "MIDI 格式",
+        {
+            "name": "midi",
+            "friendlyName": "MIDI 格式",
+            "fileExtension": ".mid"
         },
-        "bzdmx" : {
-            "friendlyName" : "网易云音乐 @变奏的梦想 的格式",
+        {
+            "name": "domiso",
+            "friendlyName": "DoMiSo格式",
+            "fileExtension": ".dms.txt"
         },
-        "domiso" : {
-            "friendlyName" : "DoMiSo格式",
-        },
-        "skystudiojson" : {
-            "friendlyName" : "SkyStudio JSON 格式",
-        }
-    }
+        {
+            "name": "skystudiojson",
+            "friendlyName": "SkyStudio JSON 格式",
+            "fileExtension": ".skystudio.txt"
+        }];
+
     this.getFileFormat = function(fullFileName) {
-        let fileName = fullFileName.split(".")[0];
-        let ext = fullFileName.split(".")[1];
-        if (ext == "json") {
-            return this.formats["tonejsjson"];
-        } else if (ext == "mid") {
-            return this.formats["midi"];
-        } else if (ext == "dms") { //.dms.txt
-            return this.formats["domiso"];
-        } else if (ext == "skystudio") { //.skystudio.txt
-            return this.formats["skystudiojson"];
-        } else if (ext == "txt") {
-            //TODO:手动选择格式
+        for (let format of formats) {
+            if (fullFileName.endsWith(format.fileExtension))
+                return format;
         }
         throw new Error("不支持的文件格式");
     }
+
     this.isMusicFile = function(fullFileName) {
-        if(fullFileName.endsWith(".json") || fullFileName.endsWith(".mid") || fullFileName.endsWith(".dms.txt") ||
-           fullFileName.endsWith(".skystudio.txt")){
-            return true;
+        for (let format of formats) {
+            if (fullFileName.endsWith(format.fileExtension))
+                return true;
         }
         return false;
     }
+
+    this.getFileNameWithoutExtension = function(fullFileName) {
+        if (this.isMusicFile(fullFileName)) {
+            let fileFormat = this.getFileFormat(fullFileName);
+            return fullFileName.substring(0, fullFileName.length - fileFormat.fileExtension.length);
+        }
+        return fullFileName;
+    }
+
+
     this.parseFile = function(filePath) {
         let fileFormat = this.getFileFormat(filePath);
-        if (fileFormat == this.formats["tonejsjson"]) {
-            return new ToneJsJSONParser().parseFile(filePath);
-        }else if (fileFormat == this.formats["midi"]) {
-            return new MidiParser().parseFile(filePath);
-        }else if (fileFormat == this.formats["domiso"]) {
-            return new DoMiSoTextParser().parseFile(filePath);
-        }else if (fileFormat == this.formats["skystudiojson"]) {
-            return new SkyStudioJSONParser().parseFile(filePath);
+        switch (fileFormat.name) {
+            case "tonejsjson":
+                return new ToneJsJSONParser().parseFile(filePath);
+            case "midi":
+                return new MidiParser().parseFile(filePath);
+            case "domiso":
+                return new DoMiSoTextParser().parseFile(filePath);
+            case "skystudiojson":
+                return new SkyStudioJSONParser().parseFile(filePath);
+            default:
+                throw new Error("不支持的文件格式");
         }
-        return null;
     }
 }
 
