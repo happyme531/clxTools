@@ -9,6 +9,7 @@ try {
     var Humanifyer = require("./src/humanify.js");
     var GameProfile = require("./src/gameProfile.js");
     var Visualizer = require("./src/visualizer.js");
+    var FileChooser = require("./src/fileChooser.js");
 } catch (e) {
     toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
     toast("模块加载错误");
@@ -594,6 +595,34 @@ function reRunSelf(){
     exit();
 }
 
+function importFileFromFileChooser(){
+    let fileChooser = new FileChooser();
+    // let filePath = fileChooser.chooseFileSync();
+    // if (filePath == null) {
+    //     toast("未选择文件");
+    //     console.warn("未选择文件");
+    //     return;
+    // }
+    // let isMusicFile = musicFormats.isMusicFile(filePath);
+    // if (!isMusicFile) {
+    //     toast("不是音乐文件");
+    //     console.warn(filePath + " 不是音乐文件");
+    //     return;
+    // }
+    // //复制文件到音乐目录
+    // let res = files.copy(filePath, musicDir + files.getName(filePath));
+    // if (res) {
+    //     toast("导入成功");
+    //     console.log(filePath + " -> " + musicDir + files.getName(filePath));
+    // } else {
+    //     console.warn("导入失败");
+    //     toast("导入失败");
+    // }
+    fileChooser.chooseFileAndCopyTo(musicDir);
+}
+
+    
+
 var _cachedNoteData = null;
 /**
  * @param {string} fileName
@@ -899,8 +928,27 @@ switch (dialogs.select(titleStr, ["🎶演奏乐曲", "🛠️更改全局设置
     case -1:
         exit();
     case 0:
-        index = dialogs.select("选择一首乐曲..", rawFileNameList);
-        if (index < 0) reRunSelf();
+        let selected = false;
+        dialogs.build({
+            title: "选择乐曲...",
+            items: rawFileNameList,
+            itemsSelectMode: "select",
+            neutral: "导入文件...",
+            negative: "取消",
+            cancelable: true,
+            canceledOnTouchOutside: true,
+        }).on("neutral", () => {
+            importFileFromFileChooser(); //非阻塞
+            exit();
+        }).on("negative", reRunSelf
+        ).on ("cancel", reRunSelf
+        ).on("single_choice", (idx, item) => {
+            index = idx;
+            selected = true;
+        }).show();
+        while (!selected) {
+            sleep(100);
+        }
         break;
     case 1:
         runGlobalSetup();
