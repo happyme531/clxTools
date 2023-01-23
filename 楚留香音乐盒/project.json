@@ -41,7 +41,7 @@
     "libjackpal-androidterm5.so",
     "libjackpal-termexec2.so"
   ],
-  "main": "uiLauncher.js",
+  "main": "main.js",
   "name": "楚留香音乐盒",
   "outputPath": "/storage/emulated/0/脚本/楚留香音乐盒/build",
   "packageName": "dev.happyme531.clxmidiplayer",

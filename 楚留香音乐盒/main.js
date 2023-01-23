@@ -3,6 +3,7 @@
 var globalConfig = storages.create("hallo1_clxmidiplayer_config");
 
 try {
+    var getPosInteractive = requireShared("getPosInteractive.js");
     var preDefinedRes = require("./src/predefinedres.js");
     var MusicFormats = require("./src/musicFormats.js");
     var MidiDeviceManager = require("./src/midiDeviceManager.js");
@@ -82,74 +83,45 @@ try {
     setGlobalConfig("userGameProfile", null);
 }
 
-function getPosInteractive(promptText) {
-    let gotPos = false;
-    let pos = [];
-    let fingerReleased = false;
-    let confirmed = false;
-    //提示和确认按钮的框
-    let confirmWindow = floaty.rawWindow(
-        <frame gravity="left|top">
-            <vertical bg="#7fffff7f">
-                <text id="promptText" text="" textSize="14sp" />
-                <button id="confirmBtn"  style="Widget.AppCompat.Button.Colored" text="确定"  />
-                <button id="cancelBtn"  style="Widget.AppCompat.Button.Colored" text="取消" />
-            </vertical>
-        </frame>
-    );
-    confirmWindow.setPosition(device.height/3, 0);
-    confirmWindow.setTouchable(true);
-
-    let fullScreenWindow = floaty.rawWindow(<frame id="fullScreen" bg="#00000000" />);
-    fullScreenWindow.setTouchable(true);
-    fullScreenWindow.setSize(-1,-1);
-    fullScreenWindow.fullScreen.setOnTouchListener(function(v, evt){
-        if (evt.getAction() == evt.ACTION_DOWN || evt.getAction() == evt.ACTION_MOVE) {
-            gotPos = true;
-            pos = [parseInt(evt.getRawX().toFixed(0)) , parseInt(evt.getRawY().toFixed(0))];
-        }    
-        if (evt.getAction() == evt.ACTION_UP) {
-            fingerReleased = true;
-        }
-        return true;
-    });
-
-    ui.run(()=>{
-        confirmWindow.promptText.setText("请点击" + promptText);
-        confirmWindow.confirmBtn.click(()=>{
-            confirmed = true;
-        });
-        confirmWindow.cancelBtn.click(()=>{
-            fingerReleased = false;
-            gotPos = false;
-            fullScreenWindow.setTouchable(true);
-        }); 
-    });
-
-    while(!confirmed){ 
-        sleep(100);
-        if(fingerReleased){
-            fullScreenWindow.setTouchable(false);
-        }
-
-        ui.run(function(){
-            if (!gotPos) {
-                confirmWindow.promptText.setText("请点击" + promptText);
-            }else if(!fingerReleased){
-                confirmWindow.promptText.setText("当前坐标:" + pos.toString());
-            }else{
-                confirmWindow.promptText.setText("当前坐标:" + pos.toString() + ", 点击'确定'结束, 点击'取消'重新获取");
-            }
-        });
+/**
+ * 加载共享的js文件, 和require类似，用来解决几个项目共享js文件的问题。
+ * 安卓不能软链接，如果把共享的js文件放上一个目录，打包之后就找不到了。
+ * @param {string} fileName
+ */
+function requireShared(fileName) {
+    const sharedDirRel = "../shared/";
+    const cacheDirRel = "./sharedcache/";
+    const alternativeSharedDir = "/sdcard/脚本/shared/";
+    let sharedDir = files.path(sharedDirRel);
+    let cacheDir = files.path(cacheDirRel);
+    //检查是否在/data/user/目录下运行，如果是，则使用备用目录 (调试用)
+    console.log(files.cwd());
+    if(files.cwd().startsWith("/data/user/")){
+        sharedDir = alternativeSharedDir;
+    }
+    files.ensureDir(cacheDir);
+    let sourceExists = files.exists(sharedDir + fileName);
+    let cacheExists = files.exists(cacheDir + fileName);
+    if(sourceExists && !cacheExists){
+        console.log("复制共享文件: " + fileName);
+        files.copy(sharedDir + fileName, cacheDir + fileName);
+        return require(cacheDir + fileName);
+    }else if(!sourceExists && cacheExists){
+        //如果共享文件不存在，但是缓存文件存在，则直接加载缓存文件（打包之后，共享文件会丢失）
+        console.log("共享文件不存在，加载缓存文件: " + fileName);
+        return require(cacheDir + fileName);
+    }else if(!sourceExists && !cacheExists){
+        throw new Error("共享文件不存在: " + fileName);
     }
 
-    fullScreenWindow.close();
-    confirmWindow.close();
-
-    return {
-        "x" : pos[0],
-        "y" : pos[1]
+    //都存在，检查是否有更新
+    let sourceLastModified = java.nio.file.Files.getLastModifiedTime(java.nio.file.Paths.get(sharedDir + fileName)).toMillis();
+    let cacheLastModified = java.nio.file.Files.getLastModifiedTime(java.nio.file.Paths.get(cacheDir + fileName)).toMillis();
+    if(sourceLastModified > cacheLastModified) {
+        console.log("共享文件有更新: " + fileName);
+        files.copy(sharedDir + fileName, cacheDir + fileName);
     }
+    return require(cacheDir + fileName);
 }
 
 function getJsonLength(json) {
@@ -942,7 +914,7 @@ switch (dialogs.select(titleStr, ["🎶演奏乐曲", "🛠️更改全局设置
             exit();
         }).on("negative", reRunSelf
         ).on ("cancel", reRunSelf
-        ).on("single_choice", (idx, item) => {
+        ).on("item_select", (idx, item, dialog) => {
             index = idx;
             selected = true;
         }).show();
