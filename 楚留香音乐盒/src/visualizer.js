@@ -47,8 +47,13 @@ function Visualizer(){
      * @param {number} step_ 序号
      */
     this.goto = function(step_){
+        if (lastStep == step_ -1) {
+            //如果是下一个按键, 直接next
+            this.next();
+            return;
+        }
         step = step_;
-        lastStep = step - 1;
+        lastStep = Math.max(step - 1, 0);
         lastFirstKeyIndex = -2;
     }
 

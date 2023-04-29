@@ -11,6 +11,7 @@ try {
     var GameProfile = require("./src/gameProfile.js");
     var Visualizer = require("./src/visualizer.js");
     var FileChooser = require("./src/fileChooser.js");
+    var Players = require("./src/players.js");
 } catch (e) {
     toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
     toast("模块加载错误");
@@ -19,7 +20,7 @@ try {
 }
 
 const musicDir = "/sdcard/楚留香音乐盒数据目录/"
-const scriptVersion = 11;
+const scriptVersion = 12;
 
 //在日志中打印脚本生成的中间结果, 可选项: parse, humanify, key, timing, merge, gestures
 const debugDumpPass = "";
@@ -1134,7 +1135,9 @@ dialogs.alert("乐曲信息",statString);
 //////////////主循环
 var currentGestureIndex = 0
 const gestureCount = gestureTimeList.length;
-var progressBarDragged = false;
+let player = new Players.AutoJsGesturePlayer();
+player.setGestureTimeList(gestureTimeList);
+player.pause();
 
 if (!readGlobalConfig("skipInit", 1)) sleep(noteData[0][1] * 1000);
 
@@ -1169,7 +1172,6 @@ controlWindow.timerText.on("click", () => {
 });
 
 
-let paused = true;  //手动启动播放
 //用来更新悬浮窗的线程
 threads.start(function(){
     let progress = 0;
@@ -1185,11 +1187,11 @@ threads.start(function(){
         });
         controlWindow.pauseResumeBtn.setText("▶️");
         controlWindow.pauseResumeBtn.click(() => {
-            if (paused) {
-                paused = false; //只需要设置变量即可，主线程会自动处理
+            if (player.getState() != player.PlayerStates.PLAYING) {
+                player.resume();
                 controlWindow.pauseResumeBtn.setText("⏸");
             } else {
-                paused = true;
+                player.pause();
                 controlWindow.pauseResumeBtn.setText("▶️");
             }
         });
@@ -1218,8 +1220,9 @@ threads.start(function(){
                     break;
                 }
             }
+            if (currentGestureIndex < 0) currentGestureIndex = 0;
+            player.seekTo(currentGestureIndex);
         }
-        if(currentGestureIndex < 0) currentGestureIndex = 0;
         //计算时间
         let curTimeSec = gestureTimeList[currentGestureIndex][1];
         let curTimeStr = sec2timeStr(curTimeSec);
@@ -1288,56 +1291,16 @@ if (!visualizerEnabled) {
     toast("单击可视化窗口调整大小与位置, 双击重置");
 }
 
+player.setOnPlayNote(function (note) {
+    currentGestureIndex = note;
+    visualizer.goto(Math.max(0, note - 1));
+});
 
-while (paused) {
+player.start();
+
+while (player.getState() != player.PlayerStates.FINISHED){
     sleep(500);
 }
-
-lastTime = 0;
-let lastGestureStartTime = 0;
-let lastGestureEndTime = 0;
-while (currentGestureIndex < gestureCount) {
-    let gesturesList = gestureTimeList[currentGestureIndex][0];
-    let time = gestureTimeList[currentGestureIndex][1];
-
-    let delay = time - lastTime - (lastGestureEndTime - lastGestureStartTime) / 1000;
-    lastTime = time;
-    if (delay > 0){
-        if (delay < 1) {
-           sleep(delay * 1000);
-        }else{
-            while (delay > 0.997) {
-                sleep(997);
-                delay -= 0.997;
-                if (progressBarDragged) {
-                    delay = 0;
-                    break;
-                }
-            }
-            sleep(delay * 1000);
-        }
-    }else{
-        console.log("Stall! " + (-delay*1000) + "ms");
-    }
-    
-    visualizer.next();
-
-    lastGestureStartTime = new Date().getTime(); //毫秒
-    gestures.apply(null, gesturesList);
-    lastGestureEndTime = new Date().getTime();
-
-    currentGestureIndex++;
-
-    while (paused) {
-        sleep(500);
-    }
-    while (progressBarDragged) {
-        progressBarDragged = false;
-        visualizer.goto(currentGestureIndex - 1);
-        lastTime = 999999999;
-        sleep(500);
-    }
-};
 toast("播放结束");
 visualizerWindowClose();
 controlWindow.close();
