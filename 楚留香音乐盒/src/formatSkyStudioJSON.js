@@ -40,7 +40,17 @@ function SkyStudioJSONParser(){
             let pitch = this.skyKey2Midi[key];
             ret.push([pitch, n.time]);
         }
-        return ret;
+        return {
+            "haveMultipleTrack": false,
+            "trackCount": 1,
+            "tracks": [
+                {
+                    "name": name,
+                    "noteCount": ret.length,
+                    "notes": ret
+                }
+            ]
+        }
     }
 }
 module.exports = SkyStudioJSONParser;

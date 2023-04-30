@@ -214,10 +214,20 @@ function DoMiSoTextParser(){
             }
             //其它的全部忽略
         });
-        return ret;
+
+        return {
+            "haveMultipleTrack": false,
+            "trackCount": 1,
+            "tracks": [
+                {
+                    "name": "",
+                    "noteCount": ret.length,
+                    "notes": ret
+                }
+            ]
+        }
     }
 }
-
 
 module.exports = DoMiSoTextParser;
 

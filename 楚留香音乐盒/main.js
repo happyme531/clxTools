@@ -1011,11 +1011,59 @@ console.log("minorPitchOffset:" + minorPitchOffset);
 console.log("treatHalfAsCeiling:" + treatHalfAsCeiling);
 
 /////////////解析文件
-let noteData = musicFormats.parseFile(musicDir + fileName);
+let tracksData = musicFormats.parseFile(musicDir + fileName);
 let durationSecond = (new Date().getTime() - startTime) / 1000;
-let nps = (noteData.length / durationSecond).toFixed(0);
-console.log("解析文件耗时" + durationSecond + "秒(" + nps + "nps)");
-if(debugDumpPass.indexOf("parse") != -1) debugDump(noteData, "parse");
+// let nps = (noteData.length / durationSecond).toFixed(0);
+// console.log("解析文件耗时" + durationSecond + "秒(" + nps + "nps)");
+// if(debugDumpPass.indexOf("parse") != -1) debugDump(noteData, "parse");
+
+/////////////选择音轨
+let noteData = [];
+if (tracksData.haveMultipleTrack) {
+    //删除没有音符的音轨
+    for (let i = tracksData.tracks.length - 1; i >= 0; i--) {
+        if (tracksData.tracks[i].noteCount == 0) {
+            tracksData.tracks.splice(i, 1);
+        }
+    }
+    let nonEmptyTrackCount = tracksData.tracks.length;
+
+    //上次选择的音轨(包括空音轨)
+    let lastSelectedTracksNonEmpty = readFileConfig("lastSelectedTracksNonEmpty", rawFileName);
+    if (typeof(lastSelectedTracksNonEmpty) == "undefined" || !lastSelectedTracksNonEmpty.length == nonEmptyTrackCount) {
+        lastSelectedTracksNonEmpty = [];
+        for (let i = 0; i < nonEmptyTrackCount; i++) {
+            lastSelectedTracksNonEmpty.push(i); //默认选择所有音轨
+        }
+    }
+    let trackInfoStrs = [];
+    for (let i = 0; i < nonEmptyTrackCount; i++) {
+        let track = tracksData.tracks[i];
+        trackInfoStrs.push(i + ": " + track.name + " (" + track.noteCount + "个音符)");
+    }
+    let selectedTracksNonEmpty = dialogs.multiChoice("选择音轨", trackInfoStrs, lastSelectedTracksNonEmpty);
+    if (selectedTracksNonEmpty.length == 0) {
+        dialogs.alert("错误", "您没有选择任何音轨");
+        progressDialog.dismiss();
+        exit();
+    }
+
+    //合并
+    for (let i = 0; i < selectedTracksNonEmpty.length; i++) {
+        let track = tracksData.tracks[selectedTracksNonEmpty[i]];
+        noteData = noteData.concat(track.notes);
+    }
+    //按时间排序
+    noteData.sort(function (a, b) {
+        return a[1] - b[1];
+    });
+    //保存选择
+    setFileConfig("lastSelectedTracksNonEmpty", selectedTracksNonEmpty,rawFileName);
+
+}else{
+    noteData = tracksData.tracks[0].notes;
+}
+
 
 /////////////伪装手弹
 if (humanifyEnabled) {

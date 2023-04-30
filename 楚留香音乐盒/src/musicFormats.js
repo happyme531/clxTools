@@ -79,7 +79,19 @@ function MusicFormats() {
         return fullFileName;
     }
 
-
+    /**
+     * 解析音乐文件
+     * @param {string} filePath 
+     * @returns {{
+     * "haveMultipleTrack": boolean,
+     * "trackCount": number,
+     * "tracks": [
+     * {
+     * "name": string,
+     * "noteCount": number,
+     * "notes": [[number,number,Object]]
+     * }}
+     */
     this.parseFile = function(filePath) {
         let fileFormat = this.getFileFormat(filePath);
         switch (fileFormat.name) {
