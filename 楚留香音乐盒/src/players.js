@@ -88,7 +88,7 @@ function AutoJsGesturePlayer(){
      * @param {number} position_ 播放位置(音符序号)
      */
     this.seekTo = function(position_){
-        if (playerState == PlayerStates.PLAYING)
+        if (playerState == PlayerStates.PLAYING || playerState == PlayerStates.SEEK_END)
             playerState = PlayerStates.SEEKING;
         position = position_;
     }
@@ -174,14 +174,13 @@ function AutoJsGesturePlayer(){
                     let elapsedTimeAbs = new Date().getTime() - startTimeAbs;
                     let delayTime = currentNoteTimeAbs - elapsedTimeAbs - 7; //7ms是手势执行时间
                     if (delayTime > 0) {
-                        while (delayTime > 467) {
-                            sleep(467);
+                        while (delayTime > 0) {
+                            sleep(Math.min(delayTime, 467));
                             delayTime -= 467;
                             if (playerState != PlayerStates.PLAYING) {
                                 break;
                             }
                         }
-                        sleep(delayTime);
                     }else{
                         //直接跳过
                         position++;

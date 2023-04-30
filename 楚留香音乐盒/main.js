@@ -616,7 +616,13 @@ function evalFileConfig(fileName, targetMajorPitchOffset, targetMinorPitchOffset
     roundedNoteCnt = 0;
     //运行
     if (_cachedNoteData == null){
-        _cachedNoteData = musicFormats.parseFile(musicDir + fileName);
+        _cachedNoteData = [];
+        let tracksData = musicFormats.parseFile(musicDir + fileName);
+        //合并所有音轨. TODO: 分别计算?
+        for (let i = 0; i < tracksData.trackCount; i++){
+            let track = tracksData.tracks[i];
+            _cachedNoteData = _cachedNoteData.concat(track.notes);
+        }
     }
     let keyList = noteListConvert(_cachedNoteData);
     keyList = null;
@@ -1212,9 +1218,10 @@ controlWindow.setSize(900 + 180 + 180 + 180, -2);
 
 //悬浮窗事件
 controlWindow.timerText.on("click", () => {
-    controlWindow.setAdjustEnabled(!controlWindow.isAdjustEnabled());
+    let adjEnabled = controlWindow.isAdjustEnabled();
+    controlWindow.setAdjustEnabled(!adjEnabled);
     //记忆位置
-    if (!controlWindow.isAdjustEnabled()) {
+    if (adjEnabled) {
         setGlobalConfig("windowPosition", [controlWindow.getX(), controlWindow.getY()]);
     }
 });
@@ -1260,7 +1267,6 @@ threads.start(function(){
         //如果进度条被拖动，更新播放进度
         if(progressChanged){
             progressChanged = false;
-            progressBarDragged = true;
             let targetTimeSec = totalTimeSec * progress / 100;
             for (let j = 0; j < gestureTimeList.length; j++) {
                 if (gestureTimeList[j][1] > targetTimeSec) {
@@ -1268,9 +1274,13 @@ threads.start(function(){
                     break;
                 }
             }
-            if (currentGestureIndex < 0) currentGestureIndex = 0;
+            currentGestureIndex = Math.max(0, currentGestureIndex);
             player.seekTo(currentGestureIndex);
+            sleep(50);
+        }else{
+            sleep(300);
         }
+        currentGestureIndex = Math.min(currentGestureIndex, gestureCount - 1);
         //计算时间
         let curTimeSec = gestureTimeList[currentGestureIndex][1];
         let curTimeStr = sec2timeStr(curTimeSec);
@@ -1280,7 +1290,6 @@ threads.start(function(){
             controlWindow.progressBar.setProgress(curTimeSec/totalTimeSec * 100);
             controlWindow.timerText.setText(timeStr); 
         })
-        sleep(500);
     }
 })
 
@@ -1315,8 +1324,9 @@ visualizerWindow.canv.click(function () {
         visualizerWindow.setPosition(100, 100);
     }
     visualizerLastClickTime = now;
-    visualizerWindow.setAdjustEnabled(!visualizerWindow.isAdjustEnabled());
-    if (!visualizerWindow.isAdjustEnabled()) {
+    let adjEnabled = visualizerWindow.isAdjustEnabled();
+    visualizerWindow.setAdjustEnabled(!adjEnabled);
+    if (adjEnabled) {
         //更新大小 (使用窗口上的拖动手柄缩放时, 窗口的大小实际上是不会变的, 所以这里要手动更新)
         visualizerWindow.setSize(visualizerWindow.getWidth(), visualizerWindow.getHeight());
         //保存当前位置与大小
