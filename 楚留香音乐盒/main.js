@@ -1024,6 +1024,7 @@ let durationSecond = (new Date().getTime() - startTime) / 1000;
 // if(debugDumpPass.indexOf("parse") != -1) debugDump(noteData, "parse");
 
 /////////////选择音轨
+progressDialog.setContent("正在解析音轨...");
 let noteData = [];
 if (tracksData.haveMultipleTrack) {
     //删除没有音符的音轨
@@ -1045,13 +1046,17 @@ if (tracksData.haveMultipleTrack) {
     let trackInfoStrs = [];
     for (let i = 0; i < nonEmptyTrackCount; i++) {
         let track = tracksData.tracks[i];
-        trackInfoStrs.push(i + ": " + track.name + " (" + track.noteCount + "个音符)");
+        let avgPitch = 0;
+        for (let j = 0; j < track.notes.length; j++) {
+            avgPitch += track.notes[j][0];
+        }
+        avgPitch /= track.notes.length;
+        avgPitch = avgPitch.toFixed(1);
+        trackInfoStrs.push(i + ": " + track.name + " (" + track.noteCount + "个音符, 平均音高" + avgPitch + ")");
     }
     let selectedTracksNonEmpty = dialogs.multiChoice("选择音轨", trackInfoStrs, lastSelectedTracksNonEmpty);
     if (selectedTracksNonEmpty.length == 0) {
-        dialogs.alert("错误", "您没有选择任何音轨");
-        progressDialog.dismiss();
-        exit();
+        selectedTracksNonEmpty = lastSelectedTracksNonEmpty;
     }
 
     //合并
