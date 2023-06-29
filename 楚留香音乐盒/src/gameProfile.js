@@ -229,6 +229,14 @@ const preDefinedGameConfigs = [
         sameKeyMinInterval: 20,
         packageNamePart: ["sky"],
     },
+    {
+        gameType: "逆水寒手游",
+        keyType: "generic_3x7",
+        leftTop: [0, 0],
+        rightBottom: [0, 0],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["nshm"],
+    },
 ]
 
 
