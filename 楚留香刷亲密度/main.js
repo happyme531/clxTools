@@ -136,12 +136,12 @@ function runSetup() {
         case 2: //更改停止次数
             setConfigSafe("maxCount",
                 dialogs.input("输入自动停止发送的条数，参考数据:刷友好度60，刷侠缘积分100，实际建议比参考数据稍高一点",
-                    config.get("maxCount", 65).toString()));
+                    JSON.stringify(config.get("maxCount", 65))));
             break;
         case 3: //调整发送速度
             setConfigSafe("sendDelay",
                 dialogs.input("输入两次发送之间的延迟，单位:毫秒，如果对方在线建议1000，对方不在线建议4700，水世界建议31000。请按[<快速模式下速度>,<慢速模式下速度>]填写",
-                    config.get("sendDelay", [1000, 4700]).toString()));
+                JSON.stringify(config.get("sendDelay", [1000, 4700]))));
             break;
         case 4: //调整点击位置
             let pos1 = getPosInteractive("文字输入框正中间");
@@ -230,7 +230,7 @@ function sendMessage(msg, timeOut) {
     };
     textBox.setText(msg);
     className("android.widget.Button").text("确定").findOne().click();
-    sleep(400);
+    sleep(800);
     if (operatingMode == 0) {
         click(clickPos[1][0], clickPos[1][1]);
     } else {
