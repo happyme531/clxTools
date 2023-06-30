@@ -1,7 +1,5 @@
 //@ts-nocheck
 
-var globalConfig = storages.create("hallo1_clxmidiplayer_config");
-
 try {
     var getPosInteractive = requireShared("getPosInteractive.js");
     var preDefinedRes = require("./src/predefinedres.js");
@@ -12,6 +10,7 @@ try {
     var Visualizer = require("./src/visualizer.js");
     var FileChooser = require("./src/fileChooser.js");
     var Players = require("./src/players.js");
+    var Configuration = require("./src/configuration.js");
 } catch (e) {
     toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
     toast("模块加载错误");
@@ -19,7 +18,7 @@ try {
     console.error(e);
 }
 
-const musicDir = "/sdcard/楚留香音乐盒数据目录/"
+const musicDir = Configuration.getMusicDir();
 const scriptVersion = 12;
 
 //在日志中打印脚本生成的中间结果, 可选项: parse, humanify, key, timing, merge, gestures
@@ -36,6 +35,13 @@ let musicFormats = new MusicFormats();
 let humanifyer = new Humanifyer();
 let gameProfile = new GameProfile();
 let visualizer = new Visualizer();
+
+const setGlobalConfig = Configuration.setGlobalConfig;
+const readGlobalConfig = Configuration.readGlobalConfig;
+const haveFileConfig = Configuration.haveFileConfig;
+const setFileConfig = Configuration.setFileConfig;
+const readFileConfig = Configuration.readFileConfig;
+
 //setGlobalConfig("userGameProfile", null);
 //加载配置文件
 try {
@@ -253,18 +259,6 @@ function timingRefine(noteData, progressCallback){
     return noteData;
 }
 
-/**
- * @param {string} filepath
- */
-function initFileConfig(filepath) {
-    console.info("初始化文件:" + filepath);
-    files.create(filepath);
-    let cfg = {};
-    cfg.majorPitchOffset = 0;
-    cfg.minorPitchOffset = 0;
-    cfg.halfCeiling = false;
-    files.write(filepath, JSON.stringify(cfg));
-};
 
 function getPosConfig() {
     //注意，这是横屏状态的坐标:左上角(0,0),向右x增，向下y增
@@ -491,62 +485,6 @@ function sec2timeStr(timeSec){
     return minuteStr + ":" + secondStr;
 }
 
-
-function setGlobalConfig(key, val) {
-    globalConfig.put(key, val);
-    console.log("设置全局配置成功: " + key + " = " + val);
-    toast("设置保存成功");
-    return 1;
-};
-
-function readGlobalConfig(key, defaultValue) {
-    let res = globalConfig.get(key, defaultValue);
-    if (res == null) {
-        return defaultValue;
-    } else {
-        return res;
-    }
-};
-
-function haveFileConfig(filename) {
-    filename = musicFormats.getFileNameWithoutExtension(filename);
-    filename += ".json.cfg";
-    let filepath = musicDir + filename;
-    return files.exists(filepath);
-}
-
-function setFileConfig(key, val, filename) {
-    filename = musicFormats.getFileNameWithoutExtension(filename);
-    filename += ".json.cfg";
-    let filepath = musicDir + filename;
-    if (!files.exists(filepath)) {
-        initFileConfig(filepath);
-    };
-    let tmp = files.read(filepath);
-    tmp = JSON.parse(tmp);
-
-    tmp[key] = val;
-    files.write(filepath, JSON.stringify(tmp));
-    console.log("写入文件" + filepath + "成功");
-    console.verbose("配置信息: " + JSON.stringify(tmp));
-    toast("设置保存成功");
-    return 0;
-
-};
-
-function readFileConfig(key, filename) {
-    filename = musicFormats.getFileNameWithoutExtension(filename);
-    filename += ".json.cfg";
-    let filepath = musicDir + filename;
-    if (!files.exists(filepath)) {
-        initFileConfig(filepath);
-    };
-    let tmp = files.read(filepath);
-    tmp = JSON.parse(tmp);
-    console.log("读取文件:" + filepath);
-    console.verbose("读取配置信息: " + JSON.stringify(tmp));
-    return tmp[key];
-};
 
 function saveUserGameProfile() {
     let profile = gameProfile.getGameConfigs();
