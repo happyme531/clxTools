@@ -427,7 +427,41 @@ function importFileFromFileChooser() {
     fileChooser.chooseFileAndCopyTo(musicDir);
 }
 
+function selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty) {
+    //删除没有音符的音轨
+    for (let i = tracksData.tracks.length - 1; i >= 0; i--) {
+        if (tracksData.tracks[i].noteCount == 0) {
+            tracksData.tracks.splice(i, 1);
+        }
+    }
+    let nonEmptyTrackCount = tracksData.tracks.length;
+    if (nonEmptyTrackCount === 1) {
+        dialogs.alert("提示", "只有一条音轨,无需选择");
+        return [0];
+    }
 
+    if (typeof (lastSelectedTracksNonEmpty) == "undefined") {
+        lastSelectedTracksNonEmpty = [];
+        for (let i = 0; i < nonEmptyTrackCount; i++) {
+            lastSelectedTracksNonEmpty.push(i); //默认选择所有音轨
+        }
+    }
+    let trackInfoStrs = [];
+    for (let i = 0; i < nonEmptyTrackCount; i++) {
+        let track = tracksData.tracks[i];
+        let avgPitch = 0;
+        for (let j = 0; j < track.notes.length; j++) {
+            avgPitch += track.notes[j][0];
+        }
+        avgPitch /= track.notes.length;
+        trackInfoStrs.push(i + ": " + track.name + " (" + track.noteCount + "个音符, 平均音高" + avgPitch.toFixed(1) + ")");
+    }
+    let selectedTracksNonEmpty = dialogs.multiChoice("选择音轨", trackInfoStrs, lastSelectedTracksNonEmpty);
+    if (selectedTracksNonEmpty.length == 0) { //取消选择, 保持原样
+        selectedTracksNonEmpty = lastSelectedTracksNonEmpty;
+    }
+    return selectedTracksNonEmpty;
+}
 
 var _cachedNoteData = null;
 /**
@@ -562,7 +596,7 @@ function autoTuneFileConfig(fileName) {
 function runFileConfigSetup(fullFileName) {
     let fileName = fullFileName;
     let rawFileName = musicFormats.getFileNameWithoutExtension(fileName);
-    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["一键自动优化", "调整音高", "半音处理方式"])) {
+    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["一键自动优化", "调整音高", "半音处理方式","选择音轨"])) {
         case -1:
             break;
         case 0:
@@ -616,6 +650,14 @@ function runFileConfigSetup(fullFileName) {
         case 2:
             setFileConfig("halfCeiling", dialogs.singleChoice("楚留香的乐器无法弹奏半音，所以对于半音..", ["降低", "升高"], readFileConfig("halfCeiling", rawFileName)), rawFileName);
             break;
+        case 3:
+            const passManager = new PassManager();
+            let tracksData = passManager.addPass("ParseSourceFilePass").run(musicDir + fileName);
+            let lastSelectedTracksNonEmpty = readFileConfig("lastSelectedTracksNonEmpty", rawFileName);
+            let result = selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty);
+            setFileConfig("lastSelectedTracksNonEmpty", result, rawFileName);
+            break;
+
     };
 }
 
@@ -946,27 +988,14 @@ function loadMusicFile(fileName, exportScore) {
 
         //上次选择的音轨(包括空音轨)
         let lastSelectedTracksNonEmpty = readFileConfig("lastSelectedTracksNonEmpty", rawFileName);
-        if (typeof (lastSelectedTracksNonEmpty) == "undefined" || !lastSelectedTracksNonEmpty.length == nonEmptyTrackCount) {
+        if (typeof (lastSelectedTracksNonEmpty) == "undefined") {
             lastSelectedTracksNonEmpty = [];
             for (let i = 0; i < nonEmptyTrackCount; i++) {
                 lastSelectedTracksNonEmpty.push(i); //默认选择所有音轨
             }
         }
-        let trackInfoStrs = [];
-        for (let i = 0; i < nonEmptyTrackCount; i++) {
-            let track = tracksData.tracks[i];
-            let avgPitch = 0;
-            for (let j = 0; j < track.notes.length; j++) {
-                avgPitch += track.notes[j][0];
-            }
-            avgPitch /= track.notes.length;
-            trackInfoStrs.push(i + ": " + track.name + " (" + track.noteCount + "个音符, 平均音高" + avgPitch.toFixed(1) + ")");
-        }
-        let selectedTracksNonEmpty = dialogs.multiChoice("选择音轨", trackInfoStrs, lastSelectedTracksNonEmpty);
-        if (selectedTracksNonEmpty.length == 0) {
-            selectedTracksNonEmpty = lastSelectedTracksNonEmpty;
-        }
-
+        let selectedTracksNonEmpty = lastSelectedTracksNonEmpty;
+        console.log("选择的音轨:" + JSON.stringify(selectedTracksNonEmpty));
         //合并
         for (let i = 0; i < selectedTracksNonEmpty.length; i++) {
             let track = tracksData.tracks[selectedTracksNonEmpty[i]];
@@ -976,8 +1005,6 @@ function loadMusicFile(fileName, exportScore) {
         noteData.sort(function (a, b) {
             return a[1] - b[1];
         });
-        //保存选择
-        setFileConfig("lastSelectedTracksNonEmpty", selectedTracksNonEmpty, rawFileName);
 
     } else {
         noteData = tracksData.tracks[0].notes;

@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "jsx": "preserve",
         "module": "commonjs",
         "moduleResolution": "Node",
         "target": "ES5",
