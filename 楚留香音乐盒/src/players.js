@@ -2,6 +2,9 @@
 //players.js -- 实现播放/演奏功能
 
 function AutoJsGesturePlayer(){
+    /**
+     * @enum {number}
+     */
     const PlayerStates = {
         PLAYING: 0,
         PAUSED: 1,
@@ -20,7 +23,7 @@ function AutoJsGesturePlayer(){
     let playerState = PlayerStates.UNINITIALIZED;
 
     /**
-     * @type Array<[Gestures, number]>
+     * @type Array<[Gestures, number]>?
      * @description 手势和时间数据
      */
     let gestureTimeList = null;
@@ -66,6 +69,7 @@ function AutoJsGesturePlayer(){
      * 
      */
     this.start = function(){
+        playerState = PlayerStates.UNINITIALIZED;
         playerThread = threads.start(playerThreadFunc);
     }
 
@@ -86,6 +90,7 @@ function AutoJsGesturePlayer(){
     /**
      * @brief 设置播放位置
      * @param {number} position_ 播放位置(音符序号)
+     * @note TODO: 线程安全?
      */
     this.seekTo = function(position_){
         if (playerState == PlayerStates.PLAYING || playerState == PlayerStates.SEEK_END)
@@ -132,8 +137,30 @@ function AutoJsGesturePlayer(){
         onPlayNote = onPlayNote_;
     }
 
+    /**
+     * @brief 停止播放并释放资源
+     * @returns {boolean} 是否成功停止
+     */
+    this.stop = function(){
+        if(playerThread != null){
+            playerThread.interrupt();
+            playerThread.join();
+            playerThread = null;
+            playerState = PlayerStates.FINISHED;
+            return true;
+        }
+        return false;
+    }
 
+    /**
+     * @brief 播放线程函数
+     * @private
+     */
     function playerThreadFunc(){
+        if(gestureTimeList == null){
+            console.error("gestureTimeList is null");
+            return;
+        }
         let oldState = playerState;
         let startTimeAbs = new Date().getTime() + 100;
         console.info("PlayerThread started");

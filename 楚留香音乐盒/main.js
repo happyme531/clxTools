@@ -44,92 +44,93 @@ const setFileConfig = Configuration.setFileConfig;
 const readFileConfig = Configuration.readFileConfig;
 
 //加载配置文件
-try {
-    //启动无障碍服务
-    console.verbose("等待无障碍服务..");
-    //toast("请允许本应用的无障碍权限");
-    auto.waitFor();
-    console.verbose("无障碍服务已启动");
-    //TODO: 自定义配置
-    let userGameProfile = readGlobalConfig("userGameProfile", null);
-    if (userGameProfile != null) {
-        gameProfile.loadGameConfigs(userGameProfile);
-    } else {
-        gameProfile.loadDefaultGameConfigs();
-    }
-    let lastConfigName = readGlobalConfig("lastConfigName", "");
-    //尝试加载用户设置的游戏配置
-    let activeConfigName = readGlobalConfig("activeConfigName", null);
-    let res = gameProfile.setConfigByName(activeConfigName);
-    if (res == false) {
-        console.log("尝试加载用户设置的游戏配置...失败!");
-    } else {
-        console.log("尝试加载用户设置的游戏配置...成功, 当前配置: " + gameProfile.getCurrentConfigTypeName());
-    }
-
-    //尝试通过包名加载游戏配置 (加载失败后保留当前配置)
-    let currentPackageName = currentPackage();
-    console.log("当前包名:" + currentPackageName);
-    res = gameProfile.setConfigByPackageName(currentPackageName);
-    if (res == false) {
-        console.log("尝试通过包名加载游戏配置...失败!");
-    } else {
-        console.log("尝试通过包名加载游戏配置...成功, 当前配置: " + gameProfile.getCurrentConfigTypeName());
-        //保存当前配置
-        setGlobalConfig("activeConfigName", gameProfile.getCurrentConfigTypeName());
-    }
-
-    if (gameProfile.getCurrentConfig() == null) {
-        console.error("未找到合适配置, 已加载默认配置!");
-        toast("未找到合适配置, 已加载默认配置!");
-        gameProfile.setConfigByName("楚留香");
-    }
-
-    if(lastConfigName != gameProfile.getCurrentConfigTypeName()) {
-        //如果配置发生了变化, 则清空上次的变体与键位配置
-        setGlobalConfig("lastConfigName", gameProfile.getCurrentConfigTypeName());
-        setGlobalConfig("lastVariantName", "");
-        setGlobalConfig("lastKeyTypeName", "");
-    }
-
-    //加载变体配置和键位配置
-    let lastVariantName = readGlobalConfig("lastVariantName", "");
-    if (lastVariantName != "") {
-        let res = gameProfile.setCurrentVariantByTypeName(lastVariantName);
+function loadConfiguration() {
+    try {
+        //启动无障碍服务
+        console.verbose("等待无障碍服务..");
+        //toast("请允许本应用的无障碍权限");
+        auto.waitFor();
+        console.verbose("无障碍服务已启动");
+        //TODO: 自定义配置
+        let userGameProfile = readGlobalConfig("userGameProfile", null);
+        if (userGameProfile != null) {
+            gameProfile.loadGameConfigs(userGameProfile);
+        } else {
+            gameProfile.loadDefaultGameConfigs();
+        }
+        let lastConfigName = readGlobalConfig("lastConfigName", "");
+        //尝试加载用户设置的游戏配置
+        let activeConfigName = readGlobalConfig("activeConfigName", null);
+        let res = gameProfile.setConfigByName(activeConfigName);
         if (res == false) {
-            console.log("尝试加载用户设置的变体配置...失败!");
+            console.log("尝试加载用户设置的游戏配置...失败!");
+        } else {
+            console.log("尝试加载用户设置的游戏配置...成功, 当前配置: " + gameProfile.getCurrentConfigTypeName());
+        }
+
+        //尝试通过包名加载游戏配置 (加载失败后保留当前配置)
+        let currentPackageName = currentPackage();
+        console.log("当前包名:" + currentPackageName);
+        res = gameProfile.setConfigByPackageName(currentPackageName);
+        if (res == false) {
+            console.log("尝试通过包名加载游戏配置...失败!");
+        } else {
+            console.log("尝试通过包名加载游戏配置...成功, 当前配置: " + gameProfile.getCurrentConfigTypeName());
+            //保存当前配置
+            setGlobalConfig("activeConfigName", gameProfile.getCurrentConfigTypeName());
+        }
+
+        if (gameProfile.getCurrentConfig() == null) {
+            console.error("未找到合适配置, 已加载默认配置!");
+            toast("未找到合适配置, 已加载默认配置!");
+            gameProfile.setConfigByName("楚留香");
+        }
+
+        if (lastConfigName != gameProfile.getCurrentConfigTypeName()) {
+            //如果配置发生了变化, 则清空上次的变体与键位配置
+            setGlobalConfig("lastConfigName", gameProfile.getCurrentConfigTypeName());
+            setGlobalConfig("lastVariantName", "");
+            setGlobalConfig("lastKeyTypeName", "");
+        }
+
+        //加载变体配置和键位配置
+        let lastVariantName = readGlobalConfig("lastVariantName", "");
+        if (lastVariantName != "") {
+            let res = gameProfile.setCurrentVariantByTypeName(lastVariantName);
+            if (res == false) {
+                console.log("尝试加载用户设置的变体配置...失败!");
+                gameProfile.setCurrentVariantDefault();
+            } else {
+                console.log("尝试加载用户设置的变体配置...成功");
+            }
+        } else {
             gameProfile.setCurrentVariantDefault();
-        }else{
-            console.log("尝试加载用户设置的变体配置...成功");
+            console.log("游戏配置发生变化, 已加载默认变体配置");
         }
-    }else{
-        gameProfile.setCurrentVariantDefault();
-        console.log("游戏配置发生变化, 已加载默认变体配置");
-    }
-    setGlobalConfig("lastVariantName", gameProfile.getCurrentVariantTypeName());
+        setGlobalConfig("lastVariantName", gameProfile.getCurrentVariantTypeName());
 
-    let lastKeyTypeName = readGlobalConfig("lastKeyTypeName", "");
-    if (lastKeyTypeName != "") {
-        let res = gameProfile.setCurrentKeyLayoutByTypeName(lastKeyTypeName);
-        if (res == false) {
-            console.log("尝试加载用户设置的键位配置...失败!");
+        let lastKeyTypeName = readGlobalConfig("lastKeyTypeName", "");
+        if (lastKeyTypeName != "") {
+            let res = gameProfile.setCurrentKeyLayoutByTypeName(lastKeyTypeName);
+            if (res == false) {
+                console.log("尝试加载用户设置的键位配置...失败!");
+                gameProfile.setCurrentKeyLayoutDefault();
+            } else {
+                console.log("尝试加载用户设置的键位配置...成功");
+            }
+        } else {
             gameProfile.setCurrentKeyLayoutDefault();
-        }else{
-            console.log("尝试加载用户设置的键位配置...成功");
+            console.log("游戏配置发生变化, 已加载默认键位配置");
         }
-    }else{
-        gameProfile.setCurrentKeyLayoutDefault();
-        console.log("游戏配置发生变化, 已加载默认键位配置");
+        setGlobalConfig("lastKeyTypeName", gameProfile.getCurrentKeyLayoutTypeName());
+
+    } catch (error) {
+        toastLog("加载配置文件失败! 已自动加载默认配置!");
+        toastLog(error);
+        gameProfile.loadDefaultGameConfigs();
+        setGlobalConfig("userGameProfile", null);
     }
-    setGlobalConfig("lastKeyTypeName", gameProfile.getCurrentKeyLayoutTypeName());
-
-} catch (error) {
-    toastLog("加载配置文件失败! 已自动加载默认配置!");
-    toastLog(error);
-    gameProfile.loadDefaultGameConfigs();
-    setGlobalConfig("userGameProfile", null);
 }
-
 
 /**
  * 加载共享的js文件, 和require类似，用来解决几个项目共享js文件的问题。
@@ -206,7 +207,7 @@ function startMidiStream() {
     if (!gameProfile.checkKeyPosition()) {
         dialogs.alert("错误", "坐标未设置，请设置坐标");
         runGlobalSetup();
-        reRunSelf();
+        return;
     }
 
     let midi = new MidiDeviceManager();
@@ -398,11 +399,6 @@ function debugDump(obj, name) {
     let tmp = JSON.stringify(obj);
     console.log(tmp);
     console.log("====================" + name + "====================");
-}
-
-function reRunSelf() {
-    engines.execScriptFile(files.cwd() + "/main.js");
-    exit();
 }
 
 function importFileFromFileChooser() {
@@ -647,7 +643,7 @@ function runGlobalSetup() {
             if (sel == -1) {
                 toastLog("设置没有改变");
                 break;
-            } 
+            }
             let configName = configList[sel];
             setGlobalConfig("activeConfigName", configName);
             setGlobalConfig("lastConfigName", configName);
@@ -658,7 +654,7 @@ function runGlobalSetup() {
             if (instrumentList.length == 1) {
                 gameProfile.setCurrentVariantDefault();
                 setGlobalConfig("lastVariantName", gameProfile.getCurrentVariantTypeName());
-            }else{
+            } else {
                 let nameList = instrumentList.map((variant) => variant.variantName);
                 let sel = dialogs.select("选择目标乐器...", nameList);
                 if (sel == -1) {
@@ -675,7 +671,7 @@ function runGlobalSetup() {
             if (keyLayoutList.length == 1) {
                 gameProfile.setCurrentKeyLayoutDefault();
                 setGlobalConfig("lastKeyTypeName", gameProfile.getCurrentKeyLayoutTypeName());
-            }else{
+            } else {
                 let allKeyLayoutList = gameProfile.getAllKeyLayouts();
                 let nameList = keyLayoutList.map((keyLayout) => allKeyLayoutList[keyLayout].displayName);
                 let sel = dialogs.select("选择目标键位...", nameList);
@@ -754,461 +750,485 @@ function runGlobalSetup() {
     };
 };
 
-//toast(name2pitch("B6"));
-//exit();
 
 
 /////////
 //主程序//
 /////////
-files.ensureDir(musicDir);
-//globalConfig.put("inited", 0);
-if (readGlobalConfig("lastVersion", 0) != scriptVersion) {
-    //第一次启动，初始化设置
-    toast("初始化设置..");
+function initialize() {
+    files.ensureDir(musicDir);
+    //globalConfig.put("inited", 0);
+    if (readGlobalConfig("lastVersion", 0) != scriptVersion) {
+        //第一次启动，初始化设置
+        toast("初始化设置..");
 
-    if (readGlobalConfig("skipInit", -1) == -1) setGlobalConfig("skipInit", 1);
-    if (readGlobalConfig("waitForGame", -1) == -1) setGlobalConfig("waitForGame", 1);
+        if (readGlobalConfig("skipInit", -1) == -1) setGlobalConfig("skipInit", 1);
+        if (readGlobalConfig("waitForGame", -1) == -1) setGlobalConfig("waitForGame", 1);
 
-    let files_ = files.listDir("./exampleTracks");
-    for (let i in files_) {
-        console.log("copy:" + files_[i]);
-        files.copy("./exampleTracks/" + files_[i], musicDir + files_[i]);
+        let files_ = files.listDir("./exampleTracks");
+        for (let i in files_) {
+            console.log("copy:" + files_[i]);
+            files.copy("./exampleTracks/" + files_[i], musicDir + files_[i]);
+        };
+        setGlobalConfig("lastVersion", scriptVersion);
     };
-    setGlobalConfig("lastVersion", scriptVersion);
-
-};
-
-const rawFileNameList = getRawFileNameList();
-const totalFiles = getFileList();
-if (!floaty.checkPermission()) {
-    // 没有悬浮窗权限，提示用户并跳转请求
-    toast("本脚本需要悬浮窗权限来显示悬浮窗，请在随后的界面中允许并重新运行本脚本。");
-    floaty.requestPermission();
-    exit();
 }
 
-let configName = gameProfile.getCurrentConfigDisplayName();
-let variantName = gameProfile.getCurrentVariantDisplayName();
-let keyTypeName = gameProfile.getCurrentKeyLayoutDisplayName();
-let currentConfigName = configName + " " + variantName + " " + keyTypeName;
-let titleStr = "当前配置: " + currentConfigName;
+function main() {
 
-var index;
-var exportScore = false;
-switch (dialogs.select(titleStr, ["🎶演奏乐曲", "🛠️更改全局设置", "🛠️更改乐曲设置", "🎼乐谱输出", "📲MIDI串流", "📃查看使用说明", "🚪离开"])) {
-    case -1:
+    const rawFileNameList = getRawFileNameList();
+    const totalFiles = getFileList();
+    if (!floaty.checkPermission()) {
+        // 没有悬浮窗权限，提示用户并跳转请求
+        toast("本脚本需要悬浮窗权限来显示悬浮窗，请在随后的界面中允许并重新运行本脚本。");
+        floaty.requestPermission();
         exit();
-    case 0:
-        let selected = false;
-        dialogs.build({
-            title: "选择乐曲...",
-            items: rawFileNameList,
-            itemsSelectMode: "select",
-            neutral: "导入文件...",
-            negative: "取消",
-            cancelable: true,
-            canceledOnTouchOutside: true,
-        }).on("neutral", () => {
-            importFileFromFileChooser(); //非阻塞
+    }
+
+    let configName = gameProfile.getCurrentConfigDisplayName();
+    let variantName = gameProfile.getCurrentVariantDisplayName();
+    let keyTypeName = gameProfile.getCurrentKeyLayoutDisplayName();
+    let currentConfigName = configName + " " + variantName + " " + keyTypeName;
+    let titleStr = "当前配置: " + currentConfigName;
+
+    var index;
+    var exportScore = false;
+    switch (dialogs.select(titleStr, ["🎶演奏乐曲", "🛠️更改全局设置", "🛠️更改乐曲设置", "🎼乐谱输出", "📲MIDI串流", "📃查看使用说明", "🚪离开"])) {
+        case -1:
             exit();
-        }).on("negative", reRunSelf
-        ).on("cancel", reRunSelf
-        ).on("item_select", (idx, item, dialog) => {
-            index = idx;
-            selected = true;
-        }).show();
-        while (!selected) {
-            sleep(100);
-        }
-        break;
-    case 1:
-        runGlobalSetup();
-        reRunSelf();
-        break;
-    case 2:
-        runFileListSetup(totalFiles);
-        reRunSelf();
-        break;
-    case 3:
-        index = dialogs.select("选择一首乐曲..", rawFileNameList);
-        exportScore = true;
-        break;
-    case 4:
-        startMidiStream();
-        reRunSelf();
-        break;
-    case 5:
-        app.viewFile(musicDir + "使用帮助.txt");
-        exit();
-        break;
-    case 6:
-        exit();
-        break;
-};
-
-
-var fileName = totalFiles[index];
-
-if (fileName == undefined) {
-    reRunSelf();
-}
-
-//////////////显示加载进度条
-let progressDialog = dialogs.build({
-    title: "加载中",
-    content: "正在解析文件...",
-    negative: "取消",
-    progress: {
-        max: 100,
-        showMinMax: false
-    },
-    cancelable: true,
-    canceledOnTouchOutside: false
-}).on("negative", () => {
-    reRunSelf();
-}).show();
-
-let rawFileName = musicFormats.getFileNameWithoutExtension(fileName);
-let startTime = new Date().getTime();
-
-//////////////加载配置
-if (!gameProfile.checkKeyPosition()) {
-    dialogs.alert("错误", "坐标未设置，请先设置坐标");
-    progressDialog.dismiss();
-    runGlobalSetup();
-    reRunSelf();
-};
-
-//如果是第一次运行，显示设置向导
-if (!haveFileConfig(rawFileName)) {
-    let res = dialogs.confirm("设置向导", "检测到您是第一次演奏这首乐曲，是否要运行设置?");
-    if (res) {
-        progressDialog.dismiss();
-        runFileConfigSetup(fileName);
+        case 0:
+            let selected = false;
+            let canceled = false;
+            dialogs.build({
+                title: "选择乐曲...",
+                items: rawFileNameList,
+                itemsSelectMode: "select",
+                neutral: "导入文件...",
+                negative: "取消",
+                cancelable: true,
+                canceledOnTouchOutside: true,
+            }).on("neutral", () => {
+                importFileFromFileChooser(); //非阻塞
+                exit();
+            }).on("negative", () => {
+                canceled = true;
+                selected = true;
+            }).on("cancel", () => {
+                canceled = true;
+                selected = true;
+            }).on("item_select", (idx, item, dialog) => {
+                index = idx;
+                selected = true;
+            }).show();
+            while (!selected) {
+                sleep(100);
+            }
+            if (canceled) {
+                return;
+            }
+            break;
+        case 1:
+            runGlobalSetup();
+            return;
+            break;
+        case 2:
+            runFileListSetup(totalFiles);
+            return;
+            break;
+        case 3:
+            index = dialogs.select("选择一首乐曲..", rawFileNameList);
+            exportScore = true;
+            break;
+        case 4:
+            startMidiStream();
+            return;
+            break;
+        case 5:
+            app.viewFile(musicDir + "使用帮助.txt");
+            exit();
+            break;
+        case 6:
+            exit();
+            break;
     };
-};
 
 
-let humanifyEnabled = readGlobalConfig("humanifyEnabled", false);
-let majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
-let minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
-let treatHalfAsCeiling = readFileConfig("halfCeiling", rawFileName);
-let mergeThreshold = exportScore ? scoreExportMergeThreshold : autoPlayMergeThreshold;
-let keyRange = gameProfile.getKeyRange();
+    var fileName = totalFiles[index];
 
-console.log("当前乐曲:" + fileName);
-console.log("配置信息:");
-console.log("majorPitchOffset:" + majorPitchOffset);
-console.log("minorPitchOffset:" + minorPitchOffset);
-console.log("treatHalfAsCeiling:" + treatHalfAsCeiling);
-
-const passManager = new PassManager();
-
-/////////////解析文件
-progressDialog.setContent("正在解析文件...");
-let tracksData = passManager.addPass("ParseSourceFilePass", null, null, (data, statistics, elapsedTime) => {
-    console.log("解析文件耗时" + elapsedTime / 1000 + "秒");
-    if (debugDumpPass.indexOf("parse") != -1) debugDump(data, "parse");
-}).run(musicDir + fileName);
-passManager.reset();
-
-
-/////////////选择音轨
-progressDialog.setContent("正在解析音轨...");
-let noteData = [];
-if (tracksData.haveMultipleTrack) {
-    //删除没有音符的音轨
-    for (let i = tracksData.tracks.length - 1; i >= 0; i--) {
-        if (tracksData.tracks[i].noteCount == 0) {
-            tracksData.tracks.splice(i, 1);
-        }
+    if (fileName == undefined) {
+        return;
     }
-    let nonEmptyTrackCount = tracksData.tracks.length;
 
-    //上次选择的音轨(包括空音轨)
-    let lastSelectedTracksNonEmpty = readFileConfig("lastSelectedTracksNonEmpty", rawFileName);
-    if (typeof (lastSelectedTracksNonEmpty) == "undefined" || !lastSelectedTracksNonEmpty.length == nonEmptyTrackCount) {
-        lastSelectedTracksNonEmpty = [];
+    let data = loadMusicFile(fileName, exportScore);
+    if (exportScore) {
+        exportNoteDataInteractive(data, "keyboardScore");
+        return;
+    }
+    runGesturePlayer(data);
+
+}
+
+/**
+ * @param {string} fileName
+ */
+function loadMusicFile(fileName, exportScore) {
+    //////////////显示加载进度条
+    let progressDialog = dialogs.build({
+        title: "加载中",
+        content: "正在解析文件...",
+        negative: "取消",
+        progress: {
+            max: 100,
+            showMinMax: false
+        },
+        cancelable: true,
+        canceledOnTouchOutside: false
+    }).on("negative", () => {
+        return;
+    }).show();
+
+    let rawFileName = musicFormats.getFileNameWithoutExtension(fileName);
+    let startTime = new Date().getTime();
+
+    //////////////加载配置
+    if (!gameProfile.checkKeyPosition()) {
+        dialogs.alert("错误", "坐标未设置，请先设置坐标");
+        progressDialog.dismiss();
+        runGlobalSetup();
+        return;
+    };
+
+    //如果是第一次运行，显示设置向导
+    if (!haveFileConfig(rawFileName)) {
+        let res = dialogs.confirm("设置向导", "检测到您是第一次演奏这首乐曲，是否要运行设置?");
+        if (res) {
+            progressDialog.dismiss();
+            runFileConfigSetup(fileName);
+        };
+    };
+
+
+    let humanifyEnabled = readGlobalConfig("humanifyEnabled", false);
+    let majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
+    let minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
+    let treatHalfAsCeiling = readFileConfig("halfCeiling", rawFileName);
+    let mergeThreshold = exportScore ? scoreExportMergeThreshold : autoPlayMergeThreshold;
+    let keyRange = gameProfile.getKeyRange();
+
+    console.log("当前乐曲:" + fileName);
+    console.log("配置信息:");
+    console.log("majorPitchOffset:" + majorPitchOffset);
+    console.log("minorPitchOffset:" + minorPitchOffset);
+    console.log("treatHalfAsCeiling:" + treatHalfAsCeiling);
+
+    const passManager = new PassManager();
+
+    /////////////解析文件
+    progressDialog.setContent("正在解析文件...");
+    let tracksData = passManager.addPass("ParseSourceFilePass", null, null, (data, statistics, elapsedTime) => {
+        console.log("解析文件耗时" + elapsedTime / 1000 + "秒");
+        if (debugDumpPass.indexOf("parse") != -1) debugDump(data, "parse");
+    }).run(musicDir + fileName);
+    passManager.reset();
+
+
+    /////////////选择音轨
+    progressDialog.setContent("正在解析音轨...");
+    let noteData = [];
+    if (tracksData.haveMultipleTrack) {
+        //删除没有音符的音轨
+        for (let i = tracksData.tracks.length - 1; i >= 0; i--) {
+            if (tracksData.tracks[i].noteCount == 0) {
+                tracksData.tracks.splice(i, 1);
+            }
+        }
+        let nonEmptyTrackCount = tracksData.tracks.length;
+
+        //上次选择的音轨(包括空音轨)
+        let lastSelectedTracksNonEmpty = readFileConfig("lastSelectedTracksNonEmpty", rawFileName);
+        if (typeof (lastSelectedTracksNonEmpty) == "undefined" || !lastSelectedTracksNonEmpty.length == nonEmptyTrackCount) {
+            lastSelectedTracksNonEmpty = [];
+            for (let i = 0; i < nonEmptyTrackCount; i++) {
+                lastSelectedTracksNonEmpty.push(i); //默认选择所有音轨
+            }
+        }
+        let trackInfoStrs = [];
         for (let i = 0; i < nonEmptyTrackCount; i++) {
-            lastSelectedTracksNonEmpty.push(i); //默认选择所有音轨
+            let track = tracksData.tracks[i];
+            let avgPitch = 0;
+            for (let j = 0; j < track.notes.length; j++) {
+                avgPitch += track.notes[j][0];
+            }
+            avgPitch /= track.notes.length;
+            trackInfoStrs.push(i + ": " + track.name + " (" + track.noteCount + "个音符, 平均音高" + avgPitch.toFixed(1) + ")");
         }
-    }
-    let trackInfoStrs = [];
-    for (let i = 0; i < nonEmptyTrackCount; i++) {
-        let track = tracksData.tracks[i];
-        let avgPitch = 0;
-        for (let j = 0; j < track.notes.length; j++) {
-            avgPitch += track.notes[j][0];
+        let selectedTracksNonEmpty = dialogs.multiChoice("选择音轨", trackInfoStrs, lastSelectedTracksNonEmpty);
+        if (selectedTracksNonEmpty.length == 0) {
+            selectedTracksNonEmpty = lastSelectedTracksNonEmpty;
         }
-        avgPitch /= track.notes.length;
-        trackInfoStrs.push(i + ": " + track.name + " (" + track.noteCount + "个音符, 平均音高" + avgPitch.toFixed(1) + ")");
+
+        //合并
+        for (let i = 0; i < selectedTracksNonEmpty.length; i++) {
+            let track = tracksData.tracks[selectedTracksNonEmpty[i]];
+            noteData = noteData.concat(track.notes);
+        }
+        //按时间排序
+        noteData.sort(function (a, b) {
+            return a[1] - b[1];
+        });
+        //保存选择
+        setFileConfig("lastSelectedTracksNonEmpty", selectedTracksNonEmpty, rawFileName);
+
+    } else {
+        noteData = tracksData.tracks[0].notes;
     }
-    let selectedTracksNonEmpty = dialogs.multiChoice("选择音轨", trackInfoStrs, lastSelectedTracksNonEmpty);
-    if (selectedTracksNonEmpty.length == 0) {
-        selectedTracksNonEmpty = lastSelectedTracksNonEmpty;
+
+    //一些统计信息
+    let finalNoteCnt = 0, inputNoteCnt = 0, overFlowedNoteCnt = 0, underFlowedNoteCnt = 0, roundedNoteCnt = 0, droppedNoteCnt = 0;
+    inputNoteCnt = noteData.length;
+
+    progressDialog.setContent("正在伪装手弹...");
+    passManager
+        .addPass(humanifyEnabled ? "HumanifyPass" : "NopPass", {
+            noteAbsTimeStdDev: readGlobalConfig("humanifyNoteAbsTimeStdDev", 50)
+        }, null, () => {
+            progressDialog.setContent("正在生成按键...");
+        })
+        .addPass("NoteToKeyPass", {
+            majorPitchOffset: majorPitchOffset,
+            minorPitchOffset: minorPitchOffset,
+            treatHalfAsCeiling: treatHalfAsCeiling,
+            currentGameProfile: gameProfile,
+        }, (progress) => {
+            progressDialog.setProgress(progress);
+        }, (data, statistics, elapsedTime) => {
+            console.log("生成按键耗时" + elapsedTime / 1000 + "秒");
+            overFlowedNoteCnt = statistics.overFlowedNoteCnt;
+            underFlowedNoteCnt = statistics.underFlowedNoteCnt;
+            roundedNoteCnt = statistics.roundedNoteCnt;
+            progressDialog.setContent("正在优化按键...");
+        })
+        .addPass("SingleKeyFrequencyLimitPass", {
+            minInterval: gameProfile.getSameKeyMinInterval()
+        }, null, (data, statistics, elapsedTime) => {
+            console.log("单键频率限制耗时" + elapsedTime / 1000 + "秒");
+            finalNoteCnt = data.length;
+            droppedNoteCnt = statistics.droppedNoteCnt;
+            progressDialog.setContent("正在合并按键...");
+        })
+        .addPass("MergeKeyPass", {
+            maxInterval: mergeThreshold * 1000,
+        }, null, (data, statistics, elapsedTime) => {
+            console.log("合并按键耗时" + elapsedTime / 1000 + "秒");
+            visualizer.setKeyLayout(gameProfile.getKeyType().row, gameProfile.getKeyType().column);
+            visualizer.loadNoteData(data);
+            visualizer.goto(-1);
+            progressDialog.setContent("正在生成手势...");
+        });
+
+    if (exportScore) {
+        //如果是导出乐谱,则不需要生成手势
+        let data = passManager.run(noteData);
+        progressDialog.dismiss();
+        return data;
     }
-
-    //合并
-    for (let i = 0; i < selectedTracksNonEmpty.length; i++) {
-        let track = tracksData.tracks[selectedTracksNonEmpty[i]];
-        noteData = noteData.concat(track.notes);
-    }
-    //按时间排序
-    noteData.sort(function (a, b) {
-        return a[1] - b[1];
-    });
-    //保存选择
-    setFileConfig("lastSelectedTracksNonEmpty", selectedTracksNonEmpty, rawFileName);
-
-} else {
-    noteData = tracksData.tracks[0].notes;
-}
-
-//一些统计信息
-let finalNoteCnt = 0, inputNoteCnt = 0, overFlowedNoteCnt = 0, underFlowedNoteCnt = 0, roundedNoteCnt = 0, droppedNoteCnt = 0;
-inputNoteCnt = noteData.length;
-
-progressDialog.setContent("正在伪装手弹...");
-passManager
-    .addPass(humanifyEnabled ? "HumanifyPass" : "NopPass", {
-        noteAbsTimeStdDev: readGlobalConfig("humanifyNoteAbsTimeStdDev", 50)
-    }, null, () => {
-        progressDialog.setContent("正在生成按键...");
-    })
-    .addPass("NoteToKeyPass", {
-        majorPitchOffset: majorPitchOffset,
-        minorPitchOffset: minorPitchOffset,
-        treatHalfAsCeiling: treatHalfAsCeiling,
+    passManager.addPass("KeyToGesturePass", {
         currentGameProfile: gameProfile,
-    }, (progress) => {
-        progressDialog.setProgress(progress);
-    }, (data, statistics, elapsedTime) => {
-        console.log("生成按键耗时" + elapsedTime / 1000 + "秒");
-        overFlowedNoteCnt = statistics.overFlowedNoteCnt;
-        underFlowedNoteCnt = statistics.underFlowedNoteCnt;
-        roundedNoteCnt = statistics.roundedNoteCnt;
-        progressDialog.setContent("正在优化按键...");
-    })
-    .addPass("SingleKeyFrequencyLimitPass", {
-        minInterval: gameProfile.getSameKeyMinInterval()
     }, null, (data, statistics, elapsedTime) => {
-        console.log("单键频率限制耗时" + elapsedTime / 1000 + "秒");
-        finalNoteCnt = data.length;
-        droppedNoteCnt = statistics.droppedNoteCnt;
-        progressDialog.setContent("正在合并按键...");
-    })
-    .addPass("MergeKeyPass", {
-        maxInterval: mergeThreshold * 1000,
-    }, null, (data, statistics, elapsedTime) => {
-        console.log("合并按键耗时" + elapsedTime / 1000 + "秒");
-        visualizer.setKeyLayout(gameProfile.getKeyType().row, gameProfile.getKeyType().column);
-        visualizer.loadNoteData(data);
-        visualizer.goto(-1);
-        progressDialog.setContent("正在生成手势...");
+        console.log("生成手势耗时" + elapsedTime / 1000 + "秒");
+        progressDialog.dismiss();
     });
 
-if (exportScore) {
-    //如果是导出乐谱,则不需要生成手势
-    let data = passManager.run(noteData);
-    progressDialog.dismiss();
-    exportNoteDataInteractive(data, "keyboardScore");
-    exit();
+    let gestureTimeList = passManager.run(noteData);
+
+    //数据汇总
+    let outRangedNoteCnt = overFlowedNoteCnt + underFlowedNoteCnt;
+
+    let statString = "音符总数:" + inputNoteCnt + " -> " + finalNoteCnt +
+        "\n超出范围被丢弃的音符数:" + outRangedNoteCnt + "" + " (+" + overFlowedNoteCnt + ", -" + underFlowedNoteCnt + ")(" + (outRangedNoteCnt / inputNoteCnt * 100).toFixed(2) + "%)" +
+        "\n被取整的音符数:" + roundedNoteCnt + " (" + (roundedNoteCnt / inputNoteCnt * 100).toFixed(2) + "%)" +
+        "\n过于密集被丢弃的音符数:" + droppedNoteCnt + " (" + (droppedNoteCnt / finalNoteCnt * 100).toFixed(2) + "%)" +
+        "\n如果被取整的音符数过多,可以尝试在 调整音高 菜单中升高/降低一个半音";
+    dialogs.alert("乐曲信息", statString);
+
+    return gestureTimeList;
 }
-passManager.addPass("KeyToGesturePass", {
-    currentGameProfile: gameProfile,
-}, null, (data, statistics, elapsedTime) => {
-    console.log("生成手势耗时" + elapsedTime / 1000 + "秒");
-    progressDialog.dismiss();
-});
 
-let gestureTimeList = passManager.run(noteData);
+function runGesturePlayer(gestureTimeList) {
+    var currentGestureIndex = 0
+    const gestureCount = gestureTimeList.length;
+    let player = new Players.AutoJsGesturePlayer();
+    player.setGestureTimeList(gestureTimeList);
+    player.pause();
 
-//数据汇总
-let outRangedNoteCnt = overFlowedNoteCnt + underFlowedNoteCnt;
+    if (!readGlobalConfig("skipInit", 1)) sleep(noteData[0][1] * 1000);
 
-let statString = "音符总数:" + inputNoteCnt + " -> " + finalNoteCnt +
-    "\n超出范围被丢弃的音符数:" + outRangedNoteCnt + "" + " (+" + overFlowedNoteCnt + ", -" + underFlowedNoteCnt + ")(" + (outRangedNoteCnt / inputNoteCnt * 100).toFixed(2) + "%)" +
-    "\n被取整的音符数:" + roundedNoteCnt + " (" + (roundedNoteCnt / inputNoteCnt * 100).toFixed(2) + "%)" +
-    "\n过于密集被丢弃的音符数:" + droppedNoteCnt + " (" + (droppedNoteCnt / finalNoteCnt * 100).toFixed(2) + "%)" +
-    "\n如果被取整的音符数过多,可以尝试在 调整音高 菜单中升高/降低一个半音";
+    //显示悬浮窗
+    let controlWindow = floaty.window(
+        <frame gravity="left">
+            <horizontal bg="#7fffff7f">
+                <text id="timerText" text="00:00/00:00" textSize="14sp" />
+                <seekbar id="progressBar" layout_gravity="center_vertical" w='850px' />、
+                <button id="pauseResumeBtn" style="Widget.AppCompat.Button.Colored" w="140px" text="⏸" />
+                <button id="stopBtn" style="Widget.AppCompat.Button.Colored" w="140px" text="⏹" />
+            </horizontal>
+        </frame>
+    );
 
-dialogs.alert("乐曲信息", statString);
+    toast("点击时间可调整悬浮窗位置");
 
-//////////////主循环
-var currentGestureIndex = 0
-const gestureCount = gestureTimeList.length;
-let player = new Players.AutoJsGesturePlayer();
-player.setGestureTimeList(gestureTimeList);
-player.pause();
+    let windowPosition = readGlobalConfig("windowPosition", [device.height / 3, 0]);
+    //避免悬浮窗被屏幕边框挡住
+    controlWindow.setPosition(windowPosition[0], windowPosition[1]);
+    //TODO: 这里写死大小可能会有问题, 但是没有足够的测试数据来证明
+    controlWindow.setSize(900 + 180 + 180 + 180, -2);
+    //controlWindow.setTouchable(true);
 
-if (!readGlobalConfig("skipInit", 1)) sleep(noteData[0][1] * 1000);
-
-//显示悬浮窗
-let controlWindow = floaty.window(
-    <frame gravity="left">
-        <horizontal bg="#7fffff7f">
-            <text id="timerText" text="00:00/00:00" textSize="14sp" />
-            <seekbar id="progressBar" layout_gravity="center_vertical" w='850px' />、
-            <button id="pauseResumeBtn" style="Widget.AppCompat.Button.Colored" w="140px" text="⏸" />
-            <button id="stopBtn" style="Widget.AppCompat.Button.Colored" w="140px" text="⏹" />
-        </horizontal>
-    </frame>
-);
-
-toast("点击时间可调整悬浮窗位置");
-
-let windowPosition = readGlobalConfig("windowPosition", [device.height / 3, 0]);
-//避免悬浮窗被屏幕边框挡住
-controlWindow.setPosition(windowPosition[0], windowPosition[1]);
-//TODO: 这里写死大小可能会有问题, 但是没有足够的测试数据来证明
-controlWindow.setSize(900 + 180 + 180 + 180, -2);
-//controlWindow.setTouchable(true);
-
-//悬浮窗事件
-controlWindow.timerText.on("click", () => {
-    let adjEnabled = controlWindow.isAdjustEnabled();
-    controlWindow.setAdjustEnabled(!adjEnabled);
-    //记忆位置
-    if (adjEnabled) {
-        setGlobalConfig("windowPosition", [controlWindow.getX(), controlWindow.getY()]);
-    }
-});
-
-
-//用来更新悬浮窗的线程
-threads.start(function () {
-    let progress = 0;
-    let progressChanged = false;
-    ui.run(function () {
-        controlWindow.progressBar.setOnSeekBarChangeListener({
-            onProgressChanged: function (seekBar, progress0, fromUser) {
-                if (fromUser) {
-                    progress = progress0;
-                    progressChanged = true;
-                };
-            }
-        });
-        controlWindow.pauseResumeBtn.setText("▶️");
-        controlWindow.pauseResumeBtn.click(() => {
-            if (player.getState() != player.PlayerStates.PLAYING) {
-                player.resume();
-                controlWindow.pauseResumeBtn.setText("⏸");
-            } else {
-                player.pause();
-                controlWindow.pauseResumeBtn.setText("▶️");
-            }
-        });
-        controlWindow.stopBtn.click(() => {
-            visualizerWindowClose();
-            controlWindow.close();
-            setTimeout(() => {
-                threads.shutDownAll();
-                reRunSelf();
-            }, 500);
-
-        })
-    });
-    let totalTimeSec = gestureTimeList[gestureCount - 1][1];
-    let totalTimeStr = sec2timeStr(totalTimeSec);
-
-    while (true) {
-        //如果进度条被拖动，更新播放进度
-        if (progressChanged) {
-            progressChanged = false;
-            let targetTimeSec = totalTimeSec * progress / 100;
-            for (let j = 0; j < gestureTimeList.length; j++) {
-                if (gestureTimeList[j][1] > targetTimeSec) {
-                    currentGestureIndex = j - 1;
-                    break;
-                }
-            }
-            currentGestureIndex = Math.max(0, currentGestureIndex);
-            player.seekTo(currentGestureIndex);
-            sleep(50);
-        } else {
-            sleep(300);
+    //悬浮窗事件
+    controlWindow.timerText.on("click", () => {
+        let adjEnabled = controlWindow.isAdjustEnabled();
+        controlWindow.setAdjustEnabled(!adjEnabled);
+        //记忆位置
+        if (adjEnabled) {
+            setGlobalConfig("windowPosition", [controlWindow.getX(), controlWindow.getY()]);
         }
-        currentGestureIndex = Math.min(currentGestureIndex, gestureCount - 1);
-        //计算时间
-        let curTimeSec = gestureTimeList[currentGestureIndex][1];
-        let curTimeStr = sec2timeStr(curTimeSec);
-        let timeStr = curTimeStr + "/" + totalTimeStr;
-        //更新窗口
-        ui.run(() => {
-            controlWindow.progressBar.setProgress(curTimeSec / totalTimeSec * 100);
-            controlWindow.timerText.setText(timeStr);
-        })
-    }
-})
+    });
 
-//可视化悬浮窗口
-let visualizerWindow = floaty.window(
-    <canvas id="canv" w="*" h="*" />
-);
 
-let visualizerWindowPosition = readGlobalConfig("visualizerWindowPosition", [100, 100]);
-visualizerWindow.setPosition(visualizerWindowPosition[0], visualizerWindowPosition[1]);
-let visualizerWindowSize = readGlobalConfig("visualizerWindowSize", [device.width / 2, device.height / 2]);
-visualizerWindow.setSize(visualizerWindowSize[0], visualizerWindowSize[1]);
+    //用来更新悬浮窗的线程
+    threads.start(function () {
+        let progress = 0;
+        let progressChanged = false;
+        ui.run(function () {
+            controlWindow.progressBar.setOnSeekBarChangeListener({
+                onProgressChanged: function (seekBar, progress0, fromUser) {
+                    if (fromUser) {
+                        progress = progress0;
+                        progressChanged = true;
+                    };
+                }
+            });
+            controlWindow.pauseResumeBtn.setText("▶️");
+            controlWindow.pauseResumeBtn.click(() => {
+                if (player.getState() != player.PlayerStates.PLAYING) {
+                    player.resume();
+                    controlWindow.pauseResumeBtn.setText("⏸");
+                } else {
+                    player.pause();
+                    controlWindow.pauseResumeBtn.setText("▶️");
+                }
+            });
+            controlWindow.stopBtn.click(() => {
+                player.stop();
+            })
+        });
+        let totalTimeSec = gestureTimeList[gestureCount - 1][1];
+        let totalTimeStr = sec2timeStr(totalTimeSec);
 
-let visualizerWindowRequestClose = false;
-visualizerWindow.canv.on("draw", function (canvas) {
-    visualizer.draw(canvas);
-    //如果在绘制时窗口被关闭, app会直接崩溃, 所以这里要等待一下
-    if (visualizerWindowRequestClose) {
-        sleep(1000);
-    }
-});
+        while (true) {
+            //如果进度条被拖动，更新播放进度
+            if (progressChanged) {
+                progressChanged = false;
+                let targetTimeSec = totalTimeSec * progress / 100;
+                for (let j = 0; j < gestureTimeList.length; j++) {
+                    if (gestureTimeList[j][1] > targetTimeSec) {
+                        currentGestureIndex = j - 1;
+                        break;
+                    }
+                }
+                currentGestureIndex = Math.max(0, currentGestureIndex);
+                player.seekTo(currentGestureIndex);
+                sleep(50);
+            } else {
+                sleep(300);
+            }
+            currentGestureIndex = Math.min(currentGestureIndex, gestureCount - 1);
+            //计算时间
+            let curTimeSec = gestureTimeList[currentGestureIndex][1];
+            let curTimeStr = sec2timeStr(curTimeSec);
+            let timeStr = curTimeStr + "/" + totalTimeStr;
+            //更新窗口
+            ui.run(() => {
+                controlWindow.progressBar.setProgress(curTimeSec / totalTimeSec * 100);
+                controlWindow.timerText.setText(timeStr);
+            })
+        }
+    })
 
-//上一次点击的时间
-let visualizerLastClickTime = 0;
+    //可视化悬浮窗口
+    let visualizerWindow = floaty.window(
+        <canvas id="canv" w="*" h="*" />
+    );
 
-//触摸事件(这里on("click",...) 又失灵了, AutoXjs的文档真是够烂的)
-visualizerWindow.canv.click(function () {
-    let now = new Date().getTime();
-    if (now - visualizerLastClickTime < 500) {
-        toast("重置悬浮窗大小与位置");
-        visualizerWindow.setSize(device.height * 2 / 3, device.width * 2 / 3);
-        visualizerWindow.setPosition(100, 100);
-    }
-    visualizerLastClickTime = now;
-    let adjEnabled = visualizerWindow.isAdjustEnabled();
-    visualizerWindow.setAdjustEnabled(!adjEnabled);
-    if (adjEnabled) {
-        //更新大小 (使用窗口上的拖动手柄缩放时, 窗口的大小实际上是不会变的, 所以这里要手动更新)
-        visualizerWindow.setSize(visualizerWindow.getWidth(), visualizerWindow.getHeight());
-        //保存当前位置与大小
-        setGlobalConfig("visualizerWindowPosition", [visualizerWindow.getX(), visualizerWindow.getY()]);
-        setGlobalConfig("visualizerWindowSize", [visualizerWindow.getWidth(), visualizerWindow.getHeight()]);
-    }
-});
-//关闭
-function visualizerWindowClose() {
-    visualizerWindowRequestClose = true;
-    setTimeout(() => {
+    let visualizerWindowPosition = readGlobalConfig("visualizerWindowPosition", [100, 100]);
+    visualizerWindow.setPosition(visualizerWindowPosition[0], visualizerWindowPosition[1]);
+    let visualizerWindowSize = readGlobalConfig("visualizerWindowSize", [device.width / 2, device.height / 2]);
+    visualizerWindow.setSize(visualizerWindowSize[0], visualizerWindowSize[1]);
+
+    let visualizerWindowRequestClose = false;
+    visualizerWindow.canv.on("draw", function (canvas) {
+        visualizer.draw(canvas);
+        // //如果在绘制时窗口被关闭, app会直接崩溃, 所以这里要等待一下 
+        // if (visualizerWindowRequestClose) {
+        //     sleep(1000);
+        // }
+        // 似乎是脚本退出和悬浮窗关闭同时进行时, 会导致脚本崩溃. 现在已经不会遇到这种情况了.
+    });
+
+    //上一次点击的时间
+    let visualizerLastClickTime = 0;
+
+    //触摸事件(这里on("click",...) 又失灵了, AutoXjs的文档真是够烂的)
+    visualizerWindow.canv.click(function () {
+        let now = new Date().getTime();
+        if (now - visualizerLastClickTime < 500) {
+            toast("重置悬浮窗大小与位置");
+            visualizerWindow.setSize(device.height * 2 / 3, device.width * 2 / 3);
+            visualizerWindow.setPosition(100, 100);
+        }
+        visualizerLastClickTime = now;
+        let adjEnabled = visualizerWindow.isAdjustEnabled();
+        visualizerWindow.setAdjustEnabled(!adjEnabled);
+        if (adjEnabled) {
+            //更新大小 (使用窗口上的拖动手柄缩放时, 窗口的大小实际上是不会变的, 所以这里要手动更新)
+            visualizerWindow.setSize(visualizerWindow.getWidth(), visualizerWindow.getHeight());
+            //保存当前位置与大小
+            setGlobalConfig("visualizerWindowPosition", [visualizerWindow.getX(), visualizerWindow.getY()]);
+            setGlobalConfig("visualizerWindowSize", [visualizerWindow.getWidth(), visualizerWindow.getHeight()]);
+        }
+    });
+
+    //是否显示可视化窗口
+    let visualizerEnabled = readGlobalConfig("visualizerEnabled", false);
+    if (!visualizerEnabled) {
         visualizerWindow.close();
-    }, 200);
-}
-//是否显示可视化窗口
-let visualizerEnabled = readGlobalConfig("visualizerEnabled", false);
-if (!visualizerEnabled) {
-    visualizerWindowClose();
-} else {
-    toast("单击可视化窗口调整大小与位置, 双击重置");
+    } else {
+        toast("单击可视化窗口调整大小与位置, 双击重置");
+    }
+
+    player.setOnPlayNote(function (note) {
+        currentGestureIndex = note;
+        visualizer.goto(Math.max(0, note - 1));
+    });
+
+    player.start();
+
+    while (player.getState() != player.PlayerStates.FINISHED) {
+        sleep(500);
+    }
+    toast("播放结束");
+
+    visualizerWindow.close();
+    controlWindow.close();
+    player.stop();
 }
 
-player.setOnPlayNote(function (note) {
-    currentGestureIndex = note;
-    visualizer.goto(Math.max(0, note - 1));
-});
-
-player.start();
-
-while (player.getState() != player.PlayerStates.FINISHED) {
-    sleep(500);
+function start() {
+    loadConfiguration();
+    initialize();
+    while (true) {
+        main();
+    }
 }
-toast("播放结束");
-visualizerWindowClose();
-controlWindow.close();
-threads.shutDownAll();
+
+start();
