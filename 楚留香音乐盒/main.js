@@ -20,11 +20,14 @@ try {
 const musicDir = Configuration.getMusicDir();
 const scriptVersion = 12;
 
+//如果遇到奇怪的问题, 可以将下面这行代码前面两个斜杠去掉, 之后再次运行脚本, 即可清除当前的配置文件。
+//setGlobalConfig("userGameProfile", null);
+
+
 //在日志中打印脚本生成的中间结果, 可选项: parse, humanify, key, timing, merge, gestures
 const debugDumpPass = "";
 
 //将两个/几个彼此间隔时间小于以下阈值的音符合并, 单位: 秒
-
 //用于自动演奏的合并阈值
 const autoPlayMergeThreshold = 0.01;
 //用于乐谱导出的合并阈值
@@ -40,7 +43,6 @@ const haveFileConfig = Configuration.haveFileConfig;
 const setFileConfig = Configuration.setFileConfig;
 const readFileConfig = Configuration.readFileConfig;
 
-//setGlobalConfig("userGameProfile", null);
 //加载配置文件
 try {
     //启动无障碍服务
@@ -48,19 +50,21 @@ try {
     //toast("请允许本应用的无障碍权限");
     auto.waitFor();
     console.verbose("无障碍服务已启动");
+    //TODO: 自定义配置
     let userGameProfile = readGlobalConfig("userGameProfile", null);
     if (userGameProfile != null) {
         gameProfile.loadGameConfigs(userGameProfile);
     } else {
         gameProfile.loadDefaultGameConfigs();
     }
+    let lastConfigName = readGlobalConfig("lastConfigName", "");
     //尝试加载用户设置的游戏配置
     let activeConfigName = readGlobalConfig("activeConfigName", null);
     let res = gameProfile.setConfigByName(activeConfigName);
     if (res == false) {
         console.log("尝试加载用户设置的游戏配置...失败!");
     } else {
-        console.log("尝试加载用户设置的游戏配置...成功, 当前配置: " + gameProfile.getCurrentConfigName());
+        console.log("尝试加载用户设置的游戏配置...成功, 当前配置: " + gameProfile.getCurrentConfigTypeName());
     }
 
     //尝试通过包名加载游戏配置 (加载失败后保留当前配置)
@@ -70,9 +74,9 @@ try {
     if (res == false) {
         console.log("尝试通过包名加载游戏配置...失败!");
     } else {
-        console.log("尝试通过包名加载游戏配置...成功, 当前配置: " + gameProfile.getCurrentConfigName());
+        console.log("尝试通过包名加载游戏配置...成功, 当前配置: " + gameProfile.getCurrentConfigTypeName());
         //保存当前配置
-        globalConfig.put("activeConfigName", gameProfile.getCurrentConfigName());
+        setGlobalConfig("activeConfigName", gameProfile.getCurrentConfigTypeName());
     }
 
     if (gameProfile.getCurrentConfig() == null) {
@@ -81,12 +85,51 @@ try {
         gameProfile.setConfigByName("楚留香");
     }
 
+    if(lastConfigName != gameProfile.getCurrentConfigTypeName()) {
+        //如果配置发生了变化, 则清空上次的变体与键位配置
+        setGlobalConfig("lastConfigName", gameProfile.getCurrentConfigTypeName());
+        setGlobalConfig("lastVariantName", "");
+        setGlobalConfig("lastKeyTypeName", "");
+    }
+
+    //加载变体配置和键位配置
+    let lastVariantName = readGlobalConfig("lastVariantName", "");
+    if (lastVariantName != "") {
+        let res = gameProfile.setCurrentVariantByTypeName(lastVariantName);
+        if (res == false) {
+            console.log("尝试加载用户设置的变体配置...失败!");
+            gameProfile.setCurrentVariantDefault();
+        }else{
+            console.log("尝试加载用户设置的变体配置...成功");
+        }
+    }else{
+        gameProfile.setCurrentVariantDefault();
+        console.log("游戏配置发生变化, 已加载默认变体配置");
+    }
+    setGlobalConfig("lastVariantName", gameProfile.getCurrentVariantTypeName());
+
+    let lastKeyTypeName = readGlobalConfig("lastKeyTypeName", "");
+    if (lastKeyTypeName != "") {
+        let res = gameProfile.setCurrentKeyLayoutByTypeName(lastKeyTypeName);
+        if (res == false) {
+            console.log("尝试加载用户设置的键位配置...失败!");
+            gameProfile.setCurrentKeyLayoutDefault();
+        }else{
+            console.log("尝试加载用户设置的键位配置...成功");
+        }
+    }else{
+        gameProfile.setCurrentKeyLayoutDefault();
+        console.log("游戏配置发生变化, 已加载默认键位配置");
+    }
+    setGlobalConfig("lastKeyTypeName", gameProfile.getCurrentKeyLayoutTypeName());
+
 } catch (error) {
     toastLog("加载配置文件失败! 已自动加载默认配置!");
     toastLog(error);
     gameProfile.loadDefaultGameConfigs();
     setGlobalConfig("userGameProfile", null);
 }
+
 
 /**
  * 加载共享的js文件, 和require类似，用来解决几个项目共享js文件的问题。
@@ -598,16 +641,55 @@ function runGlobalSetup() {
             setGlobalConfig("skipInit", dialogs.select("是否跳过乐曲开始前的空白?", ["否", "是"]));
             break;
         case 1:
+            //目标游戏
             let configList = gameProfile.getConfigNameList();
-            let sel = dialogs.select("选择此脚本的目标配置", configList);
+            let sel = dialogs.select("选择目标游戏...", configList);
             if (sel == -1) {
                 toastLog("设置没有改变");
-            } else {
-                let configName = configList[sel];
-                setGlobalConfig("activeConfigName", configName);
-                gameProfile.setConfigByName(configName);
-                toastLog("设置已保存");
+                break;
+            } 
+            let configName = configList[sel];
+            setGlobalConfig("activeConfigName", configName);
+            setGlobalConfig("lastConfigName", configName);
+            gameProfile.setConfigByName(configName);
+            console.log("目标游戏已设置为: " + configName);
+            //目标乐器
+            let instrumentList = gameProfile.getCurrentAvailableVariants();
+            if (instrumentList.length == 1) {
+                gameProfile.setCurrentVariantDefault();
+                setGlobalConfig("lastVariantName", gameProfile.getCurrentVariantTypeName());
+            }else{
+                let nameList = instrumentList.map((variant) => variant.variantName);
+                let sel = dialogs.select("选择目标乐器...", nameList);
+                if (sel == -1) {
+                    toastLog("设置没有改变");
+                    break;
+                }
+                let typeName = instrumentList[sel].variantType;
+                gameProfile.setCurrentVariantByTypeName(typeName);
+                setGlobalConfig("lastVariantName", typeName);
+                console.log("目标乐器已设置为: " + typeName);
             }
+            //目标键位
+            let keyLayoutList = gameProfile.getCurrentAvailableKeyLayouts();
+            if (keyLayoutList.length == 1) {
+                gameProfile.setCurrentKeyLayoutDefault();
+                setGlobalConfig("lastKeyTypeName", gameProfile.getCurrentKeyLayoutTypeName());
+            }else{
+                let allKeyLayoutList = gameProfile.getAllKeyLayouts();
+                let nameList = keyLayoutList.map((keyLayout) => allKeyLayoutList[keyLayout].displayName);
+                let sel = dialogs.select("选择目标键位...", nameList);
+                if (sel == -1) {
+                    toastLog("设置没有改变");
+                    break;
+                }
+                let typeName = keyLayoutList[sel];
+                gameProfile.setCurrentKeyLayoutByTypeName(typeName);
+                setGlobalConfig("lastKeyTypeName", typeName);
+                console.log("目标键位已设置为: " + typeName);
+            }
+
+            toastLog("设置已保存");
             break;
         case 2: //设置自定义坐标
             let clickx_pos = [];
@@ -706,7 +788,10 @@ if (!floaty.checkPermission()) {
     exit();
 }
 
-let currentConfigName = gameProfile.getCurrentConfigName();
+let configName = gameProfile.getCurrentConfigDisplayName();
+let variantName = gameProfile.getCurrentVariantDisplayName();
+let keyTypeName = gameProfile.getCurrentKeyLayoutDisplayName();
+let currentConfigName = configName + " " + variantName + " " + keyTypeName;
 let titleStr = "当前配置: " + currentConfigName;
 
 var index;
@@ -788,18 +873,12 @@ let rawFileName = musicFormats.getFileNameWithoutExtension(fileName);
 let startTime = new Date().getTime();
 
 //////////////加载配置
-if (gameProfile.getCurrentConfig().leftTop[0] == 0) {
+if (!gameProfile.checkKeyPosition()) {
     dialogs.alert("错误", "坐标未设置，请先设置坐标");
     progressDialog.dismiss();
     runGlobalSetup();
     reRunSelf();
-} else {
-    let leftTop = gameProfile.getCurrentConfig().leftTop;
-    let rightBottom = gameProfile.getCurrentConfig().rightBottom;
-    leftTop = JSON.stringify(leftTop);
-    rightBottom = JSON.stringify(rightBottom);
-    console.log("当前坐标:左上角" + leftTop + "右下角" + rightBottom);
-}
+};
 
 //如果是第一次运行，显示设置向导
 if (!haveFileConfig(rawFileName)) {
