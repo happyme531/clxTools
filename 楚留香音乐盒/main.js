@@ -730,10 +730,8 @@ function runGlobalSetup() {
             toastLog("设置已保存");
             break;
         case 2: //设置自定义坐标
-            let clickx_pos = [];
-            let clicky_pos = [];
-            let pos1 = getPosInteractive("最左上角的音符按键中心");
-            let pos2 = getPosInteractive("最右下角的音符按键中心");
+            let pos1 = getPosInteractive("最上面那行按键中最左侧的按键中心");
+            let pos2 = getPosInteractive("最下面那行按键中最右侧的按键中心");
 
             console.log("自定义坐标:左上[" + pos1.x + "," + pos1.y + "],右下[" + pos2.x + "," + pos2.y + "]");
 
