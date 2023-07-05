@@ -3,10 +3,23 @@
 
 var MusicFormats = require("./musicFormats.js");
 var Humanifyer = require("./humanify.js");
+var GameProfile = require("./gameProfile.js");
 
+/**
+ * @brief 什么都不做的pass, 把输入原样输出, 也不会产生任何统计数据
+ * @param {Object} config
+ */
 function NopPass(config) {
     this.name = "NopPass";
     this.description = "空操作";
+    /**
+     * 运行此pass
+     * @template T
+     * @param {T} input - 输入数据
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @returns {T} - 返回原样的输入数据
+     * @throws {Error} - 如果解析失败则抛出异常
+     */
     this.run = function (input, progressCallback) {
         return input;
     }
@@ -16,6 +29,10 @@ function NopPass(config) {
 }
 
 
+/**
+ * @brief 根据源文件路径解析音乐文件, 输出音乐数据
+ * @param {Object} config
+ */
 function ParseSourceFilePass(config) {
     this.name = "ParseSourceFilePass";
     this.description = "解析源文件";
@@ -23,16 +40,8 @@ function ParseSourceFilePass(config) {
     /**
      * 运行此pass
      * @param {string} sourceFilePath - 源文件路径
-     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100
-     * @returns {{
-     * "haveMultipleTrack": boolean,
-     * "trackCount": number,
-     * "tracks": [
-     * {
-     * "name": string,
-     * "noteCount": number,
-     * "notes": [[number,number,Object]]
-     * }]}} - 返回解析后的数据
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @returns {MusicFormats.TracksData} - 返回解析后的数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (sourceFilePath, progressCallback) {
@@ -47,6 +56,12 @@ function ParseSourceFilePass(config) {
 
 }
 
+/**
+ * @brief 合并指定的音轨中所有音符到一个音符数组中
+ * @typedef {Object} MergeTracksPassConfig
+ * @property {number[]} selectedTracks - 要合并的音轨序号数组
+ * @param {MergeTracksPassConfig} config
+ */
 function MergeTracksPass(config) {
     this.name = "MergeTracksPass";
     this.description = "合并音轨";
@@ -58,6 +73,13 @@ function MergeTracksPass(config) {
     }
     selectedTracks = config.selectedTracks;
 
+    /**
+     * 运行此pass
+     * @param {MusicFormats.TracksData} tracksData - 音乐数据
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @returns {MusicFormats.Note[]} - 返回解析后的数据
+     * @throws {Error} - 如果解析失败则抛出异常
+     */
     this.run = function (tracksData, progressCallback) {
         let noteData = [];
         for (let i = 0; i < selectedTracks.length; i++) {
@@ -75,6 +97,12 @@ function MergeTracksPass(config) {
     }
 }
 
+/**
+ * @brief 将输入的音符数据的时间添加一个随机偏移, 以模拟手工输入
+ * @typedef {Object} HumanifyPassConfig
+ * @property {number} noteAbsTimeStdDev - 音符时间的标准差(毫秒)
+ * @param {HumanifyPassConfig} config
+ */
 function HumanifyPass(config) {
     this.name = "HumanifyPass";
     this.description = "伪装手工输入";
@@ -85,7 +113,13 @@ function HumanifyPass(config) {
         throw new Error("noteAbsTimeStdDev is null");
     }
     noteAbsTimeStdDev = config.noteAbsTimeStdDev;
-
+    /**
+     * 运行此pass
+     * @param {MusicFormats.Note[]} noteData - 音乐数据
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @returns {MusicFormats.Note[]} - 返回解析后的数据
+     * @throws {Error} - 如果解析失败则抛出异常
+     */
     this.run = function (noteData, progressCallback) {
         let humanifyer = new Humanifyer();
         humanifyer.setNoteAbsTimeStdDev(noteAbsTimeStdDev);
@@ -97,6 +131,15 @@ function HumanifyPass(config) {
     }
 }
 
+/**
+ * @brief 将音符数组转换为对应游戏的按键数组
+ * @typedef {Object} NoteToKeyPassConfig
+ * @property {number} majorPitchOffset - 音符的八度偏移量
+ * @property {number} minorPitchOffset - 音符的半音偏移量
+ * @property {boolean} treatHalfAsCeiling - 是否将半音视为最接近的全音中更高的那个, 如果为false则视为更低的那个
+ * @property {GameProfile} currentGameProfile - 当前游戏配置
+ * @param {NoteToKeyPassConfig} config
+ */
 function NoteToKeyPass(config) {
     this.name = "NoteToKeyPass";
     this.description = "将音符转换为按键";
@@ -162,10 +205,11 @@ function NoteToKeyPass(config) {
     };
 
     /**
-     * @param {Array<[Number, Number]>} noteList [midi音高, 开始时间(毫秒)]
-     * @param {function(Number):void} progressCallback 进度回调(百分比)
-     * @abstract 将音符列表转换为按键列表
-     * @return {Array<[Number, Number]>} 按键列表: [按键序号(从1开始), 开始时间(毫秒)]
+     * 运行此pass
+     * @param {MusicFormats.Note[]} noteList - 音乐数据
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @returns {Array<[key: number, time: number]>} - 返回解析后的数据
+     * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (noteList, progressCallback) {
         let keyList = [];
@@ -192,6 +236,12 @@ function NoteToKeyPass(config) {
     }
 }
 
+/**
+ * @brief 限制同一按键的最高频率
+ * @typedef {Object} SingleKeyFrequencyLimitPassConfig
+ * @property {number} minInterval - 最小间隔(毫秒)
+ * @param {SingleKeyFrequencyLimitPassConfig} config
+ */
 function SingleKeyFrequencyLimitPass(config) {
     this.name = "SingleKeyFrequencyLimitPass";
     this.description = "限制单个按键频率";
@@ -204,6 +254,13 @@ function SingleKeyFrequencyLimitPass(config) {
         throw new Error("minInterval is null");
     }
     minInterval = config.minInterval;
+    /**
+     * 运行此pass
+     * @param {Array<[key: number, time: number]>} noteData - 音乐数据
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @returns {Array<[key: number, time: number]>} - 返回解析后的数据
+     * @throws {Error} - 如果解析失败则抛出异常
+     */
     this.run = function (noteData, progressCallback) {
         const sameNoteGapMin = minInterval;
 
@@ -241,6 +298,14 @@ function SingleKeyFrequencyLimitPass(config) {
     }
 }
 
+
+/**
+ * @brief 合并相同时间按下的按键
+ * @typedef {Object} MergeKeyPassConfig
+ * @property {number} maxInterval - 最大间隔(毫秒)
+ * @property {number} [maxBatchSize] - 最大合并数量, 默认为10
+ * @param {MergeKeyPassConfig} config
+ */
 function MergeKeyPass(config) {
     this.name = "MergeKeyPass";
     this.description = "合并相邻的按键";
@@ -255,7 +320,13 @@ function MergeKeyPass(config) {
     if (config.maxBatchSize != null) {
         maxBatchSize = config.maxBatchSize;
     }
-
+    /**
+     * 运行此pass
+     * @param {Array<[key: number, time: number]>} noteData - 音乐数据
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @returns {Array<[keys: number[], time: number]>} - 返回解析后的数据
+     * @throws {Error} - 如果解析失败则抛出异常
+     */
     this.run = function (noteData, progressCallback) {
         let mergedNoteData = new Array();
         let lastTime = 0;
@@ -282,6 +353,13 @@ function MergeKeyPass(config) {
     }
 }
 
+/**
+ * @brief 将按键列表转换为手势列表
+ * @typedef {Object} KeyToGesturePassConfig
+ * @property {number} pressDuration - 按键持续时间(毫秒)
+ * @property {GameProfile} currentGameProfile - 当前游戏配置
+ * @param {KeyToGesturePassConfig} config
+ */
 function KeyToGesturePass(config) {
     this.name = "KeyToGesturePass";
     this.description = "将按键列表转换为手势列表";
@@ -297,7 +375,13 @@ function KeyToGesturePass(config) {
     if (config.pressDuration != null) {
         pressDuration = config.pressDuration;
     }
-
+    /**
+     * 运行此pass
+     * @param {Array<[keys: number[], time: number]>} noteData - 音乐数据
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @returns {import("./players.js").Gestures} - 返回解析后的数据
+     * @throws {Error} - 如果解析失败则抛出异常
+     */
     this.run = function (noteData, progressCallback) {
         let gestureTimeList = new Array();
         noteData.forEach((note) => {
@@ -322,6 +406,133 @@ function KeyToGesturePass(config) {
     }
 }
 
+/**
+ * @brief 限制过长的空白部分的长度
+ * @typedef {Object} LimitBlankDurationPassConfig
+ * @property {number} [maxBlankDuration] - 最大空白时间(毫秒), 默认为5000
+ * @param {LimitBlankDurationPassConfig} config
+ */
+function LimitBlankDurationPass(config) {
+    this.name = "LimitBlankDurationPass";
+    this.description = "限制过长的空白部分的长度";
+
+    let maxBlankDuration = 5000; // 毫秒
+
+    if (config.maxBlankDuration != null) {
+        maxBlankDuration = config.maxBlankDuration;
+    }
+    /**
+     * 运行此pass
+     * @template T
+     * @param {Array<[T, time: number]>} noteData - 音乐数据
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @returns {Array<[T, time: number]>} - 返回解析后的数据
+     * @throws {Error} - 如果解析失败则抛出异常
+     */
+    this.run = function (noteData, progressCallback) {
+        let deltaTimes = new Array();
+        for (let i = 0; i < noteData.length - 1; i++) {
+            deltaTimes.push(noteData[i + 1][1] - noteData[i][1]);
+        }
+        for (let i = 0; i < deltaTimes.length; i++) {
+            if (deltaTimes[i] > maxBlankDuration) {
+                deltaTimes[i] = maxBlankDuration;
+            }
+        }
+        for (let i = 0; i < noteData.length - 1; i++) {
+            noteData[i + 1][1] = noteData[i][1] + deltaTimes[i];
+        }
+        return noteData;
+    }
+
+    this.getStatistics = function () {
+        return {};
+    }
+}
+
+/**
+ * @brief 跳过前奏的空白部分
+ * @typedef {Object} SkipIntroPassConfig
+ * @param {SkipIntroPassConfig} config
+ */
+function SkipIntroPass(config) {
+    this.name = "SkipIntroPass";
+    this.description = "跳过前奏的空白部分";
+
+    /**
+     * 运行此pass
+     * @template T
+     * @param {Array<[T, time: number]>} noteData - 音乐数据
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @returns {Array<[T, time: number]>} - 返回解析后的数据
+     * @throws {Error} - 如果解析失败则抛出异常
+     */
+    this.run = function (noteData, progressCallback) {
+        let introTime = noteData[0][1];
+        for (let i = 0; i < noteData.length; i++) {
+            noteData[i][1] -= introTime;
+        }
+        return noteData;
+    }
+
+    this.getStatistics = function () {
+        return {};
+    }
+}
+
+/**
+ * @brief 限制音符频率
+ * @typedef {Object} NoteFrequencySoftLimitPassConfig
+ * @property {number} [minInterval] - 最小间隔(毫秒), 默认为150
+ */
+function NoteFrequencySoftLimitPass(config) {
+    this.name = "NoteFrequencySoftLimitPass";
+    this.description = "限制音符频率";
+
+    let minInterval = 150; // 毫秒
+
+    if (config.minInterval != null) {
+        minInterval = config.minInterval;
+    }
+
+    function saturationMap (freq) {
+        return (1000 / minInterval) * Math.tanh(freq / (1000 / minInterval));
+    }
+
+    /**
+     * 运行此pass
+     * @template T
+     * @param {Array<[T, time: number]>} noteData - 音乐数据
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @returns {Array<[T, time: number]>} - 返回解析后的数据
+     * @throws {Error} - 如果解析失败则抛出异常
+     */
+    this.run = function (noteData, progressCallback) {
+        let freqs = new Array();
+        for (let i = 0; i < noteData.length - 1; i++) {
+            let deltaTime = noteData[i + 1][1] - noteData[i][1];
+            freqs.push(1000 / deltaTime);
+        }
+        for (let i = 0; i < freqs.length; i++) {
+            freqs[i] = saturationMap(freqs[i]);
+        }
+        for (let i = 0; i < noteData.length - 1; i++) {
+            let deltaTime = 1000 / freqs[i];
+            noteData[i + 1][1] = noteData[i][1] + deltaTime;
+        }
+        return noteData;
+    }
+
+    this.getStatistics = function () {
+        return {};
+    }
+}
+
+
+
+
+
+
 function Passes() {
     this.passes = new Array();
     this.passes.push(NopPass);
@@ -332,6 +543,9 @@ function Passes() {
     this.passes.push(SingleKeyFrequencyLimitPass);
     this.passes.push(MergeKeyPass);
     this.passes.push(KeyToGesturePass);
+    this.passes.push(LimitBlankDurationPass);
+    this.passes.push(SkipIntroPass);
+    this.passes.push(NoteFrequencySoftLimitPass);
 
     this.getPassByName = function (name) {
         for (let i = 0; i < this.passes.length; i++) {
