@@ -1,13 +1,23 @@
 //@ts-check
 const midiPitch = require("./midiPitch.js");
 
+/**
+ * @typedef {[number, number]} pos2d
+ * @typedef {[pos2d, pos2d]} pos2dPair
+ */
 
+/**
+ * @enum {string}
+ */
 const KeyLayoutTypes = {
     "grid": "grid",   //网格
     "arbitrary": "arbitrary", //任意
     //"nshm_professional": "nshm_professional", //TODO:逆水寒手游专业版
 }
 
+/**
+ * @enum {string}
+ */
 const KeyLocatorTypes = {
     //左上,右下(默认)
     "left_top_right_bottom": "left_top_right_bottom",
@@ -15,6 +25,9 @@ const KeyLocatorTypes = {
     "left_bottom_right_top": "left_bottom_right_top",
 }
 
+/**
+ * @enum {string}
+ */
 const NoteDurationImplementionTypes = {
     //根本不支持，所有音符都是一样长的
     "none": "none",
@@ -24,71 +37,19 @@ const NoteDurationImplementionTypes = {
     "native": "native",
 }
 
+/**
+ * @enum {string}
+ */
 const FeatureFlags = {
     //是否有全部半音
     "hasAllSemitone": "hasAllSemitone",
 }
 
-/**
- * @typedef {{
- * displayName: string,
- * type: string,
- * locator: string,
- * row: number|undefined,
- * column: number|undefined,
- * }} keyLayout
- * 
- * @type {Object.<string, keyLayout>}
- */
-const keyLayouts = {
-    "generic_3x7": {
-        //名称
-        displayName: "3x7",
-        //类型
-        type: KeyLayoutTypes.grid,
-        //定位方式
-        locator: KeyLocatorTypes.left_top_right_bottom,
-        //行数
-        row: 3,
-        //列数
-        column: 7,
-    },
-    "sky_3x5": {
-        displayName: "3x5",
-        type: KeyLayoutTypes.grid,
-        locator: KeyLocatorTypes.left_top_right_bottom,
-        row: 3,
-        column: 5,
-    },
-    "sky_2x4": {
-        displayName: "2x4",
-        type: KeyLayoutTypes.grid,
-        locator: KeyLocatorTypes.left_top_right_bottom,
-        row: 2,
-        column: 4,
-    },
-    "generic_3x12": {
-        displayName: "3x12",
-        type: KeyLayoutTypes.grid,
-        locator: KeyLocatorTypes.left_top_right_bottom,
-        row: 3,
-        column: 12,
-    },
-    "nshm_1x7": {
-        displayName: "1x7",
-        type: KeyLayoutTypes.grid,
-        locator: KeyLocatorTypes.left_top_right_bottom,
-        row: 1,
-        column: 7,
-    },
-    // "nshm_professional":{ //TODO:
-    //     displayName: "专业",
-    //     type: keyLayoutTypes.nshm_professional,
-    //     locator: keyLocatorTypes.left_top_right_bottom,
-    //     //具体的键位由Variant决定
-    // }
-}
 
+/**
+ * @typedef {Object.<string, number>} NoteKeyMap
+ * @type {Object.<string, NoteKeyMap>}
+ */
 const noteKeyMaps = {
     "generic_3x7": {
         //音高与按键的映射, 左下角开始, 从左到右, 从下到上
@@ -223,7 +184,262 @@ const noteKeyMaps = {
         "A4": 6,
         "B4": 7,
     },
+    "dzpd_7_8":{
+        //C5 D5 E5 F5 G5 A5 B5 C6
+        //C4 D4 E4 F4 G4 A4 B4
+        "C4": 1,
+        "D4": 2,
+        "E4": 3,
+        "F4": 4,
+        "G4": 5,
+        "A4": 6,
+        "B4": 7,
+        "C5": 8,
+        "D5": 9,
+        "E5": 10,
+        "F5": 11,
+        "G5": 12,
+        "A5": 13,
+        "B5": 14,
+        "C6": 15,
+    },
+    "abd_7_8_7":{
+        //C3 D3 E3 F3 G3 A3 B3
+        //C4 D4 E4 F4 G4 A4 B4 C5
+        //D5 E5 F5 G5 A5 B5 C6
+        "D5": 1,
+        "E5": 2,
+        "F5": 3,
+        "G5": 4,
+        "A5": 5,
+        "B5": 6,
+        "C6": 7,
+        "C4": 8,
+        "D4": 9,
+        "E4": 10,
+        "F4": 11,
+        "G4": 12,
+        "A4": 13,
+        "B4": 14,
+        "C5": 15,
+        "C3": 16,
+        "D3": 17,
+        "E3": 18,
+        "F3": 19,
+        "G3": 20,
+        "A3": 21,
+        "B3": 22,
+    },
+    "abd_8_7":{
+        //C3 D3 E3 F3 G3 A3 B3
+        //C4 D4 E4 F4 G4 A4 B4 C5
+        "C4": 1,
+        "D4": 2,
+        "E4": 3,
+        "F4": 4,
+        "G4": 5,
+        "A4": 6,
+        "B4": 7,
+        "C5": 8,
+        "C3": 9,
+        "D3": 10,
+        "E3": 11,
+        "F3": 12,
+        "G3": 13,
+        "A3": 14,
+        "B3": 15,
+    },
+    "hpma_2x7": {
+        //音高与按键的映射, 左下角开始, 从左到右, 从下到上
+        "C3": 1,
+        "D3": 2,
+        "E3": 3,
+        "F3": 4,
+        "G3": 5,
+        "A3": 6,
+        "B3": 7,
+        "C4": 8,
+        "D4": 9,
+        "E4": 10,
+        "F4": 11,
+        "G4": 12,
+        "A4": 13,
+        "B4": 14,
+    },
 }
+
+
+/**
+ * @typedef {{
+ * displayName: string,
+ * type: string,
+ * locator: string,
+ * row: number|undefined,
+ * column: number|undefined,
+ * relativeKeyPosition: Array<pos2d>|undefined,
+ * noteKeyMap: NoteKeyMap
+ * }} keyLayout
+ * 
+ * @type {Object.<string, keyLayout>}
+ */
+const keyLayouts = {
+    "generic_3x7": {
+        //名称
+        displayName: "3x7",
+        //类型
+        type: KeyLayoutTypes.grid,
+        //定位方式
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        //行数
+        row: 3,
+        //列数
+        column: 7,
+        //按键位置(只在定位方式为arbritary时有效)
+        relativeKeyPosition: undefined,
+        //音高与按键的映射, 左下角开始, 从左到右, 从下到上
+        noteKeyMap: noteKeyMaps.generic_3x7,
+    },
+    "sky_3x5": {   //光遇3x5
+        displayName: "3x5",
+        type: KeyLayoutTypes.grid,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: 3,
+        column: 5,
+        relativeKeyPosition: undefined,
+        noteKeyMap: noteKeyMaps.sky_3x5,
+    },
+    "sky_2x4": { //光遇2x4
+        displayName: "2x4",
+        type: KeyLayoutTypes.grid,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: 2,
+        column: 4,
+        relativeKeyPosition: undefined,
+        noteKeyMap: noteKeyMaps.sky_2x4,
+    },
+    "generic_3x12": {
+        displayName: "3x12",
+        type: KeyLayoutTypes.grid,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: 3,
+        column: 12,
+        relativeKeyPosition: undefined,
+        noteKeyMap: noteKeyMaps.generic_3x12,
+    },
+    "nshm_1x7": {  //逆水寒手游1x7
+        displayName: "1x7",
+        type: KeyLayoutTypes.grid,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: 1,
+        column: 7,
+        relativeKeyPosition: undefined,
+        noteKeyMap: noteKeyMaps.nshm_1x7,
+    },
+    // "nshm_professional":{ //TODO:
+    //     displayName: "专业",
+    //     type: keyLayoutTypes.nshm_professional,
+    //     locator: keyLocatorTypes.left_top_right_bottom,
+    //     //具体的键位由Variant决定
+    // }
+    "dzpd_interleaved3x7": { //蛋仔派对 交错的3x7
+        displayName: "21键",
+        type: KeyLayoutTypes.arbitrary,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: undefined,
+        column: undefined,
+        /*
+        x x x x x x x
+         x x x x x x x
+        x x x x x x x
+        */
+        relativeKeyPosition: [
+            [0, 1], [1 / 6, 1], [2 / 6, 1], [3 / 6, 1], [4 / 6, 1], [5 / 6, 1], [6 / 6, 1],
+            [0 + 1 / 12, 1 / 2], [1 / 6 + 1 / 12, 1 / 2], [2 / 6 + 1 / 12, 1 / 2], [3 / 6 + 1 / 12, 1 / 2], [4 / 6 + 1 / 12, 1 / 2], [5 / 6 + 1 / 12, 1 / 2], [6 / 6 + 1 / 12, 1 / 2],
+            [0, 0], [1 / 6, 0], [2 / 6, 0], [3 / 6, 0], [4 / 6, 0], [5 / 6, 0], [6 / 6, 0],
+        ],
+        noteKeyMap: noteKeyMaps.generic_3x7,
+    },
+    "dzpd_7_8": { //蛋仔派对 7+8
+        displayName: "15键",
+        type: KeyLayoutTypes.arbitrary,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: undefined,
+        column: undefined,
+        /*
+        x x x x x x x x
+         x x x x x x x 
+        */
+        relativeKeyPosition: [
+            [1/13,1],[3/13,1],[5/13,1],[7/13,1],[9/13,1],[11/13,1],[13/13,1],
+            [0,0],[2/13,0],[4/13,0],[6/13,0],[8/13,0],[10/13,0],[12/13,0],[14/13,0],
+        ],
+        noteKeyMap: noteKeyMaps.dzpd_7_8,
+    },
+    "abd_7_8_7": { //奥比岛 7+8+7
+        displayName: "22键",
+        type: KeyLayoutTypes.arbitrary,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: undefined,
+        column: undefined,
+        /*
+        x x x x x x x
+       x x x x x x x x
+        x x x x x x x
+        */
+        relativeKeyPosition: [
+            [0, 1], [1 / 6, 1], [2 / 6, 1], [3 / 6, 1], [4 / 6, 1], [5 / 6, 1], [6 / 6, 1],
+            [0 - 1 / 12, 1 / 2], [0 + 1 / 12, 1 / 2], [1 / 6 + 1 / 12, 1 / 2], [2 / 6 + 1 / 12, 1 / 2], [3 / 6 + 1 / 12, 1 / 2], [4 / 6 + 1 / 12, 1 / 2], [5 / 6 + 1 / 12, 1 / 2], [6 / 6 + 1 / 12, 1 / 2],
+            [0, 0], [1 / 6, 0], [2 / 6, 0], [3 / 6, 0], [4 / 6, 0], [5 / 6, 0], [6 / 6, 0],
+        ],
+        noteKeyMap: noteKeyMaps.abd_7_8_7,
+    },
+    "abd_8_7": { //奥比岛 8+7
+        displayName: "15键",
+        type: KeyLayoutTypes.arbitrary,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: undefined,
+        column: undefined,
+        /*
+         x x x x x x x
+        x x x x x x x x
+        */
+        relativeKeyPosition: [
+            [0,1],[2/14,1],[4/14,1],[6/14,1],[8/14,1],[10/14,1],[12/14,1],[14/14,1],
+            [1/14,0],[3/14,0],[5/14,0],[7/14,0],[9/14,0],[11/14,0],[13/14,0],
+        ],
+        noteKeyMap: noteKeyMaps.abd_8_7,
+    },
+    "hpma_yinterleaved3x12": { //哈利波特魔法觉醒 y交错的3x12 aka专业模式
+        displayName: "专业模式",
+        type: KeyLayoutTypes.arbitrary,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: undefined,
+        column: undefined,
+        /*
+         x x   x x x 
+        x x x x x x x
+         x x   x x x 
+        x x x x x x x
+         x x   x x x 
+        x x x x x x x
+        */
+        relativeKeyPosition: [
+            [0,1],[1/12,3/4],[2/12,1],[3/12,3/4],[3/12,1],[6/12,1],[7/12,3/4],[8/12,1],[9/12,3/4],[10/12,1],[11/12,3/4],[12/12,1],
+            [0,2/4],[1/12,1/4],[2/12,2/4],[2/12,1/4],[4/12,2/4],[6/12,2/4],[7/12,1/4],[8/12,2/4],[9/12,1/4],[10/12,2/4],[11/12,1/4],[12/12,2/4],
+            [0,0],[1/12,-1/4],[2/12,0],[3/12,-1/4],[4/12,0],[6/12,0],[7/12,-1/4],[8/12,0],[9/12,-1/4],[10/12,0],[11/12,-1/4],[12/12,0],
+        ],
+        noteKeyMap: noteKeyMaps.generic_3x12,
+    },
+    "hpma_2x7": { //哈利波特魔法觉醒 2x7
+        displayName: "普通模式",
+        type: KeyLayoutTypes.grid,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: 2,
+        column: 7,
+        relativeKeyPosition: undefined,
+        noteKeyMap: noteKeyMaps.hpma_2x7,
+    }, //TODO: 明日之后?
+};
 
 /**
  * 变体类型的具体配置
@@ -279,7 +495,7 @@ function VariantConfig(json) {
     }
 
     /**
-     * @returns {{ variantType: string; variantName: string; availableNoteRange: [string,string]| undefined; noteDurationImplementionType: string; sameKeyMinInterval: number | undefined; noteKeyMap: Object.<string, number>| undefined; }}
+     * @returns {{ variantType: string; variantName: string; availableNoteRange: [string,string]| undefined; noteDurationImplementionType: string; sameKeyMinInterval: number | undefined; noteKeyMap: NoteKeyMap| undefined; }}
      */
     this.toJSON = function () {
         return {
@@ -319,7 +535,7 @@ function GameConfig(json) {
     this.keyTypes = [];
 
     /**
-     * @type {Map<string,[[number,number],[number,number]]>}
+     * @type {Map<string,pos2dPair>}
      * 键位类型对应的定位点坐标
      * @default new Map()
      */
@@ -347,7 +563,7 @@ function GameConfig(json) {
 
     /**
      * 
-     * @param {{ gameType: string; gameName: string; keyTypes: Array<string>; keyLocators: Map<string,[[number,number],[number,number]]>; variants: Array<VariantConfig>; sameKeyMinInterval: number; packageNamePart: Array<string>; }} json
+     * @param {{ gameType: string; gameName: string; keyTypes: Array<string>; keyLocators: Map<string,pos2dPair>; variants: Array<VariantConfig>; sameKeyMinInterval: number; packageNamePart: Array<string>; }} json
      */
     this.fromJSON = function (json) {
         this.gameType = json.gameType;
@@ -375,6 +591,15 @@ function GameConfig(json) {
     }
 }
 
+let defaultVariantConfig = new VariantConfig({
+    variantType: "default",
+    variantName: "默认",
+    availableNoteRange: undefined,
+    noteKeyMap: undefined,
+    noteDurationImplementionType: NoteDurationImplementionTypes.none,
+    sameKeyMinInterval: undefined,
+});
+
 const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "楚留香",
@@ -384,7 +609,7 @@ const PreDefinedGameConfigs = [
             ["generic_3x7", [[0, 0], [0, 0]]],
         ]),
         variants: [
-            new VariantConfig({
+            new VariantConfig({ //TODO:
                 variantType: "default",
                 variantName: "默认",
                 availableNoteRange: undefined,
@@ -404,14 +629,7 @@ const PreDefinedGameConfigs = [
             ["generic_3x7", [[0, 0], [0, 0]]],
         ]),
         variants: [
-            new VariantConfig({
-                variantType: "default",
-                variantName: "默认",
-                availableNoteRange: undefined,
-                noteKeyMap: undefined,
-                noteDurationImplementionType: NoteDurationImplementionTypes.none,
-                sameKeyMinInterval: undefined,
-            }),
+            defaultVariantConfig,
         ],
         sameKeyMinInterval: 100,
         packageNamePart: ["tmgp.wuxia"],
@@ -453,14 +671,7 @@ const PreDefinedGameConfigs = [
             ["sky_2x4", [[0, 0], [0, 0]]],
         ]),
         variants: [
-            new VariantConfig({
-                variantType: "default",
-                variantName: "默认",
-                availableNoteRange: undefined,
-                noteKeyMap: undefined,
-                noteDurationImplementionType: NoteDurationImplementionTypes.none,
-                sameKeyMinInterval: undefined,
-            }),
+           defaultVariantConfig
         ],
         sameKeyMinInterval: 20,
         packageNamePart: ["sky"],
@@ -475,17 +686,104 @@ const PreDefinedGameConfigs = [
             ["nshm_1x7", [[0, 0], [0, 0]]],
         ]),
         variants: [
-            new VariantConfig({
-                variantType: "default",
-                variantName: "默认",
-                availableNoteRange: undefined,
-                noteKeyMap: undefined,
-                noteDurationImplementionType: NoteDurationImplementionTypes.none,
-                sameKeyMinInterval: undefined,
-            }),
+            defaultVariantConfig //TODO: 添加对应的乐器配置
         ],
         sameKeyMinInterval: 20,
         packageNamePart: ["nshm"],
+    }),
+    new GameConfig({
+        gameType: "蛋仔派对",
+        gameName: "蛋仔派对",
+        keyTypes: ["dzpd_interleaved3x7", "dzpd_7_8"],
+        keyLocators: new Map([
+            ["dzpd_interleaved3x7", [[0, 0], [0, 0]]],
+            ["dzpd_7_8", [[0, 0], [0, 0]]],
+        ]),
+        variants: [
+            defaultVariantConfig 
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["party"],
+    }),
+    new GameConfig({
+        gameType: "黎明觉醒",
+        gameName: "黎明觉醒",
+        keyTypes: ["generic_3x7"],
+        keyLocators: new Map([
+            ["generic_3x7", [[0, 0], [0, 0]]],
+        ]),
+        variants: [
+            defaultVariantConfig 
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["toaa"],
+    }),
+    new GameConfig({
+        gameType: "奥比岛",
+        gameName: "奥比岛",
+        keyTypes: ["abd_7_8_7", "abd_8_7"],
+        keyLocators: new Map([
+            ["abd_7_8_7", [[0, 0], [0, 0]]],
+            ["abd_8_7", [[0, 0], [0, 0]]],
+        ]),
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["aobi"],
+    }),
+    new GameConfig({
+        gameType: "哈利波特_魔法觉醒",
+        gameName: "哈利波特: 魔法觉醒",
+        keyTypes: ["hpma_yinterleaved3x12", "hpma_2x7"],
+        keyLocators: new Map([
+            ["hpma_yinterleaved3x12", [[0, 0], [0, 0]]],
+            ["hpma_2x7", [[0, 0], [0, 0]]],
+        ]),
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["harrypotter"],
+    }),
+    new GameConfig({
+        gameType: "第五人格",
+        gameName: "第五人格",
+        keyTypes: ["generic_3x7"],
+        keyLocators: new Map([
+            ["generic_3x7", [[0, 0], [0, 0]]],
+        ]),
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["dwrg"],
+    }),
+    new GameConfig({
+        gameType: "阴阳师",
+        gameName: "阴阳师",
+        keyTypes: ["generic_3x7"],
+        keyLocators: new Map([
+            ["generic_3x7", [[0, 0], [0, 0]]],
+        ]),
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["onmyoji"],
+    }),
+    new GameConfig({
+        gameType: "摩尔庄园",
+        gameName: "摩尔庄园",
+        keyTypes: ["hpma_yinterleaved3x12"],
+        keyLocators: new Map([
+            ["hpma_yinterleaved3x12", [[0, 0], [0, 0]]],
+        ]),
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["mole"],
     }),
 ];
 
@@ -494,6 +792,9 @@ function GameProfile() {
 
     var preDefinedGameConfigs = PreDefinedGameConfigs;
 
+    /**
+     * @type {GameConfig[]}
+     */
     var gameConfigs = [];
 
     /**
@@ -513,6 +814,10 @@ function GameProfile() {
      * @description midi音高到按键序号(1开始)的映射
      */
     var cachedPitchKeyMap = null;
+    /**
+     * @type {[number,number]?}
+     * @description midi音高范围. 加快查找速度
+     */
     var cachedNoteRange = null;
 
     /**
@@ -573,7 +878,7 @@ function GameProfile() {
 
     /**
      * @brief 获取配置列表
-     * @returns 
+     * @returns {GameConfig[]} 配置列表
      */
     this.getGameConfigs = function () {
         this.updateGameConfigs();
@@ -758,10 +1063,10 @@ function GameProfile() {
         if (KeyType == undefined) {
             return undefined;
         }
-        //如果为唯一的配置，则不显示配置名
-        if (currentGameConfig.keyTypes.length == 1) {
-            return "";
-        }
+        // //如果为唯一的配置，则不显示配置名
+        // if (currentGameConfig.keyTypes.length == 1) {
+        //     return "";
+        // }
         return KeyType.displayName;
     }
     this.getCurrentKeyLayoutTypeName = function () {
@@ -858,7 +1163,7 @@ function GameProfile() {
         let currentVariant = currentGameConfig.variants.find(function (variant) {
             return variant.variantType == currentVariantType;
         });
-        let keyLayoutAssociatedKeyMap = noteKeyMaps[currentKeyTypeName];
+        let keyLayoutAssociatedKeyMap = keyLayouts[currentKeyTypeName].noteKeyMap;
         let variantDefinedKeyMap = currentVariant.noteKeyMap;
         //优先使用variant中定义的按键映射
         let keyMap = variantDefinedKeyMap == undefined ? keyLayoutAssociatedKeyMap : variantDefinedKeyMap;
@@ -963,6 +1268,31 @@ function GameProfile() {
             return currentVariant.sameKeyMinInterval;
         }
         return currentGameConfig.sameKeyMinInterval;
+    }
+
+    /**
+     * 获取物理上和指定按键距离靠近的按键
+     * @param {number} key 指定按键
+     * @returns {Array<[key: number, distance: number]>}  距离指定按键较近的按键序号和距离
+     */
+    this.getPhysicalClosestKeys = function (key) {
+        if (cachedKeyPos == null) {
+            this.generateKeyPosition();
+        }
+        let keyPos = cachedKeyPos[key];
+        let closestKeys = [];
+        for (let i = 0; i < cachedKeyPos.length; i++) {
+            if (i == key) {
+                continue;
+            }
+            let pos = cachedKeyPos[i];
+            let distance = Math.sqrt(Math.pow(pos[0] - keyPos[0], 2) + Math.pow(pos[1] - keyPos[1], 2));
+            closestKeys.push([i, distance]);
+        }
+        closestKeys.sort(function (a, b) {
+            return a[1] - b[1];
+        });
+        return closestKeys;
     }
 
 }
