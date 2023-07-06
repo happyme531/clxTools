@@ -1046,7 +1046,7 @@ function loadMusicFile(fileName, exportScore) {
             maxInterval: mergeThreshold * 1000,
         }, null, (data, statistics, elapsedTime) => {
             console.log("合并按键耗时" + elapsedTime / 1000 + "秒");
-            visualizer.setKeyLayout(gameProfile.getKeyType().row, gameProfile.getKeyType().column);
+            visualizer.setKeyLayout(gameProfile.getKeyLayout().row, gameProfile.getKeyLayout().column);
             visualizer.loadNoteData(data);
             visualizer.goto(-1);
             progressDialog.setContent("正在生成手势...");
@@ -1226,7 +1226,7 @@ function runGesturePlayer(gestureTimeList) {
 
     //是否显示可视化窗口
     let visualizerEnabled = readGlobalConfig("visualizerEnabled", false);
-    if (!visualizerEnabled) {
+    if (!visualizerEnabled || gameProfile.getKeyLayout().type !== "grid") { //TODO: 其它类型的键位布局也可以显示可视化窗口
         visualizerWindow.close();
     } else {
         toast("单击可视化窗口调整大小与位置, 双击重置");

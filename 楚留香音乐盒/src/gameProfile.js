@@ -278,9 +278,9 @@ const noteKeyMaps = {
  * column: number|undefined,
  * relativeKeyPosition: Array<pos2d>|undefined,
  * noteKeyMap: NoteKeyMap
- * }} keyLayout
+ * }} KeyLayout
  * 
- * @type {Object.<string, keyLayout>}
+ * @type {Object.<string, KeyLayout>}
  */
 const keyLayouts = {
     "generic_3x7": {
@@ -1075,9 +1075,9 @@ function GameProfile() {
 
     /**
      * 获取当前按键参数
-     * @returns {Object} 按键参数
+     * @returns {KeyLayout} 当前按键参数
      */
-    this.getKeyType = function () {
+    this.getKeyLayout = function () {
         return keyLayouts[currentKeyTypeName];
     }
 
@@ -1109,7 +1109,7 @@ function GameProfile() {
         }
         let currentLayout = keyLayouts[currentKeyTypeName];
         switch (currentLayout.type) {
-            case KeyLayoutTypes.grid:
+            case KeyLayoutTypes.grid:{
                 let leftTop = 0;
                 let rightBottom = 0;
                 if (currentLayout.locator == KeyLocatorTypes.left_top_right_bottom) {
@@ -1138,6 +1138,33 @@ function GameProfile() {
                 cachedKeyPos = keyPos;
                 console.log("generated key position: " + JSON.stringify(keyPos));
                 return true;
+            }
+            case KeyLayoutTypes.arbitrary:{
+                let leftTop = 0;
+                let rightBottom = 0;
+                if (currentLayout.locator == KeyLocatorTypes.left_top_right_bottom) {
+                    leftTop = currentGameConfig.keyLocators[currentKeyTypeName][0];
+                    rightBottom = currentGameConfig.keyLocators[currentKeyTypeName][1];
+                } else {
+                    console.log("TODO:unsupported key locator type: " + currentLayout.locator);
+                }
+
+                let width = rightBottom[0] - leftTop[0];
+                let height = rightBottom[1] - leftTop[1];
+                let keyPos = [];
+                if(currentLayout.relativeKeyPosition == undefined){
+                    console.error("relativeKeyPosition is undefined");
+                    return false;
+                }
+                for (let i = 0; i < currentLayout.relativeKeyPosition.length; i++) {
+                    let x = leftTop[0] + currentLayout.relativeKeyPosition[i][0] * width;
+                    let y = leftTop[1] + currentLayout.relativeKeyPosition[i][1] * height;
+                    keyPos.push([Math.round(x), Math.round(y)]);
+                }
+                cachedKeyPos = keyPos;
+                console.log("generated key position: " + JSON.stringify(keyPos));
+                return true;
+            }
             default:
                 console.log("TODO:unknown/unimplemented key layout type: " + currentLayout.type);
                 return false;
