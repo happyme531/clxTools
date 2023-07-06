@@ -5,7 +5,8 @@
         "moduleResolution": "Node",
         "target": "ES5",
         "strictNullChecks": true,
-        "strictFunctionTypes": true
+        "strictFunctionTypes": true,
+        "checkJs": true
     },
     "exclude": [
     ]

@@ -1,6 +1,11 @@
 //@ts-check
 //players.js -- 实现播放/演奏功能
 
+
+/**
+ * @typedef {Array<[number,number,...import("./gameProfile").pos2d]>} Gestures
+ */
+
 function AutoJsGesturePlayer(){
     /**
      * @enum {number}
@@ -13,23 +18,24 @@ function AutoJsGesturePlayer(){
         UNINITIALIZED: 4,
         FINISHED: 5,
     }
+
     this.PlayerStates = PlayerStates;
 
     /**
-     * @type number
+     * @type {PlayerStates}
      * @description 播放器状态
      * @private
      */
     let playerState = PlayerStates.UNINITIALIZED;
 
     /**
-     * @type Array<[Gestures, number]>?
+     * @type {Array<[Gestures, number]>?}
      * @description 手势和时间数据
      */
     let gestureTimeList = null;
 
     /**
-     * @type Function
+     * @type {function(number):void}
      * @description 每播放一个音符的回调函数
      */
     let onPlayNote = function(/** @type {number} */ position){};

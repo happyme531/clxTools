@@ -1,3 +1,4 @@
+//@ts-check
 /* 
  * musicFormats.js -- 关于音乐盒支持的音乐格式
  *
@@ -27,12 +28,30 @@
 
 */
 
+
+/**
+ * 一些类型定义
+ * @typedef {[pitch: number, startTime: number, attributes: Object|undefined]} Note
+ * @typedef {[pitches: number[], startTime: number]} Chord
+ * @typedef {{name: string, noteCount: number, notes: Note[]}} Track
+ * @typedef {{haveMultipleTrack: boolean, trackCount: number, tracks: Track[]}} TracksData
+ */
+
 const ToneJsJSONParser = require('./formatToneJsJSON.js');
 const MidiParser = require('./formatMidi.js');
 const DoMiSoTextParser = require('./formatDoMiSo_text.js');
 const SkyStudioJSONParser = require('./formatSkyStudioJSON.js');
 
 function MusicFormats() {
+    /**
+     * @typedef {{
+     * "name": string,
+     * "friendlyName": string,
+     * "fileExtension": string
+     * }} MusicFormat
+     * 
+     * @type {MusicFormat[]}
+     */
     const formats =
         [{
             "name": "tonejsjson",
@@ -54,7 +73,12 @@ function MusicFormats() {
             "friendlyName": "SkyStudio JSON 格式",
             "fileExtension": ".skystudio.txt"
         }];
-
+    
+    /**
+     * @brief 获取文件的音乐格式
+     * @param {string} fullFileName 文件名(包含扩展名)
+     * @returns {MusicFormat} 音乐格式
+     */
     this.getFileFormat = function(fullFileName) {
         for (let format of formats) {
             if (fullFileName.endsWith(format.fileExtension))
@@ -63,6 +87,11 @@ function MusicFormats() {
         throw new Error("不支持的文件格式");
     }
 
+    /**
+     * @brief 判断文件是否为音乐文件
+     * @param {string} fullFileName 文件名(包含扩展名)
+     * @returns {boolean} 是否为音乐文件
+     */
     this.isMusicFile = function(fullFileName) {
         for (let format of formats) {
             if (fullFileName.endsWith(format.fileExtension))
@@ -71,6 +100,11 @@ function MusicFormats() {
         return false;
     }
 
+    /**
+     * @brief 获取不包含扩展名的文件名(针对音乐文件)
+     * @param {string} fullFileName 文件名(包含扩展名)
+     * @returns {string} 不包含扩展名的文件名
+     */
     this.getFileNameWithoutExtension = function(fullFileName) {
         if (this.isMusicFile(fullFileName)) {
             let fileFormat = this.getFileFormat(fullFileName);
@@ -79,18 +113,11 @@ function MusicFormats() {
         return fullFileName;
     }
 
+
     /**
      * 解析音乐文件
      * @param {string} filePath 
-     * @returns {{
-     * "haveMultipleTrack": boolean,
-     * "trackCount": number,
-     * "tracks": [
-     * {
-     * "name": string,
-     * "noteCount": number,
-     * "notes": [[number,number,Object]]
-     * }}
+     * @returns {TracksData} 音乐数据
      */
     this.parseFile = function(filePath) {
         let fileFormat = this.getFileFormat(filePath);
@@ -100,7 +127,7 @@ function MusicFormats() {
             case "midi":
                 return new MidiParser().parseFile(filePath);
             case "domiso":
-                return new DoMiSoTextParser().parseFile(filePath);
+                return new DoMiSoTextParser().parseFile(filePath,undefined);
             case "skystudiojson":
                 return new SkyStudioJSONParser().parseFile(filePath);
             default:

@@ -1,14 +1,9 @@
-const MidiPitch = require('./midiPitch.js');
-
-function getJsonLength(json) {
-    var jsonLength = 0;
-    for (var i in json) {
-        jsonLength++;
-    }
-    return jsonLength;
-};
-
 function ToneJsJSONParser() {
+    /**
+     * @brief 解析一个文件
+     * @param {string} filePath 文件路径
+     * @returns {import("./musicFormats").TracksData} 音乐数据
+     */
     this.parseFile = function (filePath) {
         let jsonData;
         try {
@@ -19,14 +14,15 @@ function ToneJsJSONParser() {
             console.error("文件解析失败:" + err + ",数据文件可能缺失或不完整！");
         };
 
-        let trackCount = getJsonLength(jsonData.tracks);
+        let trackCount = jsonData.tracks.length;
         let tracksData = [];
         for (let i = 0; i < trackCount; i++) {
             let track = jsonData.tracks[i];
+            /** @type {import("./musicFormats").Note[]} */
             let notes = [];
             for (let j = 0; j < track.notes.length; j++) {
                 let note = track.notes[j];
-                notes.push([note.midi, note.time*1000]);
+                notes.push([note.midi, note.time * 1000, undefined]);
             }
             tracksData.push({
                 "name": track.name,
@@ -34,7 +30,7 @@ function ToneJsJSONParser() {
                 "notes": notes
             });
         }
-        
+
         return {
             "haveMultipleTrack": true,
             "trackCount": trackCount,

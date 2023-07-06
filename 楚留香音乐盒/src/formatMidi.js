@@ -1,5 +1,10 @@
 
 function MidiParser() {
+    /**
+     * @brief 解析一个文件
+     * @param {string} filePath 文件路径
+     * @returns {import("./musicFormats").TracksData} 音乐数据
+     */
     this.parseFile = function (filePath) {
         let dexPath = files.cwd() + "/src/MidiReader.dex"
         runtime.loadDex(dexPath);
