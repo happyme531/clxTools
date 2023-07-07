@@ -1,6 +1,6 @@
 # clxTools
 
-适用于某些RPG手游，例如《楚留香(一梦江湖)》的自动脚本。 Automatics scripts for some mobile RPGs, such as netease ChuLiuXiang.
+适用于一些RPG手游，例如《楚留香(一梦江湖)》的自动脚本。 Automatics scripts for some mobile RPGs, such as netease ChuLiuXiang.
 
 脚本文件:[点我下载](https://github.com/happyme531/clxTools/archive/master.zip)  
 脚本运行环境: AutoX(Auto.js的一个fork). [进入apk下载](https://github.com/kkevsekk1/AutoX/releases)/[进入项目主页](https://github.com/kkevsekk1/AutoX).  
@@ -8,14 +8,27 @@
 
 ## 安装说明
 
-1.下载:
-  先下载脚本文件(https://github.com/happyme531/clxTools/archive/master.zip)  
-  如果你无法下载上面的脚本文件，可以打开[GitHub 文件加速](https://gh.api.99988866.xyz/)，之后把上面脚本文件的链接粘贴进去下载.  
-  之后再下载脚本运行环境(autoX)
+1. 下载:
+  先下载脚本文件: [脚本文件](https://github.com/happyme531/clxTools/archive/master.zip)  
+  如果上面的链接无法访问，也可以点击[镜像地址](https://gh.api.99988866.xyz/https://gh.api.99988866.xyz/https://github.com/happyme531/clxTools/archive/master.zip)下载  
+  之后再下载脚本运行环境(AutoX): [进入apk下载](https://github.com/kkevsekk1/AutoX/releases)
 
-2.安装:  
-  打开autoX.js软件，授予权限后退出.  
-  之后把脚本的压缩包解压到手机存储根目录名叫“脚本”的文件夹中, 安装完成。  
+2. 安装:  
+     - 点击下载的apk文件，安装AutoX
+     - 从手机桌面打开autoX.js软件，授予权限后退出.  
+     - 将脚本压缩包(clxTools-master.zip)解压到手机存储根目录名叫“脚本”的文件夹中, 例如: /sdcard/脚本/clxTools-master/
+     - 安装完成
+
+3. 运行:
+     - 打开AutoX.js, 点击左上角菜单打开侧边栏, 打开"悬浮窗"开关
+     - 建议在AutoX.js内进入设置, 打开"音量上键停止所有脚本"开关, 这样可以通过音量上键停止脚本
+     - 在游戏中通过悬浮窗即可运行脚本
+
+## 更新说明
+
+按照安装说明中的下载方法下载最新版脚本文件，解压覆盖原有文件即可。绝大多数配置都不会丢失，但是为了安全起见，建议在更新前将原有脚本文件夹重命名为其他名字, 留作备份。
+
+此项目目前处于开发阶段，更新频繁，建议每隔一段时间更新一下脚本文件。
 
 ------
 
@@ -42,10 +55,24 @@
 
 目前功能最全面的手游自动演奏(弹琴)工具
 
-+ 支持所有通过触摸屏幕演奏乐曲，且音符为矩阵分布的游戏，例如楚留香(一梦江湖)/天涯明月刀手游/原神/光遇/摩尔庄园。  
-+ 多种游戏配置(楚留香, 天刀, 原神(风物之诗琴/老旧的诗琴), 光遇(3x5/2x4), ...), 大致自动识别
-+ 自动设置坐标(10秒完成, 无需手动填写)
-+ 支持多种音乐格式 (MIDI,DoMiSo,SkyStudio)
++ 支持的游戏和配置:  
+  - 楚留香(一梦江湖)
+  - 天涯明月刀手游
+  - 原神(风物之诗琴/老旧的诗琴)
+  - 光遇(3x5/2x4键位)
+  - 逆水寒手游(3x7/3x12/1x7键位)
+  - 蛋仔派对(21/15键)
+  - 黎明觉醒
+  - 奥比岛(22/15键)
+  - 哈利波特: 魔法觉醒(专业/普通模式)
+  - 第五人格
+  - 阴阳师
+  - 摩尔庄园
+  - 其它通过触摸屏幕演奏乐曲，且音符为矩阵分布的游戏
++ 自动识别游戏
++ 自动获取坐标(10秒完成, 无需手动填写)
++ 支持多种音乐格式(MIDI, DoMiSo, SkyStudio)
++ 强大的优化器, 自动优化乐谱, 使其更加适合自动演奏
 + 实时可视化功能, 可以看到详细的演奏过程
 + MIDI实时串流
 + 全自动移调功能, 再也不怕半音弹不出来
@@ -53,7 +80,7 @@
 + 模仿手弹模式
 + 导出为键盘谱
 
-[查看详情](https://github.com/happyme531/clxTools/blob/master/%E6%A5%9A%E7%95%99%E9%A6%99%E9%9F%B3%E4%B9%90%E7%9B%92/README.md)  
+<!-- [查看详情](https://github.com/happyme531/clxTools/blob/master/%E6%A5%9A%E7%95%99%E9%A6%99%E9%9F%B3%E4%B9%90%E7%9B%92/README.md)   -->
 
 ### 楚留香音乐盒_pc版  
 
@@ -102,9 +129,9 @@
 
 [![Star History Chart](https://api.star-history.com/svg?repos=happyme531/clxTools&type=Date)](https://star-history.com/#happyme531/clxTools&Date)
 
-------  
+--------;  
 
-### by 一梦江湖(楚留香)::声声慢::心慕流霞::李芒果  
+### by 一梦江湖(楚留香)::声声慢::心慕流霞::李芒果 / 逆水寒手游::蝶念花::踏月留香::李芒果
 
 ![1658421643](https://user-images.githubusercontent.com/20812356/180462109-b9971abc-ad18-4e2e-9284-fdbf1856a8e3.jpg)
 
