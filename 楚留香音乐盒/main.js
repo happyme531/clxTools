@@ -1144,6 +1144,16 @@ function runGesturePlayer(gestureTimeList) {
                     controlWindow.pauseResumeBtn.setText("▶️");
                 }
             });
+            controlWindow.pauseResumeBtn.setOnLongClickListener(() => {
+                //隐藏悬浮窗播放
+                toast("8秒后播放...");
+                visualizerWindow.close();
+                controlWindow.close();
+                setTimeout(() => {
+                    player.resume();
+                }, 8000);
+                return true;
+            })
             controlWindow.stopBtn.click(() => {
                 player.stop();
             })
