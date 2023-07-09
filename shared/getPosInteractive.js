@@ -1,9 +1,12 @@
 function getPosInteractive(promptText) {
     let gotPos = false;
+    //pos[0] 长边, pos[1] 短边
     let pos = [];
     let fingerReleased = false;
     let confirmed = false;
     let fullScreenWindowRequestClose = false;
+    let canvasDebugCounter = 0;
+    console.log("getPosInteractive(): " + promptText);
     //提示和确认按钮的框
     let confirmWindow = floaty.rawWindow(
         <frame gravity="left|top">
@@ -34,10 +37,20 @@ function getPosInteractive(promptText) {
         const Color = android.graphics.Color;
         const Paint = android.graphics.Paint;
         const PorterDuff = android.graphics.PorterDuff;
-        const w = canvas.getWidth();
-        const h = canvas.getHeight();
+        const w = canvas.getWidth();    //在横屏时, 这是长边
+        const h = canvas.getHeight();   //在横屏时, 这是短边
+        const woffset = device.height - w; //长边的偏移量
+        const hoffset = device.width - h; //短边的偏移量
         const centerCircleRadius = 10;
         let paint = new Paint();
+        if(canvasDebugCounter != -1 && canvasDebugCounter < 60){
+            canvasDebugCounter++;
+        }else if(canvasDebugCounter == 60){
+            console.log("canvas [长,短] = [" + w + "," + h + "]");
+            console.log("device [长,短] = [" + device.height + "," + device.width + "]");
+            console.log("offset [长,短] = [" + woffset + "," + hoffset + "]");
+            canvasDebugCounter = -1;
+        }
 
         //灰色背景
         canvas.drawColor(Color.parseColor("#3f000000"), PorterDuff.Mode.SRC);
@@ -46,12 +59,12 @@ function getPosInteractive(promptText) {
             paint.setStrokeWidth(2);
             paint.setARGB(255, 255, 255, 255);
             paint.setStyle(Paint.Style.STROKE);
-            canvas.drawLine(0, pos[1], w, pos[1], paint);
-            canvas.drawLine(pos[0], 0, pos[0], h, paint);
+            canvas.drawLine(0, pos[1] - hoffset, w, pos[1] - hoffset, paint);
+            canvas.drawLine(pos[0] - woffset, 0, pos[0] - woffset, h, paint);
             
             //中心画一个空心圆
             paint.setStyle(Paint.Style.STROKE);
-            canvas.drawCircle(pos[0], pos[1], centerCircleRadius, paint);
+            canvas.drawCircle(pos[0] - woffset, pos[1] - hoffset, centerCircleRadius, paint);
         }
         if(fullScreenWindowRequestClose)
             sleep(1000);
@@ -91,6 +104,8 @@ function getPosInteractive(promptText) {
     sleep(100);
     fullScreenWindow.close();
     confirmWindow.close();
+
+    console.log("End getPosInteractive(): " + pos.toString());
 
     return {
         "x" : pos[0],
