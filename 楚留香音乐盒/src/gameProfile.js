@@ -29,11 +29,11 @@ const KeyLocatorTypes = {
  * @enum {string}
  */
 const NoteDurationImplementionTypes = {
-    //根本不支持，所有音符都是一样长的
+    //根本不支持，所有音符都是一样长, 不管按住多久 //最简单
     "none": "none",
-    //通过同时按住另外一个键来发出长音，但也只有两种长度
+    //通过同时按住另外一个键来发出长音, 两种情况差别很大 //TODO:
     "extraLongKey": "extraLongKey",
-    //原生支持
+    //原生支持, 按住多久就发出多长的音 //最难支持 //TODO:
     "native": "native",
 }
 
@@ -424,9 +424,9 @@ const keyLayouts = {
         x x x x x x x
         */
         relativeKeyPosition: [
-            [0,1],[1/12,3/4],[2/12,1],[3/12,3/4],[3/12,1],[6/12,1],[7/12,3/4],[8/12,1],[9/12,3/4],[10/12,1],[11/12,3/4],[12/12,1],
-            [0,2/4],[1/12,1/4],[2/12,2/4],[2/12,1/4],[4/12,2/4],[6/12,2/4],[7/12,1/4],[8/12,2/4],[9/12,1/4],[10/12,2/4],[11/12,1/4],[12/12,2/4],
-            [0,0],[1/12,-1/4],[2/12,0],[3/12,-1/4],[4/12,0],[6/12,0],[7/12,-1/4],[8/12,0],[9/12,-1/4],[10/12,0],[11/12,-1/4],[12/12,0],
+            [-1/10,5/5],[0/10,4/5],[1/10,5/5],[2/10,4/5],[3/10,5/5],[4/10,5/5],[5/10,4/5],[6/10,5/5],[7/10,4/5],[8/10,5/5],[9/10,4/5],[10/10,5/5],
+            [-1/10,3/5],[0/10,2/5],[1/10,3/5],[2/10,2/5],[3/10,3/5],[4/10,3/5],[5/10,2/5],[6/10,3/5],[7/10,2/5],[8/10,3/5],[9/10,2/5],[10/10,3/5],
+            [-1/10,1/5],[0/10,0/5],[1/10,1/5],[2/10,0/5],[3/10,1/5],[4/10,1/5],[5/10,0/5],[6/10,1/5],[7/10,0/5],[8/10,1/5],[9/10,0/5],[10/10,1/5],
         ],
         noteKeyMap: noteKeyMaps.generic_3x12,
     },
@@ -445,6 +445,15 @@ const keyLayouts = {
  * 变体类型的具体配置
  * 游戏中会有不同的乐器, 它们共享同样的键位, 但音域可能不同. 
  * 因此使用这个类表示不同的变体
+ * @typedef {{ 
+ * variantType: string; 
+ * variantName: string; 
+ * availableNoteRange: [string,string] | undefined; 
+ * noteDurationImplementionType: string; 
+ * sameKeyMinInterval: number | undefined; 
+ * noteKeyMap: Object.<string, number>| undefined; 
+ * }} VariantConfigJson
+ * @param {VariantConfigJson} json
  */
 function VariantConfig(json) {
     /**
@@ -483,7 +492,7 @@ function VariantConfig(json) {
     this.noteKeyMap = undefined;
 
     /**
-     * @param {{ variantType: string; variantName: string; availableNoteRange: [string,string] | undefined; noteDurationImplementionType: string; sameKeyMinInterval: number | undefined; noteKeyMap: Object.<string, number>| undefined; }} json
+     * @param {VariantConfigJson} json
      */
     this.fromJSON = function (json) {
         this.variantType = json.variantType;
@@ -495,7 +504,7 @@ function VariantConfig(json) {
     }
 
     /**
-     * @returns {{ variantType: string; variantName: string; availableNoteRange: [string,string]| undefined; noteDurationImplementionType: string; sameKeyMinInterval: number | undefined; noteKeyMap: NoteKeyMap| undefined; }}
+     * @returns {VariantConfigJson}
      */
     this.toJSON = function () {
         return {
@@ -686,7 +695,15 @@ const PreDefinedGameConfigs = [
             ["nshm_1x7", [[0, 0], [0, 0]]],
         ]),
         variants: [
-            defaultVariantConfig //TODO: 添加对应的乐器配置
+            defaultVariantConfig,
+            new VariantConfig({
+                variantType: "曲笛",
+                variantName: "曲笛",
+                availableNoteRange: ["G3", "B5"],
+                noteKeyMap: undefined,
+                noteDurationImplementionType: NoteDurationImplementionTypes.native,
+                sameKeyMinInterval: undefined,
+            }),
         ],
         sameKeyMinInterval: 20,
         packageNamePart: ["nshm"],
