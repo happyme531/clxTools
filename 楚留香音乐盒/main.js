@@ -905,7 +905,7 @@ function main() {
         exportNoteDataInteractive(data, "keyboardScore");
         return;
     }
-    runGesturePlayer(data);
+    runGesturePlayer(musicFormats.getFileNameWithoutExtension(fileName), data);
 
 }
 
@@ -1080,7 +1080,7 @@ function loadMusicFile(fileName, exportScore) {
     return gestureTimeList;
 }
 
-function runGesturePlayer(gestureTimeList) {
+function runGesturePlayer(titleText,gestureTimeList) {
     var currentGestureIndex = 0
     const gestureCount = gestureTimeList.length;
     let player = new Players.AutoJsGesturePlayer();
@@ -1091,32 +1091,55 @@ function runGesturePlayer(gestureTimeList) {
 
     //显示悬浮窗
     let controlWindow = floaty.window(
-        <frame gravity="left">
-            <horizontal bg="#7fffff7f">
-                <text id="timerText" text="00:00/00:00" textSize="14sp" />
-                <seekbar id="progressBar" layout_gravity="center_vertical" w='850px' />、
-                <button id="pauseResumeBtn" style="Widget.AppCompat.Button.Colored" w="140px" text="⏸" />
-                <button id="stopBtn" style="Widget.AppCompat.Button.Colored" w="140px" text="⏹" />
-            </horizontal>
+        <frame gravity="left|top" w="*" h="auto" margin="0dp">
+            <vertical bg="#8fffffff" w="*" h="auto" margin="0dp">
+                <horizontal w="*" h="auto" margin="0dp">
+                    <text id="musicTitleText" bg="#9ff0f0f4" text="(未选择乐曲...)"  ellipsize="start" singleLine="true" layout_gravity="left" textSize="14sp" margin="0 0 3 0" layout_weight="1" />
+                    <text id="timerText" bg="#9ffce38a" text="00:00/00:00"  layout_gravity="right" textSize="14sp" margin="3 0 3 0" layout_weight="0" />
+                    <button id="stopBtn" bg="#9ff36838" style="Widget.AppCompat.Button.Borderless" w="20dp" layout_height='20dp' text="[X]" textSize="14sp" margin="0dp" padding="0dp" />
+                </horizontal>
+                <horizontal w="*" h="auto" margin="0dp">
+                    <seekbar id="progressBar" layout_gravity="center_vertical" layout_weight="1" w='0dp' h='auto' margin="3dp 0dp" />
+                </horizontal>
+                <horizontal bg="#fce38a" w="*" h="auto" margin="0dp" gravity="center">
+                    <button id="pauseResumeBtn" style="Widget.AppCompat.Button.Borderless" w="40dp" h='20dp' text="⏸" textSize="14sp" margin="0dp" padding="0dp" />
+                </horizontal>
+            </vertical>
         </frame>
     );
+    ui.run(() => {
+        controlWindow.musicTitleText.setText(titleText);
+    });
 
     toast("点击时间可调整悬浮窗位置");
 
-    let windowPosition = readGlobalConfig("windowPosition", [device.height / 3, 0]);
+    let controlWindowPosition = readGlobalConfig("controlWindowPosition", [device.height / 3, 0]);
     //避免悬浮窗被屏幕边框挡住
-    controlWindow.setPosition(windowPosition[0], windowPosition[1]);
-    //TODO: 这里写死大小可能会有问题, 但是没有足够的测试数据来证明
-    controlWindow.setSize(900 + 180 + 180 + 180, -2);
+    controlWindow.setPosition(controlWindowPosition[0], controlWindowPosition[1]);
+    let controlWindowSize = readGlobalConfig("controlWindowSize", [device.height / 4, -2]);
+    controlWindow.setSize(controlWindowSize[0], controlWindowSize[1]);
     //controlWindow.setTouchable(true);
+
+    let controlWindowLastClickTime = 0;
 
     //悬浮窗事件
     controlWindow.timerText.on("click", () => {
+        let now = new Date().getTime();
+        if (now - controlWindowLastClickTime < 500) {
+            toast("重置悬浮窗大小与位置");
+            controlWindow.setSize(device.height / 2, -2);
+            controlWindow.setPosition(device.height / 3, 40);
+        }
+        controlWindowLastClickTime = now;
+        
         let adjEnabled = controlWindow.isAdjustEnabled();
         controlWindow.setAdjustEnabled(!adjEnabled);
+        
         //记忆位置
         if (adjEnabled) {
-            setGlobalConfig("windowPosition", [controlWindow.getX(), controlWindow.getY()]);
+            controlWindow.setSize(controlWindow.getWidth(), controlWindow.getHeight());
+            setGlobalConfig("controlWindowPosition", [controlWindow.getX(), controlWindow.getY()]);
+            setGlobalConfig("controlWindowSize", [controlWindow.getWidth(), -2]);
         }
     });
 
