@@ -900,6 +900,8 @@ function main() {
         return;
     }
 
+    gameProfile.clearCurrentConfigCache();
+    
     let data = loadMusicFile(fileName, exportScore);
     if (exportScore) {
         exportNoteDataInteractive(data, "keyboardScore");

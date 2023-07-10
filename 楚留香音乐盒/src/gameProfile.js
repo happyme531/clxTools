@@ -824,13 +824,18 @@ function GameProfile() {
     //当前生效的变体名
     var currentVariantType = "";
 
-
+    /**
+     * @type {Array<pos2d>?}
+     * @description 按键位置数组(从下到上, 从左到右)
+     */
     var cachedKeyPos = null;
+
     /**
      * @type {Map<number,number>?}
      * @description midi音高到按键序号(1开始)的映射
      */
     var cachedPitchKeyMap = null;
+
     /**
      * @type {[number,number]?}
      * @description midi音高范围. 加快查找速度
@@ -1337,6 +1342,15 @@ function GameProfile() {
             return a[1] - b[1];
         });
         return closestKeys;
+    }
+
+    /**
+     * 清除当前配置的缓存
+     */
+    this.clearCurrentConfigCache = function () {
+        cachedKeyPos = null;
+        cachedPitchKeyMap = null;
+        cachedNoteRange = null;
     }
 
 }
