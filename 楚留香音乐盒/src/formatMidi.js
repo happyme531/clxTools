@@ -42,12 +42,12 @@ function MidiParser() {
             }else if(event instanceof MetaMidiEvent){
                 switch (event.getMetaEventType()){
                     case MetaMidiEvent.MetaEventType.SET_TEMPO:{
-                        let content = nextMetaMidiEvent.getContent();
+                        let content = event.getContent();
                         console.log("SET_TEMPO content:" + content);
                         break;
                     }
                     case MetaMidiEvent.MetaEventType.TIME_SIGNATURE:{
-                        let content = nextMetaMidiEvent.getContent();
+                        let content = event.getContent();
                         console.log("TIME_SIGNATURE content:" + content);
                         break;
                     }

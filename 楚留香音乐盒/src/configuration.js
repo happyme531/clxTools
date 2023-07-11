@@ -1,8 +1,11 @@
 // Description: 配置系统
 
+let MusicFormats = require("./musicFormats");
+
 function Configuration() {
     const globalConfig = storages.create("hallo1_clxmidiplayer_config");
     const musicDir = "/sdcard/楚留香音乐盒数据目录/";
+    const musicFormats = new MusicFormats();
     
     /**
      * 初始化指定文件的配置
@@ -14,7 +17,7 @@ function Configuration() {
         let cfg = {};
         cfg.majorPitchOffset = 0;
         cfg.minorPitchOffset = 0;
-        cfg.halfCeiling = false;
+        cfg.treatHalfAsCeiling = false;
         files.write(filepath, JSON.stringify(cfg));
     };
 
@@ -74,6 +77,7 @@ function Configuration() {
      * @returns {number} - 返回0表示设置成功
      */
     this.setFileConfig = function (key, val, filename) {
+        console.verbose("设置文件配置: " + key + " = " + val + " for " + filename);
         filename = musicFormats.getFileNameWithoutExtension(filename);
         filename += ".json.cfg";
         let filepath = musicDir + filename;
@@ -95,9 +99,10 @@ function Configuration() {
      * 读取指定文件的配置项
      * @param {string} key - 配置项的键名
      * @param {string} filename - 文件名
-     * @returns {*} - 返回配置项的值，如果不存在则返回null
+     * @param {*} [defaultValue] - 配置项的默认值
+     * @returns {*} - 返回配置项的值，如果不存在则返回默认值
      */
-    this.readFileConfig = function (key, filename) {
+    this.readFileConfig = function (key, filename, defaultValue) {
         filename = musicFormats.getFileNameWithoutExtension(filename);
         filename += ".json.cfg";
         let filepath = musicDir + filename;
@@ -108,7 +113,11 @@ function Configuration() {
         tmp = JSON.parse(tmp);
         console.log("读取文件:" + filepath);
         console.verbose("读取配置信息: " + JSON.stringify(tmp));
-        return tmp[key];
+        if (tmp[key] == null) {
+            return defaultValue;
+        } else {
+            return tmp[key];
+        }
     };
 }
 

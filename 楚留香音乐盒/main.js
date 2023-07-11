@@ -952,9 +952,9 @@ function loadMusicFile(fileName, exportScore) {
 
 
     let humanifyEnabled = readGlobalConfig("humanifyEnabled", false);
-    let majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
-    let minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
-    let treatHalfAsCeiling = readFileConfig("halfCeiling", rawFileName);
+    let majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName, 0);
+    let minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName, 0);
+    let treatHalfAsCeiling = readFileConfig("halfCeiling", rawFileName, false);
     let mergeThreshold = exportScore ? scoreExportMergeThreshold : autoPlayMergeThreshold;
     let keyRange = gameProfile.getKeyRange();
 
@@ -1229,12 +1229,17 @@ function runGesturePlayer(titleText,gestureTimeList) {
     let visualizerWindowRequestClose = false;
     visualizerWindow.canv.on("draw", function (canvas) {
         visualizer.draw(canvas);
-        // //如果在绘制时窗口被关闭, app会直接崩溃, 所以这里要等待一下 
-        // if (visualizerWindowRequestClose) {
-        //     sleep(1000);
-        // }
-        // 似乎是脚本退出和悬浮窗关闭同时进行时, 会导致脚本崩溃. 现在已经不会遇到这种情况了.
+        //如果在绘制时窗口被关闭, app会直接崩溃, 所以这里要等待一下 
+        if (visualizerWindowRequestClose) {
+            sleep(1000);
+        }
     });
+    
+    function visualizerWindowClose() {
+        visualizerWindowRequestClose = true;
+        sleep(200);
+        visualizerWindow.close();
+    }
 
     //上一次点击的时间
     let visualizerLastClickTime = 0;
@@ -1262,7 +1267,7 @@ function runGesturePlayer(titleText,gestureTimeList) {
     //是否显示可视化窗口
     let visualizerEnabled = readGlobalConfig("visualizerEnabled", false);
     if (!visualizerEnabled || gameProfile.getKeyLayout().type !== "grid") { //TODO: 其它类型的键位布局也可以显示可视化窗口
-        visualizerWindow.close();
+        visualizerWindowClose();
     } else {
         toast("单击可视化窗口调整大小与位置, 双击重置");
     }
@@ -1279,7 +1284,7 @@ function runGesturePlayer(titleText,gestureTimeList) {
     }
     toast("播放结束");
 
-    visualizerWindow.close();
+    visualizerWindowClose();
     controlWindow.close();
     player.stop();
 }
