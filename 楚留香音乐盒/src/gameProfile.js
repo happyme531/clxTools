@@ -12,7 +12,7 @@ const midiPitch = require("./midiPitch.js");
 const KeyLayoutTypes = {
     "grid": "grid",   //网格
     "arbitrary": "arbitrary", //任意
-    //"nshm_professional": "nshm_professional", //TODO:逆水寒手游专业版
+    "nshm_professional": "nshm_professional", //逆水寒手游, 所有的专业模式
 }
 
 /**
@@ -274,10 +274,10 @@ const noteKeyMaps = {
  * displayName: string,
  * type: string,
  * locator: string,
- * row: number|undefined,
- * column: number|undefined,
- * relativeKeyPosition: Array<pos2d>|undefined,
- * noteKeyMap: NoteKeyMap
+ * row?: number|undefined,
+ * column?: number|undefined,
+ * relativeKeyPosition?: Array<pos2d>|undefined,
+ * noteKeyMap?: NoteKeyMap,
  * }} KeyLayout
  * 
  * @type {Object.<string, KeyLayout>}
@@ -305,7 +305,6 @@ const keyLayouts = {
         locator: KeyLocatorTypes.left_top_right_bottom,
         row: 3,
         column: 5,
-        relativeKeyPosition: undefined,
         noteKeyMap: noteKeyMaps.sky_3x5,
     },
     "sky_2x4": { //光遇2x4
@@ -314,7 +313,6 @@ const keyLayouts = {
         locator: KeyLocatorTypes.left_top_right_bottom,
         row: 2,
         column: 4,
-        relativeKeyPosition: undefined,
         noteKeyMap: noteKeyMaps.sky_2x4,
     },
     "generic_3x12": {
@@ -323,7 +321,6 @@ const keyLayouts = {
         locator: KeyLocatorTypes.left_top_right_bottom,
         row: 3,
         column: 12,
-        relativeKeyPosition: undefined,
         noteKeyMap: noteKeyMaps.generic_3x12,
     },
     "nshm_1x7": {  //逆水寒手游1x7
@@ -332,15 +329,20 @@ const keyLayouts = {
         locator: KeyLocatorTypes.left_top_right_bottom,
         row: 1,
         column: 7,
-        relativeKeyPosition: undefined,
         noteKeyMap: noteKeyMaps.nshm_1x7,
     },
-    // "nshm_professional":{ //TODO:
-    //     displayName: "专业",
-    //     type: keyLayoutTypes.nshm_professional,
-    //     locator: keyLocatorTypes.left_top_right_bottom,
-    //     //具体的键位由Variant决定
-    // }
+    //TODO: 重构?
+    "nshm_professional.gu_zheng":{ 
+        displayName: "专业模式(古筝)",
+        type: KeyLayoutTypes.nshm_professional,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        //具体的键位和映射表会动态生成。
+    },
+    "nshm_professional.qv_di":{ 
+        displayName: "专业模式(曲笛)",
+        type: KeyLayoutTypes.nshm_professional,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+    },
     "dzpd_interleaved3x7": { //蛋仔派对 交错的3x7
         displayName: "21键",
         type: KeyLayoutTypes.arbitrary,
@@ -688,7 +690,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "逆水寒手游",
         gameName: "逆水寒",
-        keyTypes: ["generic_3x7", "generic_3x12", "nshm_1x7"],
+        keyTypes: ["generic_3x7", "generic_3x12", "nshm_1x7", "nshm_professional.gu_zheng", "nshm_professional.qv_di"],
         keyLocators: new Map([
             ["generic_3x7", [[0, 0], [0, 0]]],
             ["generic_3x12", [[0, 0], [0, 0]]],
@@ -697,9 +699,17 @@ const PreDefinedGameConfigs = [
         variants: [
             defaultVariantConfig,
             new VariantConfig({
+                variantType: "古筝",
+                variantName: "古筝",
+                availableNoteRange: ["C2", "C6#"],
+                noteKeyMap: undefined,
+                noteDurationImplementionType: NoteDurationImplementionTypes.none,
+                sameKeyMinInterval: undefined,
+            }),
+            new VariantConfig({
                 variantType: "曲笛",
                 variantName: "曲笛",
-                availableNoteRange: ["G3", "B5"],
+                availableNoteRange: ["G3", "D6"],
                 noteKeyMap: undefined,
                 noteDurationImplementionType: NoteDurationImplementionTypes.native,
                 sameKeyMinInterval: undefined,
@@ -1161,7 +1171,7 @@ function GameProfile() {
                 console.log("generated key position: " + JSON.stringify(keyPos));
                 return true;
             }
-            case KeyLayoutTypes.arbitrary:{
+            case KeyLayoutTypes.arbitrary: {
                 let leftTop = 0;
                 let rightBottom = 0;
                 if (currentLayout.locator == KeyLocatorTypes.left_top_right_bottom) {
@@ -1185,6 +1195,81 @@ function GameProfile() {
                 }
                 cachedKeyPos = keyPos;
                 console.log("generated key position: " + JSON.stringify(keyPos));
+                return true;
+            }
+            case KeyLayoutTypes.nshm_professional:{
+                //逆水寒手游的"专业"按键布局
+                //这个就很麻烦了...
+
+                //类似于这样的布局
+                // x x   x x x   x x   x
+                //x x x x x x x x x x x x 
+                let leftTopRelativePos = /** @type {[number|null,number]} */ ([null, 0]); //x未知，y为0
+                let rightBottomRelativePos =  /** @type {[number|null,number]} */ ([null, 1]); //x未知，y为1
+                let keyRelativePoss = new Array();
+                let currentVariant = currentGameConfig.variants.find(function (variant) {
+                    return variant.variantType == currentVariantType;
+                });
+                if (currentVariant == undefined) {
+                    console.error("currentVariant is undefined");
+                    return false;
+                }
+                let pitchRange = currentVariant.availableNoteRange;
+                if (pitchRange == undefined) {
+                    console.error("pitchRange is undefined");
+                    return false;
+                }
+                let startPitch = midiPitch.nameToMidiPitch(pitchRange[0]);
+                let endPitch = midiPitch.nameToMidiPitch(pitchRange[1]);
+                console.log("startPitch: " + startPitch + ", endPitch: " + endPitch);
+                let curRelativeX = 0;
+                for (let i = startPitch; i <= endPitch; i++) {
+                    let curKeyRelativePos;
+                    if (midiPitch.isHalf(i)) {
+                        curKeyRelativePos = [curRelativeX, 0];
+                        curRelativeX += 1 / 2;
+                    } else if (i % 12 == 4 || i % 12 == 11) {
+                        curKeyRelativePos = [curRelativeX, 1];
+                        curRelativeX += 1;
+                    } else {
+                        curKeyRelativePos = [curRelativeX, 1];
+                        curRelativeX += 1/2;
+                    }
+
+                    if (curKeyRelativePos[1] == 0) { //上一排
+                        if (leftTopRelativePos[0] == null) {
+                            leftTopRelativePos[0] = curKeyRelativePos[0]; //第一个
+                        }
+                    } else {
+                        rightBottomRelativePos[0] = curKeyRelativePos[0]; //最后一个
+                    }
+                    keyRelativePoss.push(curKeyRelativePos.slice());
+                }
+                console.verbose("keyRelativePoss: " + JSON.stringify(keyRelativePoss));
+                console.verbose("leftTopRelativePos: " + JSON.stringify(leftTopRelativePos));
+                console.verbose("rightBottomRelativePos: " + JSON.stringify(rightBottomRelativePos));
+                if(leftTopRelativePos[0] == null || rightBottomRelativePos[0] == null){
+                    console.error("leftTopRelativePos[0] == null || rightBottomRelativePos[0] == null (请将此问题反馈给开发者)");
+                    return false;
+                }
+                let leftTopAbsolutePos = [0, 0];
+                let rightBottomAbsolutePos = [0, 0];
+                if (currentLayout.locator == KeyLocatorTypes.left_top_right_bottom) {
+                    leftTopAbsolutePos = currentGameConfig.keyLocators[currentKeyTypeName][0];
+                    rightBottomAbsolutePos = currentGameConfig.keyLocators[currentKeyTypeName][1];
+                } else {
+                    console.log("TODO:unsupported key locator type: " + currentLayout.locator);
+                }
+                //坐标变换
+                let xScale = (rightBottomAbsolutePos[0] - leftTopAbsolutePos[0]) / (rightBottomRelativePos[0] - leftTopRelativePos[0]);
+                let yScale = (rightBottomAbsolutePos[1] - leftTopAbsolutePos[1]) / (rightBottomRelativePos[1] - leftTopRelativePos[1]);
+                let xTranslate = leftTopAbsolutePos[0] - leftTopRelativePos[0] * xScale;
+                let yTranslate = leftTopAbsolutePos[1] - leftTopRelativePos[1] * yScale;
+                let keyAbsolutePoss = keyRelativePoss.map(function (keyRelativePos) {
+                    return [keyRelativePos[0] * xScale + xTranslate, keyRelativePos[1] * yScale + yTranslate];
+                })
+                cachedKeyPos = keyAbsolutePoss;
+                console.log("generated key position: " + JSON.stringify(cachedKeyPos));
                 return true;
             }
             default:
@@ -1212,36 +1297,59 @@ function GameProfile() {
         let currentVariant = currentGameConfig.variants.find(function (variant) {
             return variant.variantType == currentVariantType;
         });
-        let keyLayoutAssociatedKeyMap = keyLayouts[currentKeyTypeName].noteKeyMap;
-        let variantDefinedKeyMap = currentVariant.noteKeyMap;
-        //优先使用variant中定义的按键映射
-        let keyMap = variantDefinedKeyMap == undefined ? keyLayoutAssociatedKeyMap : variantDefinedKeyMap;
-        if (keyMap == undefined) {
-            console.log("keyMap is undefined");
+        let pitchKeyMap = new Map();
+        let currentKeyLayoutType = keyLayouts[currentKeyTypeName].type;
+        if (currentKeyLayoutType == KeyLayoutTypes.arbitrary ||
+            currentKeyLayoutType == KeyLayoutTypes.grid) {
+            let keyLayoutAssociatedKeyMap = keyLayouts[currentKeyTypeName].noteKeyMap;
+            let variantDefinedKeyMap = currentVariant.noteKeyMap;
+            //优先使用variant中定义的按键映射
+            let keyMap = variantDefinedKeyMap == undefined ? keyLayoutAssociatedKeyMap : variantDefinedKeyMap;
+            if (keyMap == undefined) {
+                console.log("keyMap is undefined");
+                return new Map();
+            }
+
+            let availableNoteRange = currentVariant.availableNoteRange;
+            let availableNoteRangeStart = 0;
+            let availableNoteRangeEnd = 9999;
+            if (availableNoteRange != undefined) {
+                availableNoteRangeStart = midiPitch.nameToMidiPitch(availableNoteRange[0]);
+                availableNoteRangeEnd = midiPitch.nameToMidiPitch(availableNoteRange[1]);
+            }
+
+            let pitchStrs = Object.keys(keyMap);
+            console.log("pitchStrs: " + JSON.stringify(pitchStrs));
+            for (let i = 0; i < pitchStrs.length; i++) {
+                let pitchStr = pitchStrs[i];
+                let pitch = midiPitch.nameToMidiPitch(pitchStr);
+                if (pitch < availableNoteRangeStart || pitch > availableNoteRangeEnd) {
+                    console.log("pitch: " + pitch + " is not in available note range for variant: " + currentVariantType);
+                    continue;
+                }
+                console.log("pitch: " + pitch + " pitchStr: " + pitchStr + " key: " + keyMap[pitchStr]);
+                pitchKeyMap.set(pitch, keyMap[pitchStr]);
+            }
+        } else if (currentKeyLayoutType == KeyLayoutTypes.nshm_professional) {
+            //生成按键映射
+            let pitchRange = currentVariant.availableNoteRange;
+            if (pitchRange == undefined) {
+                console.error("pitchRange is undefined");
+                return false;
+            }
+            let startPitch = midiPitch.nameToMidiPitch(pitchRange[0]);
+            let endPitch = midiPitch.nameToMidiPitch(pitchRange[1]);
+            let cnt = 1;
+            for (let i = startPitch; i <= endPitch; i++) {
+                let key = cnt;
+                pitchKeyMap.set(i, key);
+                cnt++;
+            }
+        } else {
+            console.log("TODO:unknown/unimplemented key layout type: " + currentKeyLayoutType);
             return new Map();
         }
 
-        let availableNoteRange = currentVariant.availableNoteRange;
-        let availableNoteRangeStart = 0;
-        let availableNoteRangeEnd = 9999;
-        if (availableNoteRange != undefined) {
-            availableNoteRangeStart = midiPitch.nameToMidiPitch(availableNoteRange[0]);
-            availableNoteRangeEnd = midiPitch.nameToMidiPitch(availableNoteRange[1]);
-        }
-
-        let pitchKeyMap = new Map();
-        let pitchStrs = Object.keys(keyMap);
-        console.log("pitchStrs: " + JSON.stringify(pitchStrs));
-        for (let i = 0; i < pitchStrs.length; i++) {
-            let pitchStr = pitchStrs[i];
-            let pitch = midiPitch.nameToMidiPitch(pitchStr);
-            if (pitch < availableNoteRangeStart || pitch > availableNoteRangeEnd) {
-                console.log("pitch: " + pitch + " is not in available note range for variant: " + currentVariantType);
-                continue;
-            }
-            console.log("pitch: " + pitch + " pitchStr: " + pitchStr + " key: " + keyMap[pitchStr]);
-            pitchKeyMap.set(pitch, keyMap[pitchStr]);
-        }
         // console.log("generated pitch key map: " + JSON.stringify(pitchKeyMap) + " map:" + pitchKeyMap);
         return pitchKeyMap;
     }

@@ -37,6 +37,14 @@ function MidiPitch() {
         }
     }
 
+    /**
+     * 返回MIDI音高值是否是半音 (实际上, 黑键?)
+     * @param {number} pitch - MIDI音高值。
+     * @returns {boolean} 如果是半音则返回true，否则返回false。
+     */
+    this.isHalf = function (pitch) {
+        return pitch % 12 === 1 || pitch % 12 === 3 || pitch % 12 === 6 || pitch % 12 === 8 || pitch % 12 === 10;
+    }
 }
 
 module.exports = new MidiPitch();

@@ -18,7 +18,7 @@ try {
 }
 
 const musicDir = Configuration.getMusicDir();
-const scriptVersion = 23;
+const scriptVersion = 25;
 
 //如果遇到奇怪的问题, 可以将下面这行代码前面两个斜杠去掉, 之后再次运行脚本, 即可清除当前的配置文件。
 //setGlobalConfig("userGameProfile", null);
