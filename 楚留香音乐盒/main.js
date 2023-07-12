@@ -885,7 +885,7 @@ function main() {
             return;
             break;
         case 5:
-            app.viewFile(musicDir + "使用帮助.txt");
+            app.viewFile(musicDir + "使用帮助.pdf");
             exit();
             break;
         case 6:
