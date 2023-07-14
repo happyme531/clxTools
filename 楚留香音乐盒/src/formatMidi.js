@@ -74,7 +74,7 @@ function MidiParser() {
                         && evt.getTotalTime() > noteOn.getTotalTime();
                 });
                 if (noteOffIndex == -1) {
-                    console.log("Warn: NOTE_ON without NOTE_OFF at track " + i + " evt " + j);
+                    console.log("Warn: NOTE_ON without NOTE_OFF at track " + i + " evt " + noteOn.toString());
                     continue; //这样处理会不会有问题?
                 }
                 let noteOff = noteOffs.splice(noteOffIndex, 1)[0];

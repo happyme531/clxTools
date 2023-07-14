@@ -12,6 +12,9 @@ function PassManager() {
         if (pass == null) {
             throw new Error("不存在的pass: " + name);
         }
+        if (config == null) {
+            config = {};
+        }
         if (progressCallback == null) {
             progressCallback = function (progress) { };
         }

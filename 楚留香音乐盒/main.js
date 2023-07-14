@@ -311,15 +311,15 @@ function startMidiStream() {
  * @param {MusicFormats.TracksData} tracksData 
  * @return {MusicFormats.TracksData} 移除空的音轨后的音轨数据
  */
-function removeEmptyTracks(tracksData){
-    if(!tracksData.haveMultipleTrack) return tracksData;
+function removeEmptyTracks(tracksData) {
+    if (!tracksData.haveMultipleTrack) return tracksData;
     for (let i = tracksData.tracks.length - 1; i >= 0; i--) {
         if (tracksData.tracks[i].noteCount == 0) {
             tracksData.tracks.splice(i, 1);
         }
     }
     tracksData.trackCount = tracksData.tracks.length;
-    if(tracksData.trackCount == 1) tracksData.haveMultipleTrack = false;
+    if (tracksData.trackCount == 1) tracksData.haveMultipleTrack = false;
     return tracksData;
 }
 
@@ -590,7 +590,7 @@ function autoTuneFileConfig(fileName) {
     //禁用无效音符过多的音轨
     tracksData = removeEmptyTracks(tracksData);
     let selectedTracksNonEmpty = new Array();
-    if(tracksData.haveMultipleTrack) {
+    if (tracksData.haveMultipleTrack) {
         let trackPlayableNoteRatio = new Array();
         for (let i = 0; i < tracksData.trackCount; i++) {
             let track = tracksData.tracks[i];
@@ -634,7 +634,7 @@ function autoTuneFileConfig(fileName) {
         "被取整的音符数: " + bestResult.roundedNoteCnt + " (" + percentStr2 + ")\n" +
         "最佳八度偏移: " + bestMajorPitchOffset + "\n" +
         "最佳半音偏移: " + bestMinorPitchOffset;
-    if(tracksData.haveMultipleTrack)
+    if (tracksData.haveMultipleTrack)
         resultStr += "\n选择的音轨: " + JSON.stringify(selectedTracksNonEmpty);
 
     dialogs.alert("调整结果", resultStr);
@@ -648,7 +648,7 @@ function autoTuneFileConfig(fileName) {
 function runFileConfigSetup(fullFileName) {
     let fileName = fullFileName;
     let rawFileName = musicFormats.getFileNameWithoutExtension(fileName);
-    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["一键自动优化", "调整音高", "半音处理方式","选择音轨"])) {
+    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["一键自动优化", "调整音高", "半音处理方式", "选择音轨"])) {
         case -1:
             break;
         case 0:
@@ -729,6 +729,7 @@ function runGlobalSetup() {
             break;
         case 0:
             setGlobalConfig("skipInit", dialogs.select("是否跳过乐曲开始前的空白?", ["否", "是"]));
+            setGlobalConfig("skipBlank5s", dialogs.select("是否跳过乐曲中间超过5秒的空白?", ["否", "是"]));
             break;
         case 1:
             //目标游戏
@@ -854,8 +855,9 @@ function initialize() {
         //第一次启动，初始化设置
         toast("初始化设置..");
 
-        if (readGlobalConfig("skipInit", -1) == -1) setGlobalConfig("skipInit", 1);
-        if (readGlobalConfig("waitForGame", -1) == -1) setGlobalConfig("waitForGame", 1);
+        if (readGlobalConfig("skipInit", -1) == -1) setGlobalConfig("skipInit", true);
+        if (readGlobalConfig("skipBlank5s", -1) == -1) setGlobalConfig("skipBlank5s", false);
+        if (readGlobalConfig("waitForGame", -1) == -1) setGlobalConfig("waitForGame", true);
         setGlobalConfig("userGameProfile", null);
 
         let files_ = files.listDir("./exampleTracks");
@@ -953,8 +955,11 @@ function main() {
     }
 
     gameProfile.clearCurrentConfigCache();
-    
+
     let data = loadMusicFile(fileName, exportScore);
+    if (data == null) {
+        return;
+    }
     if (exportScore) {
         exportNoteDataInteractive(data, "keyboardScore");
         return;
@@ -990,7 +995,7 @@ function loadMusicFile(fileName, exportScore) {
         dialogs.alert("错误", "坐标未设置，请先设置坐标");
         progressDialog.dismiss();
         runGlobalSetup();
-        return;
+        return null;
     };
 
     //如果是第一次运行，显示设置向导
@@ -1064,43 +1069,54 @@ function loadMusicFile(fileName, exportScore) {
     inputNoteCnt = noteData.length;
 
     progressDialog.setContent("正在伪装手弹...");
-    passManager
-        .addPass(humanifyEnabled ? "HumanifyPass" : "NopPass", {
-            noteAbsTimeStdDev: readGlobalConfig("humanifyNoteAbsTimeStdDev", 50)
-        }, null, () => {
-            progressDialog.setContent("正在生成按键...");
-        })
-        .addPass("NoteToKeyPass", {
-            majorPitchOffset: majorPitchOffset,
-            minorPitchOffset: minorPitchOffset,
-            treatHalfAsCeiling: treatHalfAsCeiling,
-            currentGameProfile: gameProfile,
-        }, (progress) => {
-            progressDialog.setProgress(progress);
-        }, (data, statistics, elapsedTime) => {
-            console.log("生成按键耗时" + elapsedTime / 1000 + "秒");
-            overFlowedNoteCnt = statistics.overFlowedNoteCnt;
-            underFlowedNoteCnt = statistics.underFlowedNoteCnt;
-            roundedNoteCnt = statistics.roundedNoteCnt;
-            progressDialog.setContent("正在优化按键...");
-        })
-        .addPass("SingleKeyFrequencyLimitPass", {
-            minInterval: gameProfile.getSameKeyMinInterval()
-        }, null, (data, statistics, elapsedTime) => {
-            console.log("单键频率限制耗时" + elapsedTime / 1000 + "秒");
-            finalNoteCnt = data.length;
-            droppedNoteCnt = statistics.droppedNoteCnt;
-            progressDialog.setContent("正在合并按键...");
-        })
-        .addPass("MergeKeyPass", {
-            maxInterval: mergeThreshold * 1000,
-        }, null, (data, statistics, elapsedTime) => {
-            console.log("合并按键耗时" + elapsedTime / 1000 + "秒");
-            visualizer.setKeyLayout(gameProfile.getKeyLayout().row, gameProfile.getKeyLayout().column);
-            visualizer.loadNoteData(data);
-            visualizer.goto(-1);
-            progressDialog.setContent("正在生成手势...");
-        });
+    //伪装手弹
+    passManager.addPass(humanifyEnabled ? "HumanifyPass" : "NopPass", {
+        noteAbsTimeStdDev: readGlobalConfig("humanifyNoteAbsTimeStdDev", 50)
+    }, null, () => {
+        progressDialog.setContent("正在生成按键...");
+    });
+    //生成按键
+    passManager.addPass("NoteToKeyPass", {
+        majorPitchOffset: majorPitchOffset,
+        minorPitchOffset: minorPitchOffset,
+        treatHalfAsCeiling: treatHalfAsCeiling,
+        currentGameProfile: gameProfile,
+    }, (progress) => {
+        progressDialog.setProgress(progress);
+    }, (data, statistics, elapsedTime) => {
+        console.log("生成按键耗时" + elapsedTime / 1000 + "秒");
+        overFlowedNoteCnt = statistics.overFlowedNoteCnt;
+        underFlowedNoteCnt = statistics.underFlowedNoteCnt;
+        roundedNoteCnt = statistics.roundedNoteCnt;
+        progressDialog.setContent("正在优化按键...");
+    });
+    //单个按键频率限制
+    passManager.addPass("SingleKeyFrequencyLimitPass", {
+        minInterval: gameProfile.getSameKeyMinInterval()
+    }, null, (data, statistics, elapsedTime) => {
+        console.log("单键频率限制耗时" + elapsedTime / 1000 + "秒");
+        finalNoteCnt = data.length;
+        droppedNoteCnt = statistics.droppedNoteCnt;
+        progressDialog.setContent("正在合并按键...");
+    });
+    //跳过前奏
+    if (readGlobalConfig("skipInit", true)) {
+        passManager.addPass("SkipIntroPass");
+    }
+    //跳过中间的空白
+    if (readGlobalConfig("skipBlank5s", true)) {
+        passManager.addPass("LimitBlankDurationPass"); //默认5秒
+    }
+    //合并按键
+    passManager.addPass("MergeKeyPass", {
+        maxInterval: mergeThreshold * 1000,
+    }, null, (data, statistics, elapsedTime) => {
+        console.log("合并按键耗时" + elapsedTime / 1000 + "秒");
+        visualizer.setKeyLayout(gameProfile.getKeyLayout().row, gameProfile.getKeyLayout().column);
+        visualizer.loadNoteData(data);
+        visualizer.goto(-1);
+        progressDialog.setContent("正在生成手势...");
+    });
 
     if (exportScore) {
         //如果是导出乐谱,则不需要生成手势
@@ -1108,6 +1124,7 @@ function loadMusicFile(fileName, exportScore) {
         progressDialog.dismiss();
         return data;
     }
+    //生成手势
     passManager.addPass("KeyToGesturePass", {
         currentGameProfile: gameProfile,
     }, null, (data, statistics, elapsedTime) => {
@@ -1130,22 +1147,20 @@ function loadMusicFile(fileName, exportScore) {
     return gestureTimeList;
 }
 
-function runGesturePlayer(titleText,gestureTimeList) {
+function runGesturePlayer(titleText, gestureTimeList) {
     var currentGestureIndex = 0
     const gestureCount = gestureTimeList.length;
     let player = new Players.AutoJsGesturePlayer();
     player.setGestureTimeList(gestureTimeList);
     player.pause();
 
-    if (!readGlobalConfig("skipInit", 1)) sleep(noteData[0][1] * 1000);
-
     //显示悬浮窗
     let controlWindow = floaty.window(
         <frame gravity="left|top" w="*" h="auto" margin="0dp">
             <vertical bg="#8fffffff" w="*" h="auto" margin="0dp">
                 <horizontal w="*" h="auto" margin="0dp">
-                    <text id="musicTitleText" bg="#9ff0f0f4" text="(未选择乐曲...)"  ellipsize="start" singleLine="true" layout_gravity="left" textSize="14sp" margin="0 0 3 0" layout_weight="1" />
-                    <text id="timerText" bg="#9ffce38a" text="00:00/00:00"  layout_gravity="right" textSize="14sp" margin="3 0 3 0" layout_weight="0" />
+                    <text id="musicTitleText" bg="#9ff0f0f4" text="(未选择乐曲...)" ellipsize="start" singleLine="true" layout_gravity="left" textSize="14sp" margin="0 0 3 0" layout_weight="1" />
+                    <text id="timerText" bg="#9ffce38a" text="00:00/00:00" layout_gravity="right" textSize="14sp" margin="3 0 3 0" layout_weight="0" />
                     <button id="stopBtn" bg="#9ff36838" style="Widget.AppCompat.Button.Borderless" w="20dp" layout_height='20dp' text="[X]" textSize="14sp" margin="0dp" padding="0dp" />
                 </horizontal>
                 <horizontal w="*" h="auto" margin="0dp">
@@ -1181,10 +1196,10 @@ function runGesturePlayer(titleText,gestureTimeList) {
             controlWindow.setPosition(device.height / 3, 40);
         }
         controlWindowLastClickTime = now;
-        
+
         let adjEnabled = controlWindow.isAdjustEnabled();
         controlWindow.setAdjustEnabled(!adjEnabled);
-        
+
         //记忆位置
         if (adjEnabled) {
             controlWindow.setSize(controlWindow.getWidth(), controlWindow.getHeight());
@@ -1282,7 +1297,7 @@ function runGesturePlayer(titleText,gestureTimeList) {
             sleep(1000);
         }
     });
-    
+
     function visualizerWindowClose() {
         visualizerWindowRequestClose = true;
         sleep(200);
