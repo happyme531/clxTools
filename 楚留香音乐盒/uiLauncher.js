@@ -125,12 +125,12 @@ ui.layout(
                 <toolbar id="toolbar" title="楚留香音乐盒" />
             </appbar>
             {/* 滚动文字说明 */}
-            <ScrollView>
-                <text id="text" textSize="16sp" textColor={isDarkMode ? "#ffffff" : "#000000"} text={说明文字} line={说明文字行数} />
+            <ScrollView layout_weight="1" fadeScrollbars="false">
+                <text id="text" textSize="16dp" textColor={isDarkMode ? "#ffffff" : "#000000"} text={说明文字} line={说明文字行数} />
             </ScrollView>
 
             {/* 拖动条 */}
-            <text id="barDesc" textSize="16sp" textColor={isDarkMode ? "#ffffff" : "#000000"} text="悬浮窗大小调节: 36" />
+            <text id="barDesc" textSize="16dp" textColor={isDarkMode ? "#ffffff" : "#000000"} text="悬浮窗大小调节: 36" />
             <seekbar id="seekbar" max="100" progress="36" />
 
             {/* 底栏按钮 */}
@@ -138,7 +138,7 @@ ui.layout(
                 <button id="projectLinkBtn" text="打开项目主页" />
             </horizontal>
 
-            <text id="anotherProjectLinkText" textSize="16sp" textColor={isDarkMode ? "#ffffff" : "#000000"} text="有兴趣了解一下另一个项目吗?" />
+            <text id="anotherProjectLinkText" textSize="16dp" textColor={isDarkMode ? "#ffffff" : "#000000"} text="有兴趣了解一下另一个项目吗?" />
             <horizontal>
                 <button id="anotherProjectLinkBtn" text="打开自动扒谱项目主页" />
             </horizontal>
