@@ -156,7 +156,6 @@ function DoMiSoTextParser(){
                 comment += '\n';
             });
             lines = lines.slice(commentLine + 1);
-            dialogs.alert("DoMiSo乐曲注释", comment);
         }
 
         
@@ -223,13 +222,18 @@ function DoMiSoTextParser(){
         return {
             "haveMultipleTrack": false,
             "trackCount": 1,
+            "durationType": "none",
             "tracks": [
                 {
                     "name": "",
                     "noteCount": ret.length,
                     "notes": ret
                 }
-            ]
+            ],
+            "metadata": [{
+                "name": "DoMiSo乐曲注释",
+                "value": comment
+            }]
         }
     }
 }

@@ -28,13 +28,27 @@
 
 */
 
+/**
+ * @enum {string}
+ */
+const NoteDurationType = {
+    "none": "none", // 完全不支持
+    "native": "native", // 原生支持
+}
 
 /**
  * 一些类型定义
  * @typedef {[pitch: number, startTime: number, attributes: Object|undefined]} Note
  * @typedef {[pitches: number[], startTime: number]} Chord
  * @typedef {{name: string, noteCount: number, notes: Note[]}} Track
- * @typedef {{haveMultipleTrack: boolean, trackCount: number, tracks: Track[]}} TracksData
+ * @typedef {{name: string, value: any}} Metadata
+ * @typedef {{
+ * haveMultipleTrack: boolean, 
+ * trackCount: number, 
+ * durationType: NoteDurationType,
+ * tracks: Track[],
+ * metadata?: Metadata[]
+ * }} TracksData
  */
 
 const ToneJsJSONParser = require('./formatToneJsJSON.js');

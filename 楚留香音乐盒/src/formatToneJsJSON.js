@@ -22,7 +22,9 @@ function ToneJsJSONParser() {
             let notes = [];
             for (let j = 0; j < track.notes.length; j++) {
                 let note = track.notes[j];
-                notes.push([note.midi, note.time * 1000, undefined]);
+                notes.push([note.midi, note.time * 1000, {
+                    "duration": note.duration * 1000
+                }]);
             }
             tracksData.push({
                 "name": track.name,
@@ -30,9 +32,11 @@ function ToneJsJSONParser() {
                 "notes": notes
             });
         }
+        // console.log(JSON.stringify(tracksData));
 
         return {
             "haveMultipleTrack": true,
+            "durationType": "native",
             "trackCount": trackCount,
             "tracks": tracksData
         }

@@ -36,7 +36,6 @@ function SkyStudioJSONParser(){
         let isComposed = jsonData.isComposed;
         let bpm = jsonData.bpm;
         let metaDataText = "乐曲名称: " + name + "\n" + "作者: " + author + "\n" + "转谱人: " + transcribedBy + "\n" + "isComposed: " + isComposed + "\n" + "BPM: " + bpm;
-        dialogs.alert("SkyStudio乐曲信息", metaDataText);
         let notes = jsonData.songNotes;
         /** @type {import("./musicFormats").Note[]} */
         let ret =[];
@@ -49,11 +48,18 @@ function SkyStudioJSONParser(){
         return {
             "haveMultipleTrack": false,
             "trackCount": 1,
+            "durationType": "none",
             "tracks": [
                 {
                     "name": name,
                     "noteCount": ret.length,
                     "notes": ret
+                }
+            ],
+            "metadata": [
+                {
+                    "name": "SkyStudio乐曲信息",
+                    "value": metaDataText
                 }
             ]
         }
