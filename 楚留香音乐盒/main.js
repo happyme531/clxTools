@@ -870,8 +870,14 @@ function initialize() {
 }
 
 function main() {
+    /** @type {string|null} */
+    let pendingEvent = null;
+    //什么?为什么不用events?
+    // 文档里写这个可以跨线程调用, 但是测试发现不行
+    // AutoX.js和AutoJS6都不能用, 但单独拿出来就能用了!
+    // 整个软件中都充斥着各种类似的坑和奇怪的bug
+    // let evt = events.emitter(threads.currentThread()); 
 
-    const rawFileNameList = getRawFileNameList();
     const totalFiles = getFileList();
     if (!floaty.checkPermission()) {
         // 没有悬浮窗权限，提示用户并跳转请求
@@ -885,87 +891,324 @@ function main() {
     let keyTypeName = gameProfile.getCurrentKeyLayoutDisplayName();
     let currentConfigName = configName + " " + variantName + " " + keyTypeName;
     let titleStr = "当前配置: " + currentConfigName;
+    console.info(titleStr);
+    let musicFileData = null;
+    let lastSelectedFileIndex = null;
+    let progress = 0;
+    let progressChanged = false;
+    let totalTimeSec = null;
+    let totalTimeStr = null;
+    let currentGestureIndex = null;
+    let visualizerWindow = null;
 
-    var index;
-    var exportScore = false;
-    switch (dialogs.select(titleStr, ["🎶演奏乐曲", "🛠️更改全局设置", "🛠️更改乐曲设置", "🎼乐谱输出", "📲MIDI串流", "📃查看使用说明", "🚪离开"])) {
-        case -1:
-            exit();
-        case 0:
-            let selected = false;
-            let canceled = false;
-            dialogs.build({
-                title: "选择乐曲...",
-                items: rawFileNameList,
-                itemsSelectMode: "select",
-                neutral: "导入文件...",
-                negative: "取消",
-                cancelable: true,
-                canceledOnTouchOutside: true,
-            }).on("neutral", () => {
-                importFileFromFileChooser(); //非阻塞
-                exit();
-            }).on("negative", () => {
-                canceled = true;
-                selected = true;
-            }).on("cancel", () => {
-                canceled = true;
-                selected = true;
-            }).on("item_select", (idx, item, dialog) => {
-                index = idx;
-                selected = true;
-            }).show();
-            while (!selected) {
-                sleep(100);
+    const player = new Players.AutoJsGesturePlayer();
+
+    //显示悬浮窗
+    let controlWindow = floaty.window(
+        <frame gravity="left|top" w="*" h="auto" margin="0dp">
+            <vertical bg="#8fffffff" w="*" h="auto" margin="0dp">
+                <horizontal w="*" h="auto" margin="0dp">
+                    <text id="musicTitleText" bg="#9ff0f0f4" text="(未选择乐曲...)" ellipsize="marquee" singleLine="true" layout_gravity="left" textSize="14sp" margin="0 0 3 0" layout_weight="1" />
+                    <text id="timerText" bg="#9ffce38a" text="00:00/00:00" layout_gravity="right" textSize="14sp" margin="3 0 3 0" layout_weight="0" layout_width="78sp" layout_height="match_parent" />
+                    <button id="stopBtn" style="Widget.AppCompat.Button.Borderless" w="20dp" layout_height='20dp' text="❌" textSize="14sp" margin="0dp" padding="0dp" />
+                </horizontal>
+                <horizontal w="*" h="auto" margin="0dp">
+                    <seekbar id="progressBar" layout_gravity="center_vertical" layout_weight="1" w='0dp' h='auto' margin="3dp 0dp" padding="5dp" />
+                </horizontal>
+                <horizontal bg="#fce38a" w="*" h="auto" margin="0dp" gravity="center">
+                    <button id="fileSelectionMenuBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="📁" textSize="20sp" margin="0dp" padding="0dp" />
+                    <button id="currentFileConfigBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="🎹" textSize="20sp" margin="0dp" padding="0dp" />
+                    <button id="prevBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="⏮" textSize="20sp" margin="0dp" padding="0dp" />
+                    <button id="pauseResumeBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="▶️" textSize="20sp" margin="0dp" padding="0dp" />
+                    <button id="nextBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="⏭" textSize="20sp" margin="0dp" padding="0dp" />
+                    <button id="globalConfigBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="⚙" textSize="20sp" margin="0dp" padding="0dp" />
+                </horizontal>
+            </vertical>
+        </frame>
+    );
+    ui.run(() => {
+        controlWindow.musicTitleText.setText(titleStr);
+        controlWindow.musicTitleText.setSelected(true);
+    });
+
+    controlWindow.fileSelectionMenuBtn.click(() => { pendingEvent = "fileSelectionMenuBtnClick"; });
+    controlWindow.currentFileConfigBtn.click(() => { pendingEvent = "currentFileConfigBtnClick"; });
+    controlWindow.prevBtn.click(() => {
+        if (lastSelectedFileIndex == null) return;
+        if (lastSelectedFileIndex > 0) lastSelectedFileIndex--;
+        pendingEvent = "fileSelect";
+    });
+    controlWindow.nextBtn.click(() => {
+        if (lastSelectedFileIndex == null) return;
+        if (lastSelectedFileIndex < totalFiles.length - 1) lastSelectedFileIndex++;
+        pendingEvent = "fileSelect";
+    });
+
+    controlWindow.pauseResumeBtn.click(() => {
+        if (player.getState() == player.PlayerStates.PAUSED) {
+            player.resume();
+        } else if (player.getState() == player.PlayerStates.PLAYING) {
+            player.pause();
+        }
+    });
+    controlWindow.progressBar.setOnSeekBarChangeListener({
+        onProgressChanged: function (seekBar, progress0, fromUser) {
+            if (fromUser) {
+                progress = progress0;
+                progressChanged = true;
+            };
+        }
+    });
+    controlWindow.globalConfigBtn.click(() => { pendingEvent = "globalConfigBtnClick"; });
+    controlWindow.stopBtn.click(() => {
+        threads.shutDownAll();
+        exit();
+    });
+    controlWindow.pauseResumeBtn.setOnLongClickListener(() => {
+        //隐藏悬浮窗播放
+        toast("8秒后播放...");
+        // visualizerWindow.close();
+        controlWindow.close();
+        setTimeout(() => {
+            player.resume();
+        }, 8000);
+        return true;
+    });
+
+    player.setOnStateChange(function (newState) {
+        if (newState == player.PlayerStates.PAUSED) {
+            controlWindow.pauseResumeBtn.setText("▶️");
+        } else if (newState == player.PlayerStates.PLAYING) {
+            controlWindow.pauseResumeBtn.setText("⏸");
+        }
+    });
+
+    //
+    toast("点击时间可调整悬浮窗位置");
+
+    //悬浮窗位置/大小调节
+    let controlWindowPosition = readGlobalConfig("controlWindowPosition", [device.height / 3, 0]);
+    //避免悬浮窗被屏幕边框挡住
+    controlWindow.setPosition(controlWindowPosition[0], controlWindowPosition[1]);
+    let controlWindowSize = readGlobalConfig("controlWindowSize", [device.height / 4, -2]);
+    controlWindow.setSize(controlWindowSize[0], controlWindowSize[1]);
+    //controlWindow.setTouchable(true);
+
+    let controlWindowLastClickTime = 0;
+    //悬浮窗事件
+    controlWindow.timerText.on("click", () => {
+        let now = new Date().getTime();
+        if (now - controlWindowLastClickTime < 500) {
+            toast("重置悬浮窗大小与位置");
+            controlWindow.setSize(device.height / 2, -2);
+            controlWindow.setPosition(device.height / 3, 40);
+        }
+        controlWindowLastClickTime = now;
+
+        let adjEnabled = controlWindow.isAdjustEnabled();
+        controlWindow.setAdjustEnabled(!adjEnabled);
+
+        //记忆位置
+        if (adjEnabled) {
+            controlWindow.setSize(controlWindow.getWidth(), controlWindow.getHeight());
+            setGlobalConfig("controlWindowPosition", [controlWindow.getX(), controlWindow.getY()]);
+            setGlobalConfig("controlWindowSize", [controlWindow.getWidth(), -2]);
+        }
+    });
+
+    let visualizerWindowRequestClose = false;
+
+    //可视化悬浮窗口
+    const createVisualizerWindow = function () {
+        let visualizerWindow = floaty.window(
+            <canvas id="canv" w="*" h="*" />
+        );
+        let visualizerWindowPosition = readGlobalConfig("visualizerWindowPosition", [100, 100]);
+        visualizerWindow.setPosition(visualizerWindowPosition[0], visualizerWindowPosition[1]);
+        let visualizerWindowSize = readGlobalConfig("visualizerWindowSize", [device.width / 2, device.height / 2]);
+        visualizerWindow.setSize(visualizerWindowSize[0], visualizerWindowSize[1]);
+        visualizerWindow.canv.on("draw", function (canvas) {
+            visualizer.draw(canvas);
+            //如果在绘制时窗口被关闭, app会直接崩溃, 所以这里要等待一下 
+            if (visualizerWindowRequestClose) {
+                sleep(1000);
             }
-            if (canceled) {
-                return;
+        });
+        //上一次点击的时间
+        let visualizerLastClickTime = 0;
+
+        //触摸事件(这里on("click",...) 又失灵了, AutoXjs的文档真是够烂的)
+        visualizerWindow.canv.click(function () {
+            let now = new Date().getTime();
+            if (now - visualizerLastClickTime < 500) {
+                toast("重置悬浮窗大小与位置");
+                visualizerWindow.setSize(device.height * 2 / 3, device.width * 2 / 3);
+                visualizerWindow.setPosition(100, 100);
             }
-            break;
-        case 1:
-            runGlobalSetup();
-            return;
-            break;
-        case 2:
-            runFileListSetup(totalFiles);
-            return;
-            break;
-        case 3:
-            index = dialogs.select("选择一首乐曲..", rawFileNameList);
-            exportScore = true;
-            break;
-        case 4:
-            startMidiStream();
-            return;
-            break;
-        case 5:
-            app.viewFile(musicDir + "使用帮助.pdf");
-            exit();
-            break;
-        case 6:
-            exit();
-            break;
-    };
-
-
-    var fileName = totalFiles[index];
-
-    if (fileName == undefined) {
-        return;
+            visualizerLastClickTime = now;
+            let adjEnabled = visualizerWindow.isAdjustEnabled();
+            visualizerWindow.setAdjustEnabled(!adjEnabled);
+            if (adjEnabled) {
+                //更新大小 (使用窗口上的拖动手柄缩放时, 窗口的大小实际上是不会变的, 所以这里要手动更新)
+                visualizerWindow.setSize(visualizerWindow.getWidth(), visualizerWindow.getHeight());
+                //保存当前位置与大小
+                setGlobalConfig("visualizerWindowPosition", [visualizerWindow.getX(), visualizerWindow.getY()]);
+                setGlobalConfig("visualizerWindowSize", [visualizerWindow.getWidth(), visualizerWindow.getHeight()]);
+            }
+        });
+        return visualizerWindow;
     }
 
-    gameProfile.clearCurrentConfigCache();
-
-    let data = loadMusicFile(fileName, exportScore);
-    if (data == null) {
-        return;
+    function visualizerWindowClose() {
+        visualizerWindowRequestClose = true;
+        sleep(200);
+        visualizerWindow.close();
+        visualizerWindowRequestClose = false;
     }
-    if (exportScore) {
-        exportNoteDataInteractive(data, "keyboardScore");
-        return;
-    }
-    runGesturePlayer(musicFormats.getFileNameWithoutExtension(fileName), data);
 
+    player.setOnPlayNote(function (note) {
+        currentGestureIndex = note;
+        visualizer.goto(Math.max(0, note - 1));
+    });
+
+    //主函数, 处理事件和进度更新
+
+    while (true) {
+        if (pendingEvent != null) {
+            console.log("evt: " + pendingEvent);
+        }
+        switch (pendingEvent) {
+            case "fileSelect": {
+                pendingEvent = null;
+                player.stop();
+                if(visualizerWindow != null){
+                    visualizerWindowClose();
+                    visualizerWindow = null;
+                }
+                let fileName = totalFiles[lastSelectedFileIndex];
+                gameProfile.clearCurrentConfigCache();
+                let data = loadMusicFile(fileName, false);
+                if (data == null) {
+                    break;
+                }
+                totalTimeSec = data[data.length - 1][1];
+                totalTimeStr = sec2timeStr(totalTimeSec);
+                musicFileData = data;
+                progress = 0;
+                progressChanged = true;
+                currentGestureIndex = null;
+                pendingEvent = "fileLoaded";
+                break;
+            }
+            case "currentFileConfigBtnClick": {
+                pendingEvent = null;
+                if (lastSelectedFileIndex == null) break;
+                player.pause();
+                let fileName = totalFiles[lastSelectedFileIndex];
+                runFileConfigSetup(fileName);
+                pendingEvent = "fileSelect"; //重载当前文件
+                break;
+            }
+            case "globalConfigBtnClick": {
+                pendingEvent = null;
+                player.pause();
+                runGlobalSetup();
+                break;
+            }
+            case "fileSelectionMenuBtnClick": {
+                pendingEvent = null;
+                let selected = false;
+                let canceled = false;
+                let index = 0;
+                const rawFileNameList = totalFiles.map((item) => {
+                    return musicFormats.getFileNameWithoutExtension(item);
+                });
+                dialogs.build({
+                    title: "选择乐曲...",
+                    items: rawFileNameList,
+                    itemsSelectMode: "select",
+                    neutral: "导入文件...",
+                    negative: "取消",
+                    cancelable: true,
+                    canceledOnTouchOutside: true,
+                }).on("neutral", () => {
+                    importFileFromFileChooser(); //非阻塞
+                    exit();
+                }).on("negative", () => {
+                    canceled = true;
+                    selected = true;
+                }).on("cancel", () => {
+                    canceled = true;
+                    selected = true;
+                }).on("item_select", (idx, item, dialog) => {
+                    index = idx;
+                    selected = true;
+                }).show();
+                while (!selected) {
+                    sleep(100);
+                }
+                if (canceled) {
+                    break;
+                }
+                lastSelectedFileIndex = index;
+                pendingEvent = "fileSelect";
+                break;
+            }
+
+            case "fileLoaded": {
+                pendingEvent = null;
+                ui.run(() => {
+                    controlWindow.musicTitleText.setText(
+                        musicFormats.getFileNameWithoutExtension(totalFiles[lastSelectedFileIndex]));
+                });
+                player.setGestureTimeList(musicFileData);
+                //是否显示可视化窗口
+                let visualizerEnabled = readGlobalConfig("visualizerEnabled", false);
+                if (visualizerEnabled && gameProfile.getKeyLayout().type === "grid") { //TODO: 其它类型的键位布局也可以显示可视化窗口
+                    visualizerWindow = createVisualizerWindow();
+                    toast("单击可视化窗口调整大小与位置, 双击重置");
+                };
+                player.start();
+                player.pause();
+                break;
+            }
+
+            default: {
+                pendingEvent = null;
+                if (musicFileData == null || totalTimeSec == null || currentGestureIndex == null) {
+                    sleep(200)
+                    continue;
+                }
+                //如果进度条被拖动，更新播放进度
+                if (progressChanged) {
+                    progressChanged = false;
+                    let targetTimeSec = totalTimeSec * progress / 100;
+                    for (let j = 0; j < musicFileData.length; j++) {
+                        if (musicFileData[j][1] > targetTimeSec) {
+                            currentGestureIndex = j - 1;
+                            break;
+                        }
+                    }
+                    currentGestureIndex = Math.max(0, currentGestureIndex);
+                    player.seekTo(currentGestureIndex);
+                    console.log("seekTo:" + currentGestureIndex);
+                    sleep(50);
+                } else {
+                    sleep(300);
+                }
+                currentGestureIndex = Math.min(currentGestureIndex, musicFileData.length - 1);
+                //计算时间
+                let curTimeSec = musicFileData[currentGestureIndex][1];
+                let curTimeStr = sec2timeStr(curTimeSec);
+                let timeStr = curTimeStr + "/" + totalTimeStr;
+                //更新窗口
+                ui.run(() => {
+                    controlWindow.progressBar.setProgress(curTimeSec / totalTimeSec * 100);
+                    controlWindow.timerText.setText(timeStr);
+                });
+            }
+        }
+    }
 }
 
 /**
@@ -1145,211 +1388,6 @@ function loadMusicFile(fileName, exportScore) {
     dialogs.alert("乐曲信息", statString);
 
     return gestureTimeList;
-}
-
-function runGesturePlayer(titleText, gestureTimeList) {
-    var currentGestureIndex = 0
-    const gestureCount = gestureTimeList.length;
-    let player = new Players.AutoJsGesturePlayer();
-    player.setGestureTimeList(gestureTimeList);
-    player.pause();
-
-    //显示悬浮窗
-    let controlWindow = floaty.window(
-        <frame gravity="left|top" w="*" h="auto" margin="0dp">
-            <vertical bg="#8fffffff" w="*" h="auto" margin="0dp">
-                <horizontal w="*" h="auto" margin="0dp">
-                    <text id="musicTitleText" bg="#9ff0f0f4" text="(未选择乐曲...)" ellipsize="start" singleLine="true" layout_gravity="left" textSize="14sp" margin="0 0 3 0" layout_weight="1" />
-                    <text id="timerText" bg="#9ffce38a" text="00:00/00:00" layout_gravity="right" textSize="14sp" margin="3 0 3 0" layout_weight="0" />
-                    <button id="stopBtn" bg="#9ff36838" style="Widget.AppCompat.Button.Borderless" w="20dp" layout_height='20dp' text="[X]" textSize="14sp" margin="0dp" padding="0dp" />
-                </horizontal>
-                <horizontal w="*" h="auto" margin="0dp">
-                    <seekbar id="progressBar" layout_gravity="center_vertical" layout_weight="1" w='0dp' h='auto' margin="3dp 0dp" />
-                </horizontal>
-                <horizontal bg="#fce38a" w="*" h="auto" margin="0dp" gravity="center">
-                    <button id="pauseResumeBtn" style="Widget.AppCompat.Button.Borderless" w="40dp" h='20dp' text="⏸" textSize="14sp" margin="0dp" padding="0dp" />
-                </horizontal>
-            </vertical>
-        </frame>
-    );
-    ui.run(() => {
-        controlWindow.musicTitleText.setText(titleText);
-    });
-
-    toast("点击时间可调整悬浮窗位置");
-
-    let controlWindowPosition = readGlobalConfig("controlWindowPosition", [device.height / 3, 0]);
-    //避免悬浮窗被屏幕边框挡住
-    controlWindow.setPosition(controlWindowPosition[0], controlWindowPosition[1]);
-    let controlWindowSize = readGlobalConfig("controlWindowSize", [device.height / 4, -2]);
-    controlWindow.setSize(controlWindowSize[0], controlWindowSize[1]);
-    //controlWindow.setTouchable(true);
-
-    let controlWindowLastClickTime = 0;
-
-    //悬浮窗事件
-    controlWindow.timerText.on("click", () => {
-        let now = new Date().getTime();
-        if (now - controlWindowLastClickTime < 500) {
-            toast("重置悬浮窗大小与位置");
-            controlWindow.setSize(device.height / 2, -2);
-            controlWindow.setPosition(device.height / 3, 40);
-        }
-        controlWindowLastClickTime = now;
-
-        let adjEnabled = controlWindow.isAdjustEnabled();
-        controlWindow.setAdjustEnabled(!adjEnabled);
-
-        //记忆位置
-        if (adjEnabled) {
-            controlWindow.setSize(controlWindow.getWidth(), controlWindow.getHeight());
-            setGlobalConfig("controlWindowPosition", [controlWindow.getX(), controlWindow.getY()]);
-            setGlobalConfig("controlWindowSize", [controlWindow.getWidth(), -2]);
-        }
-    });
-
-
-    //用来更新悬浮窗的线程
-    threads.start(function () {
-        let progress = 0;
-        let progressChanged = false;
-        ui.run(function () {
-            controlWindow.progressBar.setOnSeekBarChangeListener({
-                onProgressChanged: function (seekBar, progress0, fromUser) {
-                    if (fromUser) {
-                        progress = progress0;
-                        progressChanged = true;
-                    };
-                }
-            });
-            controlWindow.pauseResumeBtn.setText("▶️");
-            controlWindow.pauseResumeBtn.click(() => {
-                if (player.getState() != player.PlayerStates.PLAYING) {
-                    player.resume();
-                    controlWindow.pauseResumeBtn.setText("⏸");
-                } else {
-                    player.pause();
-                    controlWindow.pauseResumeBtn.setText("▶️");
-                }
-            });
-            controlWindow.pauseResumeBtn.setOnLongClickListener(() => {
-                //隐藏悬浮窗播放
-                toast("8秒后播放...");
-                visualizerWindow.close();
-                controlWindow.close();
-                setTimeout(() => {
-                    player.resume();
-                }, 8000);
-                return true;
-            })
-            controlWindow.stopBtn.click(() => {
-                player.stop();
-            })
-        });
-        let totalTimeSec = gestureTimeList[gestureCount - 1][1];
-        let totalTimeStr = sec2timeStr(totalTimeSec);
-
-        while (true) {
-            //如果进度条被拖动，更新播放进度
-            if (progressChanged) {
-                progressChanged = false;
-                let targetTimeSec = totalTimeSec * progress / 100;
-                for (let j = 0; j < gestureTimeList.length; j++) {
-                    if (gestureTimeList[j][1] > targetTimeSec) {
-                        currentGestureIndex = j - 1;
-                        break;
-                    }
-                }
-                currentGestureIndex = Math.max(0, currentGestureIndex);
-                player.seekTo(currentGestureIndex);
-                sleep(50);
-            } else {
-                sleep(300);
-            }
-            currentGestureIndex = Math.min(currentGestureIndex, gestureCount - 1);
-            //计算时间
-            let curTimeSec = gestureTimeList[currentGestureIndex][1];
-            let curTimeStr = sec2timeStr(curTimeSec);
-            let timeStr = curTimeStr + "/" + totalTimeStr;
-            //更新窗口
-            ui.run(() => {
-                controlWindow.progressBar.setProgress(curTimeSec / totalTimeSec * 100);
-                controlWindow.timerText.setText(timeStr);
-            })
-        }
-    })
-
-    //可视化悬浮窗口
-    let visualizerWindow = floaty.window(
-        <canvas id="canv" w="*" h="*" />
-    );
-
-    let visualizerWindowPosition = readGlobalConfig("visualizerWindowPosition", [100, 100]);
-    visualizerWindow.setPosition(visualizerWindowPosition[0], visualizerWindowPosition[1]);
-    let visualizerWindowSize = readGlobalConfig("visualizerWindowSize", [device.width / 2, device.height / 2]);
-    visualizerWindow.setSize(visualizerWindowSize[0], visualizerWindowSize[1]);
-
-    let visualizerWindowRequestClose = false;
-    visualizerWindow.canv.on("draw", function (canvas) {
-        visualizer.draw(canvas);
-        //如果在绘制时窗口被关闭, app会直接崩溃, 所以这里要等待一下 
-        if (visualizerWindowRequestClose) {
-            sleep(1000);
-        }
-    });
-
-    function visualizerWindowClose() {
-        visualizerWindowRequestClose = true;
-        sleep(200);
-        visualizerWindow.close();
-    }
-
-    //上一次点击的时间
-    let visualizerLastClickTime = 0;
-
-    //触摸事件(这里on("click",...) 又失灵了, AutoXjs的文档真是够烂的)
-    visualizerWindow.canv.click(function () {
-        let now = new Date().getTime();
-        if (now - visualizerLastClickTime < 500) {
-            toast("重置悬浮窗大小与位置");
-            visualizerWindow.setSize(device.height * 2 / 3, device.width * 2 / 3);
-            visualizerWindow.setPosition(100, 100);
-        }
-        visualizerLastClickTime = now;
-        let adjEnabled = visualizerWindow.isAdjustEnabled();
-        visualizerWindow.setAdjustEnabled(!adjEnabled);
-        if (adjEnabled) {
-            //更新大小 (使用窗口上的拖动手柄缩放时, 窗口的大小实际上是不会变的, 所以这里要手动更新)
-            visualizerWindow.setSize(visualizerWindow.getWidth(), visualizerWindow.getHeight());
-            //保存当前位置与大小
-            setGlobalConfig("visualizerWindowPosition", [visualizerWindow.getX(), visualizerWindow.getY()]);
-            setGlobalConfig("visualizerWindowSize", [visualizerWindow.getWidth(), visualizerWindow.getHeight()]);
-        }
-    });
-
-    //是否显示可视化窗口
-    let visualizerEnabled = readGlobalConfig("visualizerEnabled", false);
-    if (!visualizerEnabled || gameProfile.getKeyLayout().type !== "grid") { //TODO: 其它类型的键位布局也可以显示可视化窗口
-        visualizerWindowClose();
-    } else {
-        toast("单击可视化窗口调整大小与位置, 双击重置");
-    }
-
-    player.setOnPlayNote(function (note) {
-        currentGestureIndex = note;
-        visualizer.goto(Math.max(0, note - 1));
-    });
-
-    player.start();
-
-    while (player.getState() != player.PlayerStates.FINISHED) {
-        sleep(500);
-    }
-    toast("播放结束");
-
-    visualizerWindowClose();
-    controlWindow.close();
-    player.stop();
 }
 
 function start() {
