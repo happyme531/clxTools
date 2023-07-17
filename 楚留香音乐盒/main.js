@@ -645,6 +645,16 @@ function autoTuneFileConfig(fileName) {
     return 0;
 }
 
+function runClickPosSetup(){
+    let pos1 = getPosInteractive("最上面那行按键中最左侧的按键中心");
+    let pos2 = getPosInteractive("最下面那行按键中最右侧的按键中心");
+
+    console.log("自定义坐标:左上[" + pos1.x + "," + pos1.y + "],右下[" + pos2.x + "," + pos2.y + "]");
+
+    gameProfile.setKeyPosition([pos1.x, pos1.y], [pos2.x, pos2.y]);
+    saveUserGameProfile();
+}
+
 function runFileConfigSetup(fullFileName) {
     let fileName = fullFileName;
     let rawFileName = musicFormats.getFileNameWithoutExtension(fileName);
@@ -783,13 +793,7 @@ function runGlobalSetup() {
             toastLog("设置已保存");
             break;
         case 2: //设置自定义坐标
-            let pos1 = getPosInteractive("最上面那行按键中最左侧的按键中心");
-            let pos2 = getPosInteractive("最下面那行按键中最右侧的按键中心");
-
-            console.log("自定义坐标:左上[" + pos1.x + "," + pos1.y + "],右下[" + pos2.x + "," + pos2.y + "]");
-
-            gameProfile.setKeyPosition([pos1.x, pos1.y], [pos2.x, pos2.y]);
-            saveUserGameProfile();
+            runClickPosSetup();
 
             break;
 
@@ -1237,7 +1241,7 @@ function loadMusicFile(fileName, exportScore) {
     if (!gameProfile.checkKeyPosition()) {
         dialogs.alert("错误", "坐标未设置，请先设置坐标");
         progressDialog.dismiss();
-        runGlobalSetup();
+        runClickPosSetup();
         return null;
     };
 

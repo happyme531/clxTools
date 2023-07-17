@@ -40,6 +40,12 @@ function AutoJsGesturePlayer(){
      */
     let onPlayNote = function(/** @type {number} */ position){};
 
+        /**
+     * @type {function(number):void}
+     * @description 状态切换回调函数
+     */
+    let onStateChange = function(/** @type {number} */ newState){};
+
     /**
      * @type Thread
      * @description 播放线程
@@ -76,6 +82,7 @@ function AutoJsGesturePlayer(){
      */
     this.start = function(){
         playerState = PlayerStates.UNINITIALIZED;
+        position = 0;
         playerThread = threads.start(playerThreadFunc);
     }
 
@@ -137,10 +144,18 @@ function AutoJsGesturePlayer(){
     }
     /**
      * @brief 设置回调函数
-     * @param {Function} onPlayNote_ 每播放一个音符的回调函数
+     * @param {function(number):void} onPlayNote_ 每播放一个音符的回调函数
      */
     this.setOnPlayNote = function(onPlayNote_){
         onPlayNote = onPlayNote_;
+    }
+
+    /**
+     * @brief 状态切换回调函数
+     * @param {function(number):void} onStateChange_ 每次状态切换时的回调函数
+     */
+    this.setOnStateChange = function(onStateChange_){
+        onStateChange = onStateChange_;
     }
 
     /**
@@ -153,6 +168,7 @@ function AutoJsGesturePlayer(){
             playerThread.join();
             playerThread = null;
             playerState = PlayerStates.FINISHED;
+            position = 0;
             return true;
         }
         return false;
@@ -174,6 +190,7 @@ function AutoJsGesturePlayer(){
             if (oldState != playerState) {
                 console.info("PlayerState: %s -> %s", oldState, playerState);
                 oldState = playerState;
+                onStateChange(playerState);
             }
             switch (playerState) {
                 case PlayerStates.FINISHED:
