@@ -645,7 +645,7 @@ function autoTuneFileConfig(fileName) {
     return 0;
 }
 
-function runClickPosSetup(){
+function runClickPosSetup() {
     let pos1 = getPosInteractive("最上面那行按键中最左侧的按键中心");
     let pos2 = getPosInteractive("最下面那行按键中最右侧的按键中心");
 
@@ -926,6 +926,7 @@ function main() {
                     <button id="pauseResumeBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="▶️" textSize="20sp" margin="0dp" padding="0dp" />
                     <button id="nextBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="⏭" textSize="20sp" margin="0dp" padding="0dp" />
                     <button id="globalConfigBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="⚙" textSize="20sp" margin="0dp" padding="0dp" />
+                    <button id="miscInfoBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="📶" textSize="20sp" margin="0dp" padding="0dp" />
                 </horizontal>
             </vertical>
         </frame>
@@ -965,17 +966,11 @@ function main() {
     });
     controlWindow.globalConfigBtn.click(() => { pendingEvent = "globalConfigBtnClick"; });
     controlWindow.stopBtn.click(() => {
-        threads.shutDownAll();
-        exit();
+        exitApp();
     });
+    controlWindow.miscInfoBtn.click(() => { pendingEvent = "miscInfoBtnClick"; });
     controlWindow.pauseResumeBtn.setOnLongClickListener(() => {
-        //隐藏悬浮窗播放
-        toast("8秒后播放...");
-        // visualizerWindow.close();
-        controlWindow.close();
-        setTimeout(() => {
-            player.resume();
-        }, 8000);
+        pendingEvent = "pauseResumeBtnLongClick";
         return true;
     });
 
@@ -1064,10 +1059,17 @@ function main() {
     }
 
     function visualizerWindowClose() {
+        if (visualizerWindow == null) return;
         visualizerWindowRequestClose = true;
         sleep(200);
         visualizerWindow.close();
         visualizerWindowRequestClose = false;
+    }
+
+    function exitApp() {
+        visualizerWindowClose();
+        threads.shutDownAll();
+        exit();
     }
 
     player.setOnPlayNote(function (note) {
@@ -1078,6 +1080,7 @@ function main() {
     //主函数, 处理事件和进度更新
 
     while (true) {
+        console.verbose("loop");
         if (pendingEvent != null) {
             console.log("evt: " + pendingEvent);
         }
@@ -1085,7 +1088,7 @@ function main() {
             case "fileSelect": {
                 pendingEvent = null;
                 player.stop();
-                if(visualizerWindow != null){
+                if (visualizerWindow != null) {
                     visualizerWindowClose();
                     visualizerWindow = null;
                 }
@@ -1158,7 +1161,57 @@ function main() {
                 pendingEvent = "fileSelect";
                 break;
             }
-
+            case "miscInfoBtnClick": {
+                pendingEvent = null;
+                player.pause();
+                let option = dialogs.select(
+                    "其它功能...",
+                    [
+                        "📃 查看使用帮助",
+                        "📲 MIDI串流",
+                        "🎼 导出当前乐曲",
+                    ]
+                );
+                switch (option) {
+                    case -1: break; //取消
+                    case 0: //查看使用帮助
+                        app.viewFile(musicDir + "使用帮助.pdf");
+                        exitApp();
+                        break;
+                    case 1: //MIDI串流
+                        controlWindow.close();
+                        visualizerWindowClose();
+                        startMidiStream();
+                        exitApp();
+                        break;
+                    case 2: //导出当前乐曲
+                    if(lastSelectedFileIndex == null) break;
+                        let fileName = totalFiles[lastSelectedFileIndex];
+                        gameProfile.clearCurrentConfigCache();
+                        let data = loadMusicFile(fileName, true);
+                        if (data == null) {
+                            break;
+                        }
+                        exportNoteDataInteractive(data, "keyboardScore");
+                        break;
+                }
+                break;
+            }
+            case "pauseResumeBtnLongClick": {
+                pendingEvent = null;
+                //隐藏悬浮窗播放
+                toast("8秒后播放...");
+                visualizerWindowClose();
+                controlWindow.close();
+                controlWindow = null;
+                player.setOnStateChange(function (newState) {});
+                setTimeout(() => {
+                    player.resume();
+                }, 8000);
+                return;
+                break;
+                
+            }
             case "fileLoaded": {
                 pendingEvent = null;
                 ui.run(() => {
@@ -1179,7 +1232,7 @@ function main() {
 
             default: {
                 pendingEvent = null;
-                if (musicFileData == null || totalTimeSec == null || currentGestureIndex == null) {
+                if (musicFileData == null || totalTimeSec == null || currentGestureIndex == null || controlWindow == null) {
                     sleep(200)
                     continue;
                 }
@@ -1397,9 +1450,7 @@ function loadMusicFile(fileName, exportScore) {
 function start() {
     initialize();
     loadConfiguration();
-    while (true) {
-        main();
-    }
+    main();
 }
 
 start();
