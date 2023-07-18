@@ -666,7 +666,6 @@ function runFileConfigSetup(fullFileName) {
             break;
         case 1:
             let setupFinished = false;
-            _cachedNoteData = null;
             while (!setupFinished) {
                 let majorPitchOffsetStr = ["降低2个八度", "降低1个八度", "默认", "升高1个八度", "升高2个八度"];
                 let minorPitchOffsetStr = ["降低4个半音", "降低3个半音", "降低2个半音", "降低1个半音", "默认", "升高1个半音", "升高2个半音", "升高3个半音", "升高4个半音"];
@@ -702,7 +701,6 @@ function runFileConfigSetup(fullFileName) {
                     let res4 = dialogs.confirm("测试结果", resultStr);
                     if (res4) {
                         setupFinished = true;
-                        _cachedNoteData = null;
                     }
                 } else {
                     break;
@@ -874,13 +872,8 @@ function initialize() {
 }
 
 function main() {
-    /** @type {string|null} */
-    let pendingEvent = null;
-    //什么?为什么不用events?
-    // 文档里写这个可以跨线程调用, 但是测试发现不行
-    // AutoX.js和AutoJS6都不能用, 但单独拿出来就能用了!
-    // 整个软件中都充斥着各种类似的坑和奇怪的bug
-    // let evt = events.emitter(threads.currentThread()); 
+
+    let evt = events.emitter(threads.currentThread());
 
     const totalFiles = getFileList();
     if (!floaty.checkPermission()) {
@@ -936,17 +929,21 @@ function main() {
         controlWindow.musicTitleText.setSelected(true);
     });
 
-    controlWindow.fileSelectionMenuBtn.click(() => { pendingEvent = "fileSelectionMenuBtnClick"; });
-    controlWindow.currentFileConfigBtn.click(() => { pendingEvent = "currentFileConfigBtnClick"; });
+    controlWindow.fileSelectionMenuBtn.click(() => {
+        evt.emit("fileSelectionMenuBtnClick");
+    });
+    controlWindow.currentFileConfigBtn.click(() => {
+        evt.emit("currentFileConfigBtnClick");
+    });
     controlWindow.prevBtn.click(() => {
         if (lastSelectedFileIndex == null) return;
         if (lastSelectedFileIndex > 0) lastSelectedFileIndex--;
-        pendingEvent = "fileSelect";
+        evt.emit("fileSelect");
     });
     controlWindow.nextBtn.click(() => {
         if (lastSelectedFileIndex == null) return;
         if (lastSelectedFileIndex < totalFiles.length - 1) lastSelectedFileIndex++;
-        pendingEvent = "fileSelect";
+        evt.emit("fileSelect");
     });
 
     controlWindow.pauseResumeBtn.click(() => {
@@ -954,6 +951,9 @@ function main() {
             player.resume();
         } else if (player.getState() == player.PlayerStates.PLAYING) {
             player.pause();
+        }else if (player.getState() == player.PlayerStates.FINISHED) {
+            player.seekTo(0);
+            player.resume();
         }
     });
     controlWindow.progressBar.setOnSeekBarChangeListener({
@@ -964,18 +964,19 @@ function main() {
             };
         }
     });
-    controlWindow.globalConfigBtn.click(() => { pendingEvent = "globalConfigBtnClick"; });
+    controlWindow.globalConfigBtn.click(() => { evt.emit("globalConfigBtnClick"); });
     controlWindow.stopBtn.click(() => {
-        exitApp();
+        evt.emit("stopBtnClick");
     });
-    controlWindow.miscInfoBtn.click(() => { pendingEvent = "miscInfoBtnClick"; });
+    controlWindow.miscInfoBtn.click(() => { evt.emit("miscInfoBtnClick"); });
     controlWindow.pauseResumeBtn.setOnLongClickListener(() => {
-        pendingEvent = "pauseResumeBtnLongClick";
+        evt.emit("pauseResumeBtnLongClick");
         return true;
     });
 
     player.setOnStateChange(function (newState) {
-        if (newState == player.PlayerStates.PAUSED) {
+        if (newState == player.PlayerStates.PAUSED||
+            newState == player.PlayerStates.FINISHED) {
             controlWindow.pauseResumeBtn.setText("▶️");
         } else if (newState == player.PlayerStates.PLAYING) {
             controlWindow.pauseResumeBtn.setText("⏸");
@@ -1079,194 +1080,179 @@ function main() {
 
     //主函数, 处理事件和进度更新
 
-    while (true) {
-        console.verbose("loop");
-        if (pendingEvent != null) {
-            console.log("evt: " + pendingEvent);
+    evt.on("fileSelect", () => {
+        player.stop();
+        if (visualizerWindow != null) {
+            visualizerWindowClose();
+            visualizerWindow = null;
         }
-        switch (pendingEvent) {
-            case "fileSelect": {
-                pendingEvent = null;
-                player.stop();
-                if (visualizerWindow != null) {
-                    visualizerWindowClose();
-                    visualizerWindow = null;
-                }
+        let fileName = totalFiles[lastSelectedFileIndex];
+        gameProfile.clearCurrentConfigCache();
+        let data = loadMusicFile(fileName, false);
+        if (data == null) {
+            return;
+        }
+        totalTimeSec = data[data.length - 1][1];
+        totalTimeStr = sec2timeStr(totalTimeSec);
+        musicFileData = data;
+        progress = 0;
+        progressChanged = true;
+        currentGestureIndex = null;
+        evt.emit("fileLoaded");
+    });
+    evt.on("currentFileConfigBtnClick", () => {
+        if (lastSelectedFileIndex == null) return;
+        player.pause();
+        let fileName = totalFiles[lastSelectedFileIndex];
+        runFileConfigSetup(fileName);
+        evt.emit("fileSelect");
+    });
+    evt.on("globalConfigBtnClick", () => {
+        player.pause();
+        runGlobalSetup();
+    });
+    evt.on("fileSelectionMenuBtnClick", () => {
+        let selected = false;
+        let canceled = false;
+        let index = 0;
+        const rawFileNameList = totalFiles.map((item) => {
+            return musicFormats.getFileNameWithoutExtension(item);
+        });
+        dialogs.build({
+            title: "选择乐曲...",
+            items: rawFileNameList,
+            itemsSelectMode: "select",
+            neutral: "导入文件...",
+            negative: "取消",
+            cancelable: true,
+            canceledOnTouchOutside: true,
+        }).on("neutral", () => {
+            importFileFromFileChooser(); //非阻塞
+            exit();
+        }).on("negative", () => {
+            canceled = true;
+            selected = true;
+        }).on("cancel", () => {
+            canceled = true;
+            selected = true;
+        }).on("item_select", (idx, item, dialog) => {
+            index = idx;
+            selected = true;
+        }).show();
+        while (!selected) {
+            sleep(100);
+        }
+        if (canceled) {
+            return;
+        }
+        lastSelectedFileIndex = index;
+        evt.emit("fileSelect");
+    });
+    evt.on("miscInfoBtnClick", () => {
+        player.pause();
+        let option = dialogs.select(
+            "其它功能...",
+            [
+                "📃 查看使用帮助",
+                "📲 MIDI串流",
+                "🎼 导出当前乐曲",
+            ]
+        );
+        switch (option) {
+            case -1: break; //取消
+            case 0: //查看使用帮助
+                app.viewFile(musicDir + "使用帮助.pdf");
+                exitApp();
+                break;
+            case 1: //MIDI串流
+                controlWindow.close();
+                visualizerWindowClose();
+                startMidiStream();
+                exitApp();
+                break;
+            case 2: //导出当前乐曲
+                if (lastSelectedFileIndex == null) break;
                 let fileName = totalFiles[lastSelectedFileIndex];
                 gameProfile.clearCurrentConfigCache();
-                let data = loadMusicFile(fileName, false);
+                let data = loadMusicFile(fileName, true);
                 if (data == null) {
                     break;
                 }
-                totalTimeSec = data[data.length - 1][1];
-                totalTimeStr = sec2timeStr(totalTimeSec);
-                musicFileData = data;
-                progress = 0;
-                progressChanged = true;
-                currentGestureIndex = null;
-                pendingEvent = "fileLoaded";
+                exportNoteDataInteractive(data, "keyboardScore");
                 break;
+        }
+    });
+    evt.on("pauseResumeBtnLongClick", () => {
+        //隐藏悬浮窗播放
+        toast("8秒后播放...");
+        visualizerWindowClose();
+        controlWindow.close();
+        controlWindow = null;
+        player.setOnStateChange(function (newState) {
+            if(newState == player.PlayerStates.FINISHED){
+                exitApp();
             }
-            case "currentFileConfigBtnClick": {
-                pendingEvent = null;
-                if (lastSelectedFileIndex == null) break;
-                player.pause();
-                let fileName = totalFiles[lastSelectedFileIndex];
-                runFileConfigSetup(fileName);
-                pendingEvent = "fileSelect"; //重载当前文件
-                break;
-            }
-            case "globalConfigBtnClick": {
-                pendingEvent = null;
-                player.pause();
-                runGlobalSetup();
-                break;
-            }
-            case "fileSelectionMenuBtnClick": {
-                pendingEvent = null;
-                let selected = false;
-                let canceled = false;
-                let index = 0;
-                const rawFileNameList = totalFiles.map((item) => {
-                    return musicFormats.getFileNameWithoutExtension(item);
-                });
-                dialogs.build({
-                    title: "选择乐曲...",
-                    items: rawFileNameList,
-                    itemsSelectMode: "select",
-                    neutral: "导入文件...",
-                    negative: "取消",
-                    cancelable: true,
-                    canceledOnTouchOutside: true,
-                }).on("neutral", () => {
-                    importFileFromFileChooser(); //非阻塞
-                    exit();
-                }).on("negative", () => {
-                    canceled = true;
-                    selected = true;
-                }).on("cancel", () => {
-                    canceled = true;
-                    selected = true;
-                }).on("item_select", (idx, item, dialog) => {
-                    index = idx;
-                    selected = true;
-                }).show();
-                while (!selected) {
-                    sleep(100);
-                }
-                if (canceled) {
+            console.warn("Unexpected state:" + newState);
+        });
+        setTimeout(() => {
+            player.resume();
+        }, 8000);
+        
+
+    });
+    evt.on("stopBtnClick", () => {
+        exitApp();
+    });
+    evt.on("fileLoaded", () => {
+        ui.run(() => {
+            controlWindow.musicTitleText.setText(
+                musicFormats.getFileNameWithoutExtension(totalFiles[lastSelectedFileIndex]));
+        });
+        player.setGestureTimeList(musicFileData);
+        //是否显示可视化窗口
+        let visualizerEnabled = readGlobalConfig("visualizerEnabled", false);
+        if (visualizerEnabled && gameProfile.getKeyLayout().type === "grid") { //TODO: 其它类型的键位布局也可以显示可视化窗口
+            visualizerWindow = createVisualizerWindow();
+            toast("单击可视化窗口调整大小与位置, 双击重置");
+        };
+        player.start();
+        player.pause();
+    });
+
+    function controlWindowUpdateLoop(){
+        if (musicFileData == null || totalTimeSec == null || currentGestureIndex == null || controlWindow == null) {
+            return;
+        }
+        //如果进度条被拖动，更新播放进度
+        if (progressChanged) {
+            progressChanged = false;
+            let targetTimeSec = totalTimeSec * progress / 100;
+            for (let j = 0; j < musicFileData.length; j++) {
+                if (musicFileData[j][1] > targetTimeSec) {
+                    currentGestureIndex = j - 1;
                     break;
                 }
-                lastSelectedFileIndex = index;
-                pendingEvent = "fileSelect";
-                break;
             }
-            case "miscInfoBtnClick": {
-                pendingEvent = null;
-                player.pause();
-                let option = dialogs.select(
-                    "其它功能...",
-                    [
-                        "📃 查看使用帮助",
-                        "📲 MIDI串流",
-                        "🎼 导出当前乐曲",
-                    ]
-                );
-                switch (option) {
-                    case -1: break; //取消
-                    case 0: //查看使用帮助
-                        app.viewFile(musicDir + "使用帮助.pdf");
-                        exitApp();
-                        break;
-                    case 1: //MIDI串流
-                        controlWindow.close();
-                        visualizerWindowClose();
-                        startMidiStream();
-                        exitApp();
-                        break;
-                    case 2: //导出当前乐曲
-                    if(lastSelectedFileIndex == null) break;
-                        let fileName = totalFiles[lastSelectedFileIndex];
-                        gameProfile.clearCurrentConfigCache();
-                        let data = loadMusicFile(fileName, true);
-                        if (data == null) {
-                            break;
-                        }
-                        exportNoteDataInteractive(data, "keyboardScore");
-                        break;
-                }
-                break;
-            }
-            case "pauseResumeBtnLongClick": {
-                pendingEvent = null;
-                //隐藏悬浮窗播放
-                toast("8秒后播放...");
-                visualizerWindowClose();
-                controlWindow.close();
-                controlWindow = null;
-                player.setOnStateChange(function (newState) {});
-                setTimeout(() => {
-                    player.resume();
-                }, 8000);
-                return;
-                break;
-                
-            }
-            case "fileLoaded": {
-                pendingEvent = null;
-                ui.run(() => {
-                    controlWindow.musicTitleText.setText(
-                        musicFormats.getFileNameWithoutExtension(totalFiles[lastSelectedFileIndex]));
-                });
-                player.setGestureTimeList(musicFileData);
-                //是否显示可视化窗口
-                let visualizerEnabled = readGlobalConfig("visualizerEnabled", false);
-                if (visualizerEnabled && gameProfile.getKeyLayout().type === "grid") { //TODO: 其它类型的键位布局也可以显示可视化窗口
-                    visualizerWindow = createVisualizerWindow();
-                    toast("单击可视化窗口调整大小与位置, 双击重置");
-                };
-                player.start();
-                player.pause();
-                break;
-            }
-
-            default: {
-                pendingEvent = null;
-                if (musicFileData == null || totalTimeSec == null || currentGestureIndex == null || controlWindow == null) {
-                    sleep(200)
-                    continue;
-                }
-                //如果进度条被拖动，更新播放进度
-                if (progressChanged) {
-                    progressChanged = false;
-                    let targetTimeSec = totalTimeSec * progress / 100;
-                    for (let j = 0; j < musicFileData.length; j++) {
-                        if (musicFileData[j][1] > targetTimeSec) {
-                            currentGestureIndex = j - 1;
-                            break;
-                        }
-                    }
-                    currentGestureIndex = Math.max(0, currentGestureIndex);
-                    player.seekTo(currentGestureIndex);
-                    console.log("seekTo:" + currentGestureIndex);
-                    sleep(50);
-                } else {
-                    sleep(300);
-                }
-                currentGestureIndex = Math.min(currentGestureIndex, musicFileData.length - 1);
-                //计算时间
-                let curTimeSec = musicFileData[currentGestureIndex][1];
-                let curTimeStr = sec2timeStr(curTimeSec);
-                let timeStr = curTimeStr + "/" + totalTimeStr;
-                //更新窗口
-                ui.run(() => {
-                    controlWindow.progressBar.setProgress(curTimeSec / totalTimeSec * 100);
-                    controlWindow.timerText.setText(timeStr);
-                });
-            }
+            currentGestureIndex = Math.max(0, currentGestureIndex);
+            player.seekTo(currentGestureIndex);
+            console.log("seekTo:" + currentGestureIndex);
+            setImmediate(controlWindowUpdateLoop);
         }
+        currentGestureIndex = Math.min(currentGestureIndex, musicFileData.length - 1);
+        //计算时间
+        let curTimeSec = musicFileData[currentGestureIndex][1];
+        let curTimeStr = sec2timeStr(curTimeSec);
+        let timeStr = curTimeStr + "/" + totalTimeStr;
+        //更新窗口
+        ui.run(() => {
+            controlWindow.progressBar.setProgress(curTimeSec / totalTimeSec * 100);
+            controlWindow.timerText.setText(timeStr);
+        });
     }
+
+    setInterval(controlWindowUpdateLoop,200);
 }
+
 
 /**
  * @param {string} fileName
