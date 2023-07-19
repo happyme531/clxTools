@@ -528,6 +528,41 @@ function NoteFrequencySoftLimitPass(config) {
     }
 }
 
+/**
+ * @brief 变速
+ * @typedef {Object} SpeedChangePassConfig
+ * @property {number} speed - 变速倍率
+ * @param {SpeedChangePassConfig} config
+ */
+function SpeedChangePass(config) {
+    this.name = "SpeedChangePass";
+    this.description = "变速";
+
+    let speed = 1;
+
+    if (config.speed == null) {
+        throw new Error("speed is null");
+    }
+    speed = config.speed;
+
+    /**
+     * 运行此pass
+     * @template T
+     * @param {Array<[T, number]>} noteData - 音乐数据
+     * @param {function(number):void}
+     * @returns {Array<[T, number]>} - 返回处理后的数据
+     */
+    this.run = function (noteData, progressCallback) {
+        for (let i = 0; i < noteData.length; i++) {
+            noteData[i][1] /= speed;
+        }
+        return noteData;
+    }
+
+    this.getStatistics = function () {
+        return {};
+    }
+}
 
 
 
@@ -546,6 +581,7 @@ function Passes() {
     this.passes.push(LimitBlankDurationPass);
     this.passes.push(SkipIntroPass);
     this.passes.push(NoteFrequencySoftLimitPass);
+    this.passes.push(SpeedChangePass);
 
     this.getPassByName = function (name) {
         for (let i = 0; i < this.passes.length; i++) {

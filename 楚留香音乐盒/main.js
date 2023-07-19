@@ -527,10 +527,11 @@ function evalFileConfig(noteData, targetMajorPitchOffset, targetMinorPitchOffset
 /**
  * @brief 自动调整文件配置, 包括移调和音轨选择
  * @param {string} fileName 
+ * @param {number} trackDisableThreshold 如果一个音轨中超过这个比例的音符被丢弃, 就不选择这个音轨
  * @returns 
  */
-function autoTuneFileConfig(fileName) {
-    const trackDisableThreshold = 0.5; //如果一个音轨中超过这个比例的音符被丢弃, 就不选择这个音轨 //TODO: 这应该是可调的参数
+function autoTuneFileConfig(fileName,trackDisableThreshold ) {
+    // const trackDisableThreshold = 0.5; //如果一个音轨中超过这个比例的音符被丢弃, 就不选择这个音轨 //TODO: 这应该是可调的参数
     const betterResultThreshold = 0.05; //如果新的结果比旧的结果好超过这个阈值，就认为新的结果更好
     const possibleMajorPitchOffset = [0, -1, 1, -2, 2];
     const possibleMinorPitchOffset = [0, 1, -1, 2, -2, 3, -3, 4, -4];
@@ -655,70 +656,282 @@ function runClickPosSetup() {
     saveUserGameProfile();
 }
 
+/**
+ * @brief 将一个数值转换到0-1000的另一个区间, 给进度条用
+ * @param {number} value
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
+function numberMap(value, min, max) {
+    const newMin = 0;
+    const newMax = 1000;
+    if (value < min) value = min;
+    if (value > max) value = max;
+    return (value - min) / (max - min) * (newMax - newMin) + newMin;
+}
+
+/**
+ * @brief numberMap的对数版本
+ * @param {number} value
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ * @see numberMap
+ */
+function numberMapLog(value, min, max) {
+    const newMin = 0;
+    const newMax = 1000;
+    if (value < min) value = min;
+    if (value > max) value = max;
+    return Math.log(value - min + 1) / Math.log(max - min + 1) * (newMax - newMin) + newMin;
+}
+
+/**
+ * @brief numberMap的反函数
+ * @param {number} value
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ * @see numberMap
+ */
+function numberRevMap(value, min, max) {
+    const newMin = 0;
+    const newMax = 1000;
+    return (value - newMin) / (newMax - newMin) * (max - min) + min;
+}
+
+/**
+ * @brief numberMapLog的反函数
+ * @param {number} value
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ * @see numberMapLog
+ */
+function numberRevMapLog(value, min, max) {
+    const newMin = 0;
+    const newMax = 1000;
+    return min + (Math.exp((value - newMin) / (newMax - newMin) * Math.log(max - min + 1)) - 1);
+}
+
 function runFileConfigSetup(fullFileName) {
     let fileName = fullFileName;
     let rawFileName = musicFormats.getFileNameWithoutExtension(fileName);
-    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["一键自动优化", "调整音高", "半音处理方式", "选择音轨"])) {
-        case -1:
-            break;
-        case 0:
-            autoTuneFileConfig(fileName);
-            break;
-        case 1:
-            let setupFinished = false;
-            while (!setupFinished) {
-                let majorPitchOffsetStr = ["降低2个八度", "降低1个八度", "默认", "升高1个八度", "升高2个八度"];
-                let minorPitchOffsetStr = ["降低4个半音", "降低3个半音", "降低2个半音", "降低1个半音", "默认", "升高1个半音", "升高2个半音", "升高3个半音", "升高4个半音"];
-                let currentMajorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
-                let currentMinorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
-
-                let res1 = dialogs.singleChoice("调整音高1", majorPitchOffsetStr, currentMajorPitchOffset + 2);
-                if (res1 == -1) {
-                    toastLog("设置没有改变");
-                } else {
-                    setFileConfig("majorPitchOffset", res1 - 2, rawFileName);
-                }
-
-                let res2 = dialogs.singleChoice("调整音高2", minorPitchOffsetStr, currentMinorPitchOffset + 4);
-                if (res2 == -1) {
-                    toastLog("设置没有改变");
-                } else {
-                    setFileConfig("minorPitchOffset", res2 - 4, rawFileName);
-                }
-                let res3 = dialogs.confirm("测试设置", "设置已经保存，是否测试一下？");
-                if (res3) {
-                    currentMajorPitchOffset = readFileConfig("majorPitchOffset", rawFileName);
-                    currentMinorPitchOffset = readFileConfig("minorPitchOffset", rawFileName);
-                    let result = evalFileConfig(fileName, currentMajorPitchOffset, currentMinorPitchOffset);
-                    let totalNoteCnt = result.totalNoteCnt;
-                    let realBestOutRangedNoteCnt = result.overFlowedNoteCnt + result.underFlowedNoteCnt;
-                    let percentStr1 = (realBestOutRangedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%";
-                    let percentStr2 = (result.roundedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%";
-                    let resultStr =
-                        "超出范围被丢弃的音符数: " + realBestOutRangedNoteCnt + " (+" + result.overFlowedNoteCnt + ", -" + result.underFlowedNoteCnt + ")(" + percentStr1 + ")\n" +
-                        "被取整的音符数: " + result.roundedNoteCnt + " (" + percentStr2 + ")\n" +
-                        "点击确认退出, 点击取消继续调整";
-                    let res4 = dialogs.confirm("测试结果", resultStr);
-                    if (res4) {
-                        setupFinished = true;
-                    }
-                } else {
-                    break;
-                }
-            }
-            break;
-        case 2:
-            setFileConfig("halfCeiling", dialogs.singleChoice("楚留香的乐器无法弹奏半音，所以对于半音..", ["降低", "升高"], readFileConfig("halfCeiling", rawFileName)), rawFileName);
-            break;
-        case 3:
+    let configChanged = false;
+    const maxClickSpeedHz = 20;
+    view = ui.inflate(
+        <ScrollView margin="0dp" padding="0dp">
+            <vertical margin="0dp" padding="0dp">
+                <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
+                    <vertical>
+                        <text text="速度控制:" textColor="red" />
+                        <horizontal>
+                            {/* 33~300%, 对数, 默认1->不使用 */}
+                            <text text="变速:" />
+                            <checkbox id="speedMultiplier" />
+                            <text text="default%" id="speedMultiplierValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                        </horizontal>
+                        <seekbar id="speedMultiplierSeekbar" w="*" max="1000" layout_gravity="center" />
+                        <horizontal w="*">
+                            {/* 1~20hz, 对数 , 默认0->不使用*/}
+                            <text text="限制点击速度(在变速后应用):" />
+                            <checkbox id="limitClickSpeedCheckbox" />
+                            <text text="default次/秒" id="limitClickSpeedValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                        </horizontal>
+                        <seekbar id="limitClickSpeedSeekbar" w="*" max="1000" layout_gravity="center" />
+                    </vertical>
+                </card>
+                <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
+                    <vertical>
+                        <text text="时长控制:" textColor="red" />
+                        <horizontal w="*">
+                            <text text="默认点击时长: " />
+                            {/* <radiogroup id="defaultClickDurationMode" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
+                                 固定的值, 1~500ms, 对数, 默认5ms 
+                                <radio id="defaultClickDurationMode_fixed" text="固定值" textSize="12sp" margin="0dp" selected="true" />
+                                音符间隔的比例, 例如0.5代表点击时长为到下一个音符的间隔的一半. 0.05~0.98, 线性, 默认0.5
+                                <radio id="defaultClickDurationMode_intervalRatio" text="音符间隔比例" textSize="12sp" margin="0dp" />
+                            </radiogroup> */}
+                            <text text="defaultms" id="defaultClickDurationValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                        </horizontal>
+                        <seekbar id="defaultClickDurationSeekbar" w="*" max="1000" layout_gravity="center" />
+                    </vertical>
+                </card>
+                <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
+                    <vertical>
+                        <text text="音域优化:" textColor="red" />
+                        {/* <ImageView w="*" h="1dp" bg="#a0a0a0" /> */}
+                        <horizontal>
+                            {/* 默认向下取整 */}
+                            <text text="半音处理方法:" layout_gravity="center_vertical" />
+                            <radiogroup id="halfCeilingSetting" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
+                                <radio id="halfCeilingSetting_roundDown" text="向下取整" textSize="12sp" margin="0dp" />
+                                <radio id="halfCeilingSetting_roundUp" text="向上取整" textSize="12sp" margin="0dp" />
+                            </radiogroup>
+                        </horizontal>
+                        <horizontal>
+                            {/* 1~99%, 线性, 默认50% */}
+                            <text text="自动调整: 禁用音轨阈值:" />
+                            <text text="default%" id="trackDisableThresholdValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                        </horizontal>
+                        <seekbar id="trackDisableThresholdSeekbar" w="*" max="1000" layout_gravity="center" />
+                        <horizontal>
+                            <button id="autoTuneButton" text="自动优化以下设置(重要!)" />
+                        </horizontal>
+                        <horizontal>
+                            {/* -2~2 */}
+                            <text text="升/降八度:" />
+                            <text text="default" id="majorPitchOffsetValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                        </horizontal>
+                        <seekbar id="majorPitchOffsetSeekbar" w="*" max="4" layout_gravity="center" />
+                        <horizontal>
+                            {/* -4~4 */}
+                            <text text="升/降半音:" />
+                            <text text="default" id="minorPitchOffsetValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                        </horizontal>
+                        <seekbar id="minorPitchOffsetSeekbar" w="*" max="8" layout_gravity="center" />
+                        <horizontal>
+                            <text text="音轨选择:" />
+                            <button id="selectTracksButton" text="选择..." padding="0dp" />
+                        </horizontal>
+                    </vertical>
+                </card>
+            </vertical>
+        </ScrollView>
+    );
+    //回调函数们
+    view.limitClickSpeedSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
+        if (progress == undefined) return;
+        let value = numberRevMapLog(progress, 1, maxClickSpeedHz);
+        view.limitClickSpeedValueText.setText(value.toFixed(2) + "次/秒");
+        return true;
+    });
+    view.speedMultiplierSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
+        if (progress == undefined) return;
+        let value = numberRevMapLog(progress, 0.33, 3);
+        view.speedMultiplierValueText.setText((value * 100).toFixed(2) + "%");
+        return true;
+    });
+    view.defaultClickDurationSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
+        if (progress == undefined) return;
+        let value = numberRevMapLog(progress, 1, 500);
+        view.defaultClickDurationValueText.setText(value.toFixed(2) + "ms");
+        return true;
+    });
+    view.trackDisableThresholdSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
+        if (progress == undefined) return;
+        let value = numberRevMap(progress, 1, 99);
+        view.trackDisableThresholdValueText.setText(value.toFixed(2) + "%");
+        return true;
+    });
+    view.autoTuneButton.click(() => {
+        let trackDisableThreshold = numberRevMap(view.trackDisableThresholdSeekbar.getProgress(), 1, 99) / 100;
+        threads.start(function () { //TODO: 重构?
+            autoTuneFileConfig(fileName, trackDisableThreshold);
+            ui.run(() => {
+                let majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName, 0);
+                view.majorPitchOffsetValueText.setText(majorPitchOffset.toFixed(0));
+                view.majorPitchOffsetSeekbar.setProgress(majorPitchOffset + 2);
+                let minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName, 0);
+                view.minorPitchOffsetValueText.setText(minorPitchOffset.toFixed(0));
+                view.minorPitchOffsetSeekbar.setProgress(minorPitchOffset + 4);
+            });
+        });
+    });
+    view.majorPitchOffsetSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
+        if (progress == undefined) return;
+        let value = progress - 2;
+        view.majorPitchOffsetValueText.setText(value.toFixed(0));
+        return true;
+    });
+    view.minorPitchOffsetSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
+        if (progress == undefined) return;
+        let value = progress - 4;
+        view.minorPitchOffsetValueText.setText(value.toFixed(0));
+        return true;
+    });
+    view.selectTracksButton.click(() => {
+        threads.start(function () {
             const passManager = new PassManager();
+            let dialog = dialogs.build({
+                title: "加载中...",
+                content: "正在加载数据...",
+            }).show();
             let tracksData = passManager.addPass("ParseSourceFilePass").run(musicDir + fileName);
+            dialog.dismiss();
             let lastSelectedTracksNonEmpty = readFileConfig("lastSelectedTracksNonEmpty", rawFileName);
             let result = selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty);
             setFileConfig("lastSelectedTracksNonEmpty", result, rawFileName);
-            break;
+        });
+    });
+    let finished = false;
+    dialogs.build({
+        customView: view,
+        title: "乐曲配置",
+        positive: "确定",
+        negative: "取消"
+    }).on("show", (dialog) => {
+        ///速度控制
+        let limitClickSpeedHz = readFileConfig("limitClickSpeedHz", rawFileName, 0);
+        let speedMultiplier = readFileConfig("speedMultiplier", rawFileName, 1);
+        view.limitClickSpeedCheckbox.setChecked(limitClickSpeedHz != 0);
+        view.limitClickSpeedValueText.setText(limitClickSpeedHz.toFixed(2) + "次/秒");
+        view.limitClickSpeedSeekbar.setProgress(numberMapLog(limitClickSpeedHz, 1, maxClickSpeedHz));
+        view.speedMultiplier.setChecked(speedMultiplier != 1);
+        view.speedMultiplierValueText.setText((speedMultiplier * 100).toFixed(2) + "%");
+        view.speedMultiplierSeekbar.setProgress(numberMapLog(speedMultiplier, 0.33, 3));
+        //时长控制
+        let defaultClickDuration = readGlobalConfig("defaultClickDuration", 5);
+        view.defaultClickDurationValueText.setText(defaultClickDuration.toFixed(2) + "ms");
+        view.defaultClickDurationSeekbar.setProgress(numberMapLog(defaultClickDuration, 1, 500));
+        //音域优化
+        let halfCeiling = readFileConfig("halfCeiling", rawFileName, false);
+        switch (halfCeiling) {
+            case false:
+                view.halfCeilingSetting_roundDown.setChecked(true);
+                break;
+            case true:
+                view.halfCeilingSetting_roundUp.setChecked(true);
+                break;
+        }
+        let trackDisableThreshold = 0.5; //不会保存
+        view.trackDisableThresholdValueText.setText((trackDisableThreshold * 100).toFixed(2) + "%");
+        view.trackDisableThresholdSeekbar.setProgress(numberMap(trackDisableThreshold * 100, 1, 99));
+        let majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName, 0);
+        view.majorPitchOffsetValueText.setText(majorPitchOffset.toFixed(0));
+        view.majorPitchOffsetSeekbar.setProgress(majorPitchOffset + 2);
+        let minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName, 0);
+        view.minorPitchOffsetValueText.setText(minorPitchOffset.toFixed(0));
+        view.minorPitchOffsetSeekbar.setProgress(minorPitchOffset + 4);
+    }).on("positive", (dialog) => {
+        let limitClickSpeedHz = view.limitClickSpeedCheckbox.isChecked() ?
+            numberRevMapLog(view.limitClickSpeedSeekbar.getProgress(), 1, maxClickSpeedHz) : 0;
+        let speedMultiplier = view.speedMultiplier.isChecked() ?
+            numberRevMapLog(view.speedMultiplierSeekbar.getProgress(), 0.33, 3) : 1;
+        let defaultClickDuration = numberRevMapLog(view.defaultClickDurationSeekbar.getProgress(), 1, 500);
+        let halfCeiling = view.halfCeilingSetting_roundUp.isChecked();
+        let majorPitchOffset = view.majorPitchOffsetSeekbar.getProgress() - 2;
+        let minorPitchOffset = view.minorPitchOffsetSeekbar.getProgress() - 4;
+        setFileConfig("limitClickSpeedHz", limitClickSpeedHz, rawFileName);
+        setFileConfig("speedMultiplier", speedMultiplier, rawFileName);
+        setFileConfig("halfCeiling", halfCeiling, rawFileName);
+        setFileConfig("majorPitchOffset", majorPitchOffset, rawFileName);
+        setFileConfig("minorPitchOffset", minorPitchOffset, rawFileName);
+        setGlobalConfig("defaultClickDuration", defaultClickDuration);
+        dialog.dismiss();
+        finished = true;
+        configChanged = true;
+    }).on("negative", (dialog) => {
+        toast("取消")
+        dialog.dismiss();
+        finished = true;
+    }).show();
+    while (!finished) {
+        sleep(100);
+    }
 
-    };
+    return configChanged;
 }
 
 function runFileListSetup(fileList) {
@@ -845,6 +1058,12 @@ function runGlobalSetup() {
     };
 };
 
+function getTargetTriple() {
+    let configName = gameProfile.getCurrentConfigDisplayName();
+    let variantName = gameProfile.getCurrentVariantDisplayName();
+    let keyTypeName = gameProfile.getCurrentKeyLayoutDisplayName();
+    return configName + " " + variantName + " " + keyTypeName;
+}
 
 
 /////////
@@ -872,7 +1091,6 @@ function initialize() {
 }
 
 function main() {
-
     let evt = events.emitter(threads.currentThread());
 
     const totalFiles = getFileList();
@@ -883,11 +1101,7 @@ function main() {
         exit();
     }
 
-    let configName = gameProfile.getCurrentConfigDisplayName();
-    let variantName = gameProfile.getCurrentVariantDisplayName();
-    let keyTypeName = gameProfile.getCurrentKeyLayoutDisplayName();
-    let currentConfigName = configName + " " + variantName + " " + keyTypeName;
-    let titleStr = "当前配置: " + currentConfigName;
+    let titleStr = "当前配置: " + getTargetTriple();
     console.info(titleStr);
     let musicFileData = null;
     let lastSelectedFileIndex = null;
@@ -951,7 +1165,7 @@ function main() {
             player.resume();
         } else if (player.getState() == player.PlayerStates.PLAYING) {
             player.pause();
-        }else if (player.getState() == player.PlayerStates.FINISHED) {
+        } else if (player.getState() == player.PlayerStates.FINISHED) {
             player.seekTo(0);
             player.resume();
         }
@@ -975,7 +1189,7 @@ function main() {
     });
 
     player.setOnStateChange(function (newState) {
-        if (newState == player.PlayerStates.PAUSED||
+        if (newState == player.PlayerStates.PAUSED ||
             newState == player.PlayerStates.FINISHED) {
             controlWindow.pauseResumeBtn.setText("▶️");
         } else if (newState == player.PlayerStates.PLAYING) {
@@ -1104,12 +1318,18 @@ function main() {
         if (lastSelectedFileIndex == null) return;
         player.pause();
         let fileName = totalFiles[lastSelectedFileIndex];
-        runFileConfigSetup(fileName);
-        evt.emit("fileSelect");
+        let res = runFileConfigSetup(fileName);
+        if (res) { //设置改变了
+            evt.emit("fileSelect");
+        }
     });
     evt.on("globalConfigBtnClick", () => {
         player.pause();
         runGlobalSetup();
+        titleStr = "当前配置: " + getTargetTriple();
+        ui.run(() => {
+            controlWindow.musicTitleText.setText(titleStr);
+        });
     });
     evt.on("fileSelectionMenuBtnClick", () => {
         let selected = false;
@@ -1189,7 +1409,7 @@ function main() {
         controlWindow.close();
         controlWindow = null;
         player.setOnStateChange(function (newState) {
-            if(newState == player.PlayerStates.FINISHED){
+            if (newState == player.PlayerStates.FINISHED) {
                 exitApp();
             }
             console.warn("Unexpected state:" + newState);
@@ -1197,8 +1417,6 @@ function main() {
         setTimeout(() => {
             player.resume();
         }, 8000);
-        
-
     });
     evt.on("stopBtnClick", () => {
         exitApp();
@@ -1219,7 +1437,7 @@ function main() {
         player.pause();
     });
 
-    function controlWindowUpdateLoop(){
+    function controlWindowUpdateLoop() {
         if (musicFileData == null || totalTimeSec == null || currentGestureIndex == null || controlWindow == null) {
             return;
         }
@@ -1250,7 +1468,7 @@ function main() {
         });
     }
 
-    setInterval(controlWindowUpdateLoop,200);
+    setInterval(controlWindowUpdateLoop, 200);
 }
 
 
@@ -1298,6 +1516,9 @@ function loadMusicFile(fileName, exportScore) {
     let majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName, 0);
     let minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName, 0);
     let treatHalfAsCeiling = readFileConfig("halfCeiling", rawFileName, false);
+    let limitClickSpeedHz = readFileConfig("limitClickSpeedHz", rawFileName, 0);
+    let speedMultiplier = readFileConfig("speedMultiplier", rawFileName, 1);
+    let defaultClickDuration = readGlobalConfig("defaultClickDuration", 5);
     let mergeThreshold = exportScore ? scoreExportMergeThreshold : autoPlayMergeThreshold;
     let keyRange = gameProfile.getKeyRange();
 
@@ -1393,6 +1614,12 @@ function loadMusicFile(fileName, exportScore) {
     if (readGlobalConfig("skipBlank5s", true)) {
         passManager.addPass("LimitBlankDurationPass"); //默认5秒
     }
+    //变速
+    if (speedMultiplier != 1) {
+        passManager.addPass("SpeedChangePass", {
+            speed: speedMultiplier
+        });
+    }
     //合并按键
     passManager.addPass("MergeKeyPass", {
         maxInterval: mergeThreshold * 1000,
@@ -1403,6 +1630,12 @@ function loadMusicFile(fileName, exportScore) {
         visualizer.goto(-1);
         progressDialog.setContent("正在生成手势...");
     });
+    //限制按键频率
+    if (limitClickSpeedHz != 0) {
+        passManager.addPass("NoteFrequencySoftLimitPass", {
+            minInterval: 1000 / limitClickSpeedHz
+        });
+    }
 
     if (exportScore) {
         //如果是导出乐谱,则不需要生成手势
@@ -1413,6 +1646,7 @@ function loadMusicFile(fileName, exportScore) {
     //生成手势
     passManager.addPass("KeyToGesturePass", {
         currentGameProfile: gameProfile,
+        pressDuration: defaultClickDuration,
     }, null, (data, statistics, elapsedTime) => {
         console.log("生成手势耗时" + elapsedTime / 1000 + "秒");
         progressDialog.dismiss();
