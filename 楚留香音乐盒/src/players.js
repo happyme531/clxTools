@@ -168,6 +168,7 @@ function AutoJsGesturePlayer(){
             playerThread.join();
             playerThread = null;
             playerState = PlayerStates.FINISHED;
+            onStateChange(playerState);
             position = 0;
             return true;
         }

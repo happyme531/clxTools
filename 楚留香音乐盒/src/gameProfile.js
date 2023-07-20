@@ -343,6 +343,16 @@ const keyLayouts = {
         type: KeyLayoutTypes.nshm_professional,
         locator: KeyLocatorTypes.left_top_right_bottom,
     },
+    "nshm_professional.pi_pa":{
+        displayName: "专业模式(琵琶)",
+        type: KeyLayoutTypes.nshm_professional,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+    },
+    "nshm_professional.suo_na":{
+        displayName: "专业模式(唢呐)",
+        type: KeyLayoutTypes.nshm_professional,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+    },
     "dzpd_interleaved3x7": { //蛋仔派对 交错的3x7
         displayName: "21键",
         type: KeyLayoutTypes.arbitrary,
@@ -690,7 +700,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "逆水寒手游",
         gameName: "逆水寒",
-        keyTypes: ["generic_3x7", "generic_3x12", "nshm_1x7", "nshm_professional.gu_zheng", "nshm_professional.qv_di"],
+        keyTypes: ["generic_3x7", "generic_3x12", "nshm_1x7", "nshm_professional.gu_zheng", "nshm_professional.qv_di", "nshm_professional.pi_pa", "nshm_professional.suo_na"],
         keyLocators: new Map([
             ["generic_3x7", [[0, 0], [0, 0]]],
             ["generic_3x12", [[0, 0], [0, 0]]],
@@ -710,6 +720,22 @@ const PreDefinedGameConfigs = [
                 variantType: "曲笛",
                 variantName: "曲笛",
                 availableNoteRange: ["G3", "D6"],
+                noteKeyMap: undefined,
+                noteDurationImplementionType: NoteDurationImplementionTypes.native,
+                sameKeyMinInterval: undefined,
+            }),
+            new VariantConfig({
+                variantType: "琵琶",
+                variantName: "琵琶",
+                availableNoteRange: ["A2", "D6"],
+                noteKeyMap: undefined,
+                noteDurationImplementionType: NoteDurationImplementionTypes.none,
+                sameKeyMinInterval: undefined,
+            }),
+            new VariantConfig({
+                variantType: "唢呐",
+                variantName: "唢呐",
+                availableNoteRange: ["E3", "B5"],
                 noteKeyMap: undefined,
                 noteDurationImplementionType: NoteDurationImplementionTypes.native,
                 sameKeyMinInterval: undefined,
