@@ -744,7 +744,7 @@ function runFileConfigSetup(fullFileName) {
                 </card>
                 <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
                     <vertical>
-                        <text text="时长控制:" textColor="red" />
+                        <text text="时长控制(输出):" textColor="red" />
                         <horizontal w="*">
                             <text text="默认点击时长: " />
                             {/* <radiogroup id="defaultClickDurationMode" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
