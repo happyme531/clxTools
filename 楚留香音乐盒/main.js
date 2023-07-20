@@ -383,6 +383,19 @@ function exportNoteDataInteractive(noteData, exportType) {
             dialogs.alert("导出成功", "已导出至" + path);
             console.log("导出成功: " + path);
             break;
+        case "keySequenceJSON":
+            let baseName2 = "dump";
+            let path2 = musicDir + baseName2 + ".json";
+            let i2 = 1;
+            while (files.exists(path2)) {
+                console.log("路径 " + path2 + " 已存在");
+                path2 = musicDir + baseName2 + "(" + i2.toString() + ")" + ".json";
+                i2++;
+            }
+            files.write(path2, JSON.stringify(noteData));
+            dialogs.alert("导出成功", "已导出至" + path2);
+            console.log("导出成功: " + path2);
+            break;
         default:
             dialogs.alert("导出失败", "未知的导出类型");
     }
@@ -530,8 +543,7 @@ function evalFileConfig(noteData, targetMajorPitchOffset, targetMinorPitchOffset
  * @param {number} trackDisableThreshold 如果一个音轨中超过这个比例的音符被丢弃, 就不选择这个音轨
  * @returns 
  */
-function autoTuneFileConfig(fileName,trackDisableThreshold ) {
-    // const trackDisableThreshold = 0.5; //如果一个音轨中超过这个比例的音符被丢弃, 就不选择这个音轨 //TODO: 这应该是可调的参数
+function autoTuneFileConfig(fileName,trackDisableThreshold) {
     const betterResultThreshold = 0.05; //如果新的结果比旧的结果好超过这个阈值，就认为新的结果更好
     const possibleMajorPitchOffset = [0, -1, 1, -2, 2];
     const possibleMinorPitchOffset = [0, 1, -1, 2, -2, 3, -3, 4, -4];
@@ -1398,8 +1410,16 @@ function main() {
                 if (data == null) {
                     break;
                 }
-                exportNoteDataInteractive(data, "keyboardScore");
-                break;
+                let exportType = dialogs.select("导出当前乐曲...", ["导出为txt键盘谱","导出为JSON按键序列数据"]);
+                switch (exportType) {
+                    case -1: break;
+                    case 0:
+                        exportNoteDataInteractive(data, "keyboardScore");
+                        break;
+                    case 1:
+                        exportNoteDataInteractive(data, "keySequenceJSON");
+                        break;
+                }
         }
     });
     evt.on("pauseResumeBtnLongClick", () => {
