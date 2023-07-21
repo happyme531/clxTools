@@ -43,6 +43,17 @@ const haveFileConfig = Configuration.haveFileConfig;
 const setFileConfig = Configuration.setFileConfig;
 const readFileConfig = Configuration.readFileConfig;
 
+/**
+ * @brief 导出数据的格式类型
+ * @enum {string}
+ */
+const ScoreExportType = {
+    none: "none",
+    keyboardScore: "keyboardScore",
+    keySequenceJSON: "keySequenceJSON",
+};
+
+
 //加载配置文件
 function loadConfiguration() {
     try {
@@ -325,13 +336,13 @@ function removeEmptyTracks(tracksData) {
 
 
 /**
- * @param {Array<number, number>} noteData 音符数据
- * @param {string} exportType 导出类型, 可选值: "keyboardScore"
+ * @param {import("./src/musicFormats.js").Chord[]} noteData 音符数据
+ * @param {ScoreExportType} exportType 导出类型
  * @brief 导出音符数据
  */
 function exportNoteDataInteractive(noteData, exportType) {
     switch (exportType) {
-        case "keyboardScore":
+        case ScoreExportType.keyboardScore:
             let maxDelayTime = 0;
             let confirmed = false;
             let gapTime = 0;
@@ -383,7 +394,7 @@ function exportNoteDataInteractive(noteData, exportType) {
             dialogs.alert("导出成功", "已导出至" + path);
             console.log("导出成功: " + path);
             break;
-        case "keySequenceJSON":
+        case ScoreExportType.keySequenceJSON:
             let baseName2 = "dump";
             let path2 = musicDir + baseName2 + ".json";
             let i2 = 1;
@@ -1314,7 +1325,7 @@ function main() {
         }
         let fileName = totalFiles[lastSelectedFileIndex];
         gameProfile.clearCurrentConfigCache();
-        let data = loadMusicFile(fileName, false);
+        let data = loadMusicFile(fileName, ScoreExportType.none);
         if (data == null) {
             return;
         }
@@ -1406,20 +1417,18 @@ function main() {
                 if (lastSelectedFileIndex == null) break;
                 let fileName = totalFiles[lastSelectedFileIndex];
                 gameProfile.clearCurrentConfigCache();
-                let data = loadMusicFile(fileName, true);
+                let sel = dialogs.select("导出当前乐曲...", ["导出为txt键盘谱","导出为JSON按键序列数据"]);
+                let exportType = ScoreExportType.none;
+                switch(sel){
+                    case -1: break;
+                    case 0: exportType = ScoreExportType.keyboardScore; break;
+                    case 1: exportType = ScoreExportType.keySequenceJSON; break;
+                }
+                let data = loadMusicFile(fileName, exportType);
                 if (data == null) {
                     break;
                 }
-                let exportType = dialogs.select("导出当前乐曲...", ["导出为txt键盘谱","导出为JSON按键序列数据"]);
-                switch (exportType) {
-                    case -1: break;
-                    case 0:
-                        exportNoteDataInteractive(data, "keyboardScore");
-                        break;
-                    case 1:
-                        exportNoteDataInteractive(data, "keySequenceJSON");
-                        break;
-                }
+                exportNoteDataInteractive(data, exportType);
         }
     });
     evt.on("pauseResumeBtnLongClick", () => {
@@ -1493,7 +1502,9 @@ function main() {
 
 
 /**
+ * @brief 解析并加载乐曲文件, 使用文件设置
  * @param {string} fileName
+ * @param {ScoreExportType} exportScore
  */
 function loadMusicFile(fileName, exportScore) {
     //////////////显示加载进度条
@@ -1539,7 +1550,7 @@ function loadMusicFile(fileName, exportScore) {
     let limitClickSpeedHz = readFileConfig("limitClickSpeedHz", rawFileName, 0);
     let speedMultiplier = readFileConfig("speedMultiplier", rawFileName, 1);
     let defaultClickDuration = readGlobalConfig("defaultClickDuration", 5);
-    let mergeThreshold = exportScore ? scoreExportMergeThreshold : autoPlayMergeThreshold;
+    let mergeThreshold = (exportScore == ScoreExportType.keyboardScore ? scoreExportMergeThreshold : autoPlayMergeThreshold);
     let keyRange = gameProfile.getKeyRange();
 
     console.log("当前乐曲:" + fileName);
@@ -1657,7 +1668,7 @@ function loadMusicFile(fileName, exportScore) {
         });
     }
 
-    if (exportScore) {
+    if (exportScore != ScoreExportType.none) {
         //如果是导出乐谱,则不需要生成手势
         let data = passManager.run(noteData);
         progressDialog.dismiss();
