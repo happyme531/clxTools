@@ -1,0 +1,713 @@
+[Preset.0]
+Active=1
+Comments=
+Incoming0=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x30"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming1=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x30"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming10=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x35"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming11=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x35"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming12=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x36"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming13=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x36"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming14=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x37"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming15=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x37"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming16=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x38"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming17=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x38"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming18=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x39"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming19=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x39"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming2=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x31"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming20=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3A"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming21=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x3A"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming22=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3B"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming23=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x3B"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming24=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3C"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming25=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x3C"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming26=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3D"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming27=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x3D"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming28=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3E"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming29=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x3E"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming3=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x31"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming30=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3F"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming31=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x3F"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming32=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x40"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming33=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x40"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming34=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x41"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming35=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x41"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming36=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x42"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming37=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x42"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming38=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x43"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming39=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x43"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming4=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x32"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming40=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x44"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming41=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x44"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming42=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x45"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming43=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x45"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming44=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x46"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming45=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x46"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming46=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x47"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming47=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x47"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming48=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x48"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming49=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x48"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming5=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x32"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming50=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x49"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming51=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x49"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming52=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4A"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming53=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x4A"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming54=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4B"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming55=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x4B"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming56=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4C"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming57=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x4C"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming58=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4D"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming59=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x4D"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming6=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x33"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming60=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4E"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming61=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x4E"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming62=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4F"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming63=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x4F"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming64=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x50"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming65=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x50"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming66=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x51"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming67=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x51"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming68=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x52"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming69=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x52"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming7=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x33"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming70=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x53"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming71=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x53"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming8=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x34"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming9=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x34"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Name=36键
+Name0=24
+Name1=25
+Name10=34
+Name11=35
+Name12=36
+Name13=37
+Name14=38
+Name15=39
+Name16=40
+Name17=41
+Name18=42
+Name19=43
+Name2=26
+Name20=44
+Name21=45
+Name22=46
+Name23=47
+Name24=48
+Name25=49
+Name26=50
+Name27=51
+Name28=52
+Name29=53
+Name3=27
+Name30=54
+Name31=55
+Name32=56
+Name33=57
+Name34=58
+Name35=59
+Name36=60
+Name37=61
+Name38=62
+Name39=63
+Name4=28
+Name40=64
+Name41=65
+Name42=66
+Name43=67
+Name44=68
+Name45=69
+Name46=70
+Name47=71
+Name48=72
+Name49=73
+Name5=29
+Name50=74
+Name51=75
+Name52=76
+Name53=77
+Name54=78
+Name55=79
+Name56=80
+Name57=81
+Name58=82
+Name59=83
+Name6=30
+Name60=84
+Name61=85
+Name62=86
+Name63=87
+Name64=88
+Name65=89
+Name66=90
+Name67=91
+Name68=92
+Name69=93
+Name7=31
+Name70=94
+Name71=95
+Name8=32
+Name9=33
+Options0=Actv01Stop00OutO00Dlay30:Millis
+Options1=Actv01Stop00OutO00
+Options10=Actv01Stop00OutO00Dlay30:Millis
+Options11=Actv01Stop00OutO00
+Options12=Actv01Stop00OutO00Dlay30:Millis
+Options13=Actv01Stop00OutO00
+Options14=Actv01Stop00OutO00Dlay30:Millis
+Options15=Actv01Stop00OutO00
+Options16=Actv01Stop00OutO00Dlay30:Millis
+Options17=Actv01Stop00OutO00
+Options18=Actv01Stop00OutO00Dlay30:Millis
+Options19=Actv01Stop00OutO00
+Options2=Actv01Stop00OutO00Dlay30:Millis
+Options20=Actv01Stop00OutO00Dlay30:Millis
+Options21=Actv01Stop00OutO00
+Options22=Actv01Stop00OutO00Dlay30:Millis
+Options23=Actv01Stop00OutO00
+Options24=Actv01Stop00OutO00Dlay30:Millis
+Options25=Actv01Stop00OutO00
+Options26=Actv01Stop00OutO00Dlay30:Millis
+Options27=Actv01Stop00OutO00
+Options28=Actv01Stop00OutO00Dlay30:Millis
+Options29=Actv01Stop00OutO00
+Options3=Actv01Stop00OutO00
+Options30=Actv01Stop00OutO00Dlay30:Millis
+Options31=Actv01Stop00OutO00
+Options32=Actv01Stop00OutO00Dlay30:Millis
+Options33=Actv01Stop00OutO00
+Options34=Actv01Stop00OutO00Dlay30:Millis
+Options35=Actv01Stop00OutO00
+Options36=Actv01Stop00OutO00Dlay30:Millis
+Options37=Actv01Stop00OutO00
+Options38=Actv01Stop00OutO00Dlay30:Millis
+Options39=Actv01Stop00OutO00
+Options4=Actv01Stop00OutO00Dlay30:Millis
+Options40=Actv01Stop00OutO00Dlay30:Millis
+Options41=Actv01Stop00OutO00
+Options42=Actv01Stop00OutO00Dlay30:Millis
+Options43=Actv01Stop00OutO00
+Options44=Actv01Stop00OutO00Dlay30:Millis
+Options45=Actv01Stop00OutO00
+Options46=Actv01Stop00OutO00Dlay30:Millis
+Options47=Actv01Stop00OutO00
+Options48=Actv01Stop00OutO00Dlay30:Millis
+Options49=Actv01Stop00OutO00
+Options5=Actv01Stop00OutO00
+Options50=Actv01Stop00OutO00Dlay30:Millis
+Options51=Actv01Stop00OutO00
+Options52=Actv01Stop00OutO00Dlay30:Millis
+Options53=Actv01Stop00OutO00
+Options54=Actv01Stop00OutO00Dlay30:Millis
+Options55=Actv01Stop00OutO00
+Options56=Actv01Stop00OutO00Dlay30:Millis
+Options57=Actv01Stop00OutO00
+Options58=Actv01Stop00OutO00Dlay30:Millis
+Options59=Actv01Stop00OutO00
+Options6=Actv01Stop00OutO00Dlay30:Millis
+Options60=Actv01Stop00OutO00Dlay30:Millis
+Options61=Actv01Stop00OutO00
+Options62=Actv01Stop00OutO00Dlay30:Millis
+Options63=Actv01Stop00OutO00
+Options64=Actv01Stop00OutO00Dlay30:Millis
+Options65=Actv01Stop00OutO00
+Options66=Actv01Stop00OutO00Dlay30:Millis
+Options67=Actv01Stop00OutO00
+Options68=Actv01Stop00OutO00Dlay30:Millis
+Options69=Actv01Stop00OutO00
+Options7=Actv01Stop00OutO00
+Options70=Actv01Stop00OutO00Dlay30:Millis
+Options71=Actv01Stop00OutO00
+Options8=Actv01Stop00OutO00Dlay30:Millis
+Options9=Actv01Stop00OutO00
+Outgoing0=KAM11000KSQ1000105A
+Outgoing1=KAM12100KSQ1000105A
+Outgoing10=KAM11000KSQ1000104E
+Outgoing11=KAM12100KSQ1000104E
+Outgoing12=KAM11000KSQ1000104D
+Outgoing13=KAM12100KSQ1000104D
+Outgoing14=KAM11000KSQ10001061
+Outgoing15=KAM12100KSQ10001061
+Outgoing16=KAM11000KSQ10001062
+Outgoing17=KAM12100KSQ10001062
+Outgoing18=KAM11000KSQ10001063
+Outgoing19=KAM12100KSQ10001063
+Outgoing2=KAM11000KSQ10001058
+Outgoing20=KAM11000KSQ10001064
+Outgoing21=KAM12100KSQ10001064
+Outgoing22=KAM11000KSQ10001065
+Outgoing23=KAM12100KSQ10001065
+Outgoing24=KAM11000KSQ10001041
+Outgoing25=KAM12100KSQ10001041
+Outgoing26=KAM11000KSQ10001053
+Outgoing27=KAM12100KSQ10001053
+Outgoing28=KAM11000KSQ10001044
+Outgoing29=KAM12100KSQ10001044
+Outgoing3=KAM12100KSQ10001058
+Outgoing30=KAM11000KSQ10001046
+Outgoing31=KAM12100KSQ10001046
+Outgoing32=KAM11000KSQ10001047
+Outgoing33=KAM12100KSQ10001047
+Outgoing34=KAM11000KSQ10001048
+Outgoing35=KAM12100KSQ10001048
+Outgoing36=KAM11000KSQ1000104A
+Outgoing37=KAM12100KSQ1000104A
+Outgoing38=KAM11000KSQ1000104B
+Outgoing39=KAM12100KSQ1000104B
+Outgoing4=KAM11000KSQ10001043
+Outgoing40=KAM11000KSQ1000104C
+Outgoing41=KAM12100KSQ1000104C
+Outgoing42=KAM11000KSQ1000106D
+Outgoing43=KAM12100KSQ1000106D
+Outgoing44=KAM11000KSQ1000106B
+Outgoing45=KAM12100KSQ1000106B
+Outgoing46=KAM11000KSQ1000106E
+Outgoing47=KAM12100KSQ1000106E
+Outgoing48=KAM11000KSQ10001051
+Outgoing49=KAM12100KSQ10001051
+Outgoing5=KAM12100KSQ10001043
+Outgoing50=KAM11000KSQ10001057
+Outgoing51=KAM12100KSQ10001057
+Outgoing52=KAM11000KSQ10001045
+Outgoing53=KAM12100KSQ10001045
+Outgoing54=KAM11000KSQ10001052
+Outgoing55=KAM12100KSQ10001052
+Outgoing56=KAM11000KSQ10001054
+Outgoing57=KAM12100KSQ10001054
+Outgoing58=KAM11000KSQ10001059
+Outgoing59=KAM12100KSQ10001059
+Outgoing6=KAM11000KSQ10001056
+Outgoing60=KAM11000KSQ10001055
+Outgoing61=KAM12100KSQ10001055
+Outgoing62=KAM11000KSQ10001049
+Outgoing63=KAM12100KSQ10001049
+Outgoing64=KAM11000KSQ1000104F
+Outgoing65=KAM12000KSQ1000104F
+Outgoing66=KAM11000KSQ10001050
+Outgoing67=KAM12100KSQ10001050
+Outgoing68=KAM11000KSQ1000116F
+Outgoing69=KAM12100KSQ1000116F
+Outgoing7=KAM12100KSQ10001056
+Outgoing70=KAM11000KSQ1000106A
+Outgoing71=KAM12100KSQ1000106A
+Outgoing8=KAM11000KSQ10001042
+Outgoing9=KAM12100KSQ10001042
+PresetSwitchIgnore=0
+
+[Preset.1]
+Active=0
+Comments=
+Incoming0=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x24"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming1=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x24"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming10=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x29"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming100=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x56"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming101=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x56"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming11=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x29"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming12=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x2A"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming13=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x2A"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming14=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x2B"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming15=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x2B"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming16=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x2C"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming17=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x2C"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming18=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x2D"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming19=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x2D"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming2=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x25"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming20=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x2E"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming21=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x2E"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming22=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x2F"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming23=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x2F"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming24=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x30"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming25=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x30"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming26=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x31"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming27=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x31"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming28=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x32"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming29=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x32"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming3=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x25"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming30=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x33"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming31=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x33"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming32=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x34"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming33=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x34"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming34=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x35"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming35=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x35"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming36=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x36"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming37=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x36"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming38=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x37"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming39=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x37"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming4=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x26"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming40=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x38"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming41=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x38"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming42=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x39"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming43=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x39"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming44=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3A"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming45=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x3A"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming46=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3B"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming47=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x3B"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming48=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3C"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming49=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x3C"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming5=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x26"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming50=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3D"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming51=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x3D"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming52=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3E"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming53=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x3E"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming54=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x3F"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming55=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x3F"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming56=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x40"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming57=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x40"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming58=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x41"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming59=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x41"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming6=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x27"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming60=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x42"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming61=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x42"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming62=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x43"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming63=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x43"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming64=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x44"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming65=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x44"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming66=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x45"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming67=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x45"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming68=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x46"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming69=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x46"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming7=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x27"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming70=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x47"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming71=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x47"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming72=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x48"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming73=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x48"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming74=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x49"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming75=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x49"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming76=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4A"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming77=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x4A"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming78=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4B"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming79=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x4B"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming8=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x28"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming80=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4C"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming81=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x4C"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming82=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4D"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming83=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x4D"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming84=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4E"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming85=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x4E"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming86=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x4F"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming87=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x4F"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming88=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x50"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming89=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x50"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming9=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x28"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming90=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x51"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming91=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x51"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming92=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x52"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming93=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x52"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming94=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x53"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming95=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x53"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming96=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x54"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming97=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x54"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming98=MID3<Incoming Action="MIDI"><Simple Type="NoteOn"><Channel num="0" Type="Any"/><Value1 num="0x55"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Incoming99=MID3<Incoming Action="MIDI"><Simple Type="NoteOff"><Channel num="0" Type="Any"/><Value1 num="0x55"/><Value2 num="0x00" Type="Any"/></Simple></Incoming>
+Name=专业模式(没做完)
+Name0=0
+Name1=1
+Name10=10
+Name100=100
+Name101=101
+Name11=11
+Name12=12
+Name13=13
+Name14=14
+Name15=15
+Name16=16
+Name17=17
+Name18=18
+Name19=19
+Name2=2
+Name20=20
+Name21=21
+Name22=22
+Name23=23
+Name24=24
+Name25=25
+Name26=26
+Name27=27
+Name28=28
+Name29=29
+Name3=3
+Name30=30
+Name31=31
+Name32=32
+Name33=33
+Name34=34
+Name35=35
+Name36=36
+Name37=37
+Name38=38
+Name39=39
+Name4=4
+Name40=40
+Name41=41
+Name42=42
+Name43=43
+Name44=44
+Name45=45
+Name46=46
+Name47=47
+Name48=48
+Name49=49
+Name5=5
+Name50=50
+Name51=51
+Name52=52
+Name53=53
+Name54=54
+Name55=55
+Name56=56
+Name57=57
+Name58=58
+Name59=59
+Name6=6
+Name60=60
+Name61=61
+Name62=62
+Name63=63
+Name64=64
+Name65=65
+Name66=66
+Name67=67
+Name68=68
+Name69=69
+Name7=7
+Name70=70
+Name71=71
+Name72=72
+Name73=73
+Name74=74
+Name75=75
+Name76=76
+Name77=77
+Name78=78
+Name79=79
+Name8=8
+Name80=80
+Name81=81
+Name82=82
+Name83=83
+Name84=84
+Name85=85
+Name86=86
+Name87=87
+Name88=88
+Name89=89
+Name9=9
+Name90=90
+Name91=91
+Name92=92
+Name93=93
+Name94=94
+Name95=95
+Name96=96
+Name97=97
+Name98=98
+Name99=99
+Options0=Actv00Stop00OutO00
+Options1=Actv00Stop00OutO00
+Options10=Actv00Stop00OutO00
+Options100=Actv01Stop00OutO00
+Options101=Actv01Stop00OutO00
+Options11=Actv00Stop00OutO00
+Options12=Actv00Stop00OutO00
+Options13=Actv00Stop00OutO00
+Options14=Actv00Stop00OutO00
+Options15=Actv00Stop00OutO00
+Options16=Actv00Stop00OutO00
+Options17=Actv00Stop00OutO00
+Options18=Actv00Stop00OutO00
+Options19=Actv00Stop00OutO00
+Options2=Actv00Stop00OutO00
+Options20=Actv00Stop00OutO00
+Options21=Actv00Stop00OutO00
+Options22=Actv00Stop00OutO00
+Options23=Actv00Stop00OutO00
+Options24=Actv01Stop00OutO00
+Options25=Actv01Stop00OutO00
+Options26=Actv01Stop00OutO00
+Options27=Actv01Stop00OutO00
+Options28=Actv01Stop00OutO00
+Options29=Actv01Stop00OutO00
+Options3=Actv00Stop00OutO00
+Options30=Actv01Stop00OutO00
+Options31=Actv01Stop00OutO00
+Options32=Actv01Stop00OutO00
+Options33=Actv01Stop00OutO00
+Options34=Actv01Stop00OutO00
+Options35=Actv01Stop00OutO00
+Options36=Actv01Stop00OutO00
+Options37=Actv01Stop00OutO00
+Options38=Actv01Stop00OutO00
+Options39=Actv01Stop00OutO00
+Options4=Actv00Stop00OutO00
+Options40=Actv01Stop00OutO00
+Options41=Actv01Stop00OutO00
+Options42=Actv01Stop00OutO00
+Options43=Actv01Stop00OutO00
+Options44=Actv01Stop00OutO00
+Options45=Actv01Stop00OutO00
+Options46=Actv01Stop00OutO00
+Options47=Actv01Stop00OutO00
+Options48=Actv01Stop00OutO00Dlay30:Millis
+Options49=Actv01Stop00OutO00
+Options5=Actv00Stop00OutO00
+Options50=Actv01Stop00OutO00Dlay30:Millis
+Options51=Actv01Stop00OutO00
+Options52=Actv01Stop00OutO00Dlay30:Millis
+Options53=Actv01Stop00OutO00
+Options54=Actv01Stop00OutO00Dlay30:Millis
+Options55=Actv01Stop00OutO00
+Options56=Actv01Stop00OutO00Dlay30:Millis
+Options57=Actv01Stop00OutO00
+Options58=Actv01Stop00OutO00Dlay30:Millis
+Options59=Actv01Stop00OutO00
+Options6=Actv00Stop00OutO00
+Options60=Actv01Stop00OutO00Dlay30:Millis
+Options61=Actv01Stop00OutO00
+Options62=Actv01Stop00OutO00Dlay30:Millis
+Options63=Actv01Stop00OutO00
+Options64=Actv01Stop00OutO00Dlay30:Millis
+Options65=Actv01Stop00OutO00
+Options66=Actv01Stop00OutO00Dlay30:Millis
+Options67=Actv01Stop00OutO00
+Options68=Actv01Stop00OutO00Dlay30:Millis
+Options69=Actv01Stop00OutO00
+Options7=Actv00Stop00OutO00
+Options70=Actv01Stop00OutO00Dlay30:Millis
+Options71=Actv01Stop00OutO00
+Options72=Actv01Stop00OutO00Dlay30:Millis
+Options73=Actv01Stop00OutO00
+Options74=Actv01Stop00OutO00Dlay30:Millis
+Options75=Actv01Stop00OutO00
+Options76=Actv01Stop00OutO00Dlay30:Millis
+Options77=Actv01Stop00OutO00
+Options78=Actv01Stop00OutO00Dlay30:Millis
+Options79=Actv01Stop00OutO00
+Options8=Actv00Stop00OutO00
+Options80=Actv01Stop00OutO00Dlay30:Millis
+Options81=Actv01Stop00OutO00
+Options82=Actv01Stop00OutO00Dlay30:Millis
+Options83=Actv01Stop00OutO00
+Options84=Actv01Stop00OutO00Dlay30:Millis
+Options85=Actv01Stop00OutO00
+Options86=Actv01Stop00OutO00Dlay30:Millis
+Options87=Actv01Stop00OutO00
+Options88=Actv01Stop00OutO00
+Options89=Actv01Stop00OutO00
+Options9=Actv00Stop00OutO00
+Options90=Actv01Stop00OutO00
+Options91=Actv01Stop00OutO00
+Options92=Actv01Stop00OutO00
+Options93=Actv01Stop00OutO00
+Options94=Actv01Stop00OutO00
+Options95=Actv01Stop00OutO00
+Options96=Actv01Stop00OutO00
+Options97=Actv01Stop00OutO00
+Options98=Actv01Stop00OutO00
+Options99=Actv01Stop00OutO00
+Outgoing0=KAM11000KSQ1000105A
+Outgoing1=KAM12100KSQ1000105A
+Outgoing10=KAM11000KSQ1000104E
+Outgoing100=KAM11000KSQ10001069
+Outgoing101=KAM12100KSQ10001069
+Outgoing11=KAM12100KSQ1000104E
+Outgoing12=KAM11000KSQ1000104D
+Outgoing13=KAM12100KSQ1000104D
+Outgoing14=KAM11000KSQ100011A5
+Outgoing15=KAM12100KSQ100011A5
+Outgoing16=KAM11000KSQ1000106E
+Outgoing17=KAM12100KSQ1000106E
+Outgoing18=KAM11000KSQ1000106B
+Outgoing19=KAM12100KSQ1000106B
+Outgoing2=KAM11000KSQ10001058
+Outgoing20=KAM11000KSQ10001061
+Outgoing21=KAM12100KSQ10001061
+Outgoing22=KAM11000KSQ10001062
+Outgoing23=KAM12100KSQ10001062
+Outgoing24=KAM11000KSQ1000105A
+Outgoing25=KAM12100KSQ1000105A
+Outgoing26=KAM11000KSQ10001058
+Outgoing27=KAM12100KSQ10001058
+Outgoing28=KAM11000KSQ10001043
+Outgoing29=KAM12100KSQ10001043
+Outgoing3=KAM12100KSQ10001058
+Outgoing30=KAM11000KSQ10001056
+Outgoing31=KAM12100KSQ10001056
+Outgoing32=KAM11000KSQ10001042
+Outgoing33=KAM12100KSQ10001042
+Outgoing34=KAM11000KSQ1000104E
+Outgoing35=KAM12100KSQ1000104E
+Outgoing36=KAM11000KSQ1000104D
+Outgoing37=KAM12100KSQ1000104D
+Outgoing38=KAM11000KSQ10001061
+Outgoing39=KAM12100KSQ10001061
+Outgoing4=KAM11000KSQ10001043
+Outgoing40=KAM11000KSQ10001062
+Outgoing41=KAM12100KSQ10001062
+Outgoing42=KAM11000KSQ10001063
+Outgoing43=KAM12100KSQ10001063
+Outgoing44=KAM11000KSQ10001064
+Outgoing45=KAM12100KSQ10001064
+Outgoing46=KAM11000KSQ10001065
+Outgoing47=KAM12100KSQ10001065
+Outgoing48=KAM11000KSQ10001041
+Outgoing49=KAM12100KSQ10001041
+Outgoing5=KAM12000KSQ10001043
+Outgoing50=KAM11000KSQ10001053
+Outgoing51=KAM12100KSQ10001053
+Outgoing52=KAM11000KSQ10001044
+Outgoing53=KAM12100KSQ10001044
+Outgoing54=KAM11000KSQ10001046
+Outgoing55=KAM12100KSQ10001046
+Outgoing56=KAM11000KSQ10001047
+Outgoing57=KAM12100KSQ10001047
+Outgoing58=KAM11000KSQ10001048
+Outgoing59=KAM12100KSQ10001048
+Outgoing6=KAM11000KSQ10001056
+Outgoing60=KAM11000KSQ1000104A
+Outgoing61=KAM12100KSQ1000104A
+Outgoing62=KAM11000KSQ1000104B
+Outgoing63=KAM12100KSQ1000104B
+Outgoing64=KAM11000KSQ1000104C
+Outgoing65=KAM12100KSQ1000104C
+Outgoing66=KAM11000KSQ1000106D
+Outgoing67=KAM12100KSQ1000106D
+Outgoing68=KAM11000KSQ1000106B
+Outgoing69=KAM12100KSQ1000106B
+Outgoing7=KAM12100KSQ10001056
+Outgoing70=KAM11000KSQ1000106E
+Outgoing71=KAM12100KSQ1000106E
+Outgoing72=KAM11000KSQ10001051
+Outgoing73=KAM12100KSQ10001051
+Outgoing74=KAM11000KSQ10001057
+Outgoing75=KAM12100KSQ10001057
+Outgoing76=KAM11000KSQ10001045
+Outgoing77=KAM12100KSQ10001045
+Outgoing78=KAM11000KSQ10001052
+Outgoing79=KAM12100KSQ10001052
+Outgoing8=KAM11000KSQ10001042
+Outgoing80=KAM11000KSQ10001054
+Outgoing81=KAM12100KSQ10001054
+Outgoing82=KAM11000KSQ10001059
+Outgoing83=KAM12100KSQ10001059
+Outgoing84=KAM11000KSQ10001055
+Outgoing85=KAM12100KSQ10001055
+Outgoing86=KAM11000KSQ10001049
+Outgoing87=KAM12100KSQ10001049
+Outgoing88=KAM11000KSQ1000104F
+Outgoing89=KAM12000KSQ1000104F
+Outgoing9=KAM12100KSQ10001042
+Outgoing90=KAM11000KSQ10001050
+Outgoing91=KAM12100KSQ10001050
+Outgoing92=KAM11000KSQ1000116F
+Outgoing93=KAM12100KSQ1000116F
+Outgoing94=KAM11000KSQ1000106A
+Outgoing95=KAM12100KSQ1000106A
+Outgoing96=KAM11000KSQ10001067
+Outgoing97=KAM12100KSQ10001067
+Outgoing98=KAM11000KSQ10001068
+Outgoing99=KAM12100KSQ10001068
+PresetSwitchIgnore=0
+
+[Project]
+DefaultInPorts=MIDA00010013Bome Virtual Port 1
+DefaultOutPorts=MIDA0001001CMicrosoft GS Wavetable Synth
+Version=2
+

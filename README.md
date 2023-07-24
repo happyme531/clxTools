@@ -112,7 +112,7 @@
 ### 逆水寒手游_宅邸聆音摆放
 
 在逆水寒手游的庄园中自动摆放聆音骨牌, 跑过去就能播放音乐. [效果展示](https://www.bilibili.com/video/BV11j411o7Az)
-基于**楚留香音乐盒**的算法输出, 因此效果很好.
+基于**楚留香音乐盒**的算法, 因此效果很好.
 
 ### 特性诗.txt
 
@@ -135,7 +135,7 @@
 
 [![Star History Chart](https://api.star-history.com/svg?repos=happyme531/clxTools&type=Date)](https://star-history.com/#happyme531/clxTools&Date)
 
---------;  
+--------  
 
 ### by 一梦江湖(楚留香)::声声慢::心慕流霞::李芒果 / 逆水寒手游::蝶念花::踏月留香::李芒果
 
