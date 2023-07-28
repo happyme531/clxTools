@@ -6,6 +6,7 @@ function MidiParser() {
      * @returns {import("./musicFormats").TracksData} 音乐数据
      */
     this.parseFile = function (filePath) {
+        // https://github.com/bhaeussermann/MidiReader
         let dexPath = files.cwd() + "/src/MidiReader.dex"
         runtime.loadDex(dexPath);
 
@@ -18,13 +19,24 @@ function MidiParser() {
         let trackInfos = midiFileInfo.getTrackInfos();
         let tracksData = [];
         let it = trackInfos.iterator();
+        let trackMap = new Map();
         while (it.hasNext()) {
             let trackInfo = it.next();
-            tracksData.push({
-                "name": trackInfo.getTrackName(),
-                "noteCount": 0,
-                "notes": new Array()
-            });
+            //java.util.Collection
+            let channels = trackInfo.getChannels();
+            let channelIt = channels.iterator();
+            while (channelIt.hasNext()) {
+                let channel = channelIt.next();
+                tracksData.push({
+                    "name": trackInfo.getTrackName(),
+                    "channel": channel.getChannelNumber(),
+                    "trackIndex": channel.getTrackNumber(),
+                    "instrumentId": -1, //稍后再设置
+                    "noteCount": 0,
+                    "notes": new Array()
+                });
+                trackMap.set(channel.hashCode(), tracksData.length - 1);
+            }
         }
 
         let tracks = new Array(tracksData.length);
@@ -34,9 +46,24 @@ function MidiParser() {
         it = reader.iterator();
         while (it.hasNext()) {
             let event = it.next();
+            console.log(JSON.stringify(event));
             if (event instanceof NoteMidiEvent) {
-                let trackIndex = event.getChannel().getTrackNumber(); //要考虑Channel吗? 不知道, 先不考虑
+                let trackIndex = trackMap.get(event.getChannel().hashCode());
+                if (trackIndex == undefined) continue; //不知道为什么
                 tracks[trackIndex].push(event);
+            } else if (event instanceof StateChangeMidiEvent) {  
+                switch (event.getStateChangeType()) {
+                    case StateChangeMidiEvent.StateChangeType.PROGRAM_CHANGE: { //FIXME: 这些事件似乎会被不正确地吞掉, 导致乐器为-1
+                        let channelNumber = event.getChannelNumber();
+                        for (let trackData of tracksData) {
+                            if (trackData.channel === channelNumber) {
+                                trackData.instrumentId = event.getValue1();
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
             } else if (event instanceof MetaMidiEvent) {
                 switch (event.getMetaEventType()) {
                     case MetaMidiEvent.MetaEventType.SET_TEMPO: {
@@ -88,7 +115,11 @@ function MidiParser() {
             }
         }
         // console.log("MidiParser.parseFile: " + JSON.stringify(tracksData));
-
+        console.verbose("音轨:");
+        for (let i = 0; i < tracksData.length; i++) {
+            let trackData = tracksData[i];
+            console.verbose("音轨%s, 通道%s, 乐器%s, 音符数%s", trackData.trackIndex, trackData.channel, trackData.instrumentId, trackData.noteCount);
+        }
         return {
             "haveMultipleTrack": true,
             "durationType": "native",

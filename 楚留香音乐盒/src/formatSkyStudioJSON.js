@@ -52,6 +52,9 @@ function SkyStudioJSONParser(){
             "tracks": [
                 {
                     "name": name,
+                    "channel": 0,
+                    "instrumentId": 0,
+                    "trackIndex": 0,
                     "noteCount": ret.length,
                     "notes": ret
                 }

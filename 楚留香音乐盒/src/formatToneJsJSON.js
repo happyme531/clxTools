@@ -16,6 +16,7 @@ function ToneJsJSONParser() {
 
         let trackCount = jsonData.tracks.length;
         let tracksData = [];
+        // Tone.js会把同一个音轨, 不同Channel的音符分开
         for (let i = 0; i < trackCount; i++) {
             let track = jsonData.tracks[i];
             /** @type {import("./musicFormats").Note[]} */
@@ -28,6 +29,9 @@ function ToneJsJSONParser() {
             }
             tracksData.push({
                 "name": track.name,
+                "channel": track.channel,
+                "instrumentId": track.instrument.number,
+                "trackIndex": i,
                 "noteCount": notes.length,
                 "notes": notes
             });

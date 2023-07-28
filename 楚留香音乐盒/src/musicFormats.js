@@ -40,7 +40,14 @@ const NoteDurationType = {
  * 一些类型定义
  * @typedef {[pitch: number, startTime: number, attributes: Object|undefined]} Note
  * @typedef {[pitches: number[], startTime: number]} Chord
- * @typedef {{name: string, noteCount: number, notes: Note[]}} Track
+ * @typedef {{
+ * name: string, 
+ * channel: number,
+ * trackIndex: number,
+ * instrumentId: number,
+ * noteCount: number, 
+ * notes: Note[]
+ * }} Track
  * @typedef {{name: string, value: any}} Metadata
  * @typedef {{
  * haveMultipleTrack: boolean, 

@@ -135,7 +135,6 @@ function DoMiSoTextParser(){
      * @returns {import("./musicFormats").TracksData} 音乐数据
      */
     this.parseFile = function(filePath,parserConfig){
-
         let f = open(filePath,"r");
         let lines = f.readlines();
         f.close();
@@ -226,6 +225,9 @@ function DoMiSoTextParser(){
             "tracks": [
                 {
                     "name": "",
+                    "channel": 0,
+                    "instrumentId": 0,
+                    "trackIndex": 0,
                     "noteCount": ret.length,
                     "notes": ret
                 }
