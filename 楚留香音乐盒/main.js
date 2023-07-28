@@ -494,7 +494,7 @@ function selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty) {
             avgPitch += track.notes[j][0];
         }
         avgPitch /= track.notes.length;
-        trackInfoStrs.push(i + ": " + track.name + " (" + track.noteCount + "个音符, 平均音高" + avgPitch.toFixed(1) + ")");
+        trackInfoStrs.push(track.name + " (" + track.noteCount + "个音符, 平均音高" + avgPitch.toFixed(1) + ")");
     }
     let selectedTracksNonEmpty = dialogs.multiChoice("选择音轨", trackInfoStrs, lastSelectedTracksNonEmpty);
     if (selectedTracksNonEmpty.length == 0) { //取消选择, 保持原样
