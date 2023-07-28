@@ -46,7 +46,6 @@ function MidiParser() {
         it = reader.iterator();
         while (it.hasNext()) {
             let event = it.next();
-            console.log(JSON.stringify(event));
             if (event instanceof NoteMidiEvent) {
                 let trackIndex = trackMap.get(event.getChannel().hashCode());
                 if (trackIndex == undefined) continue; //不知道为什么

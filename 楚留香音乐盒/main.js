@@ -743,7 +743,7 @@ function runFileConfigSetup(fullFileName) {
     let rawFileName = musicFormats.getFileNameWithoutExtension(fileName);
     let configChanged = false;
     const maxClickSpeedHz = 20;
-    view = ui.inflate(
+    const view = ui.inflate(
         <ScrollView margin="0dp" padding="0dp">
             <vertical margin="0dp" padding="0dp">
                 <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
@@ -1590,7 +1590,10 @@ function loadMusicFile(fileName, exportScore) {
         console.log("选择的音轨:" + JSON.stringify(selectedTracksNonEmpty));
         //合并
         for (let i = 0; i < selectedTracksNonEmpty.length; i++) {
+            if(selectedTracksNonEmpty[i] >= nonEmptyTrackCount) continue; 
             let track = tracksData.tracks[selectedTracksNonEmpty[i]];
+            //通道10(打击乐) 永远不会被合并
+            if (track.channel === 9) continue;
             noteData = noteData.concat(track.notes);
         }
         //按时间排序
