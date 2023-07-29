@@ -33,6 +33,9 @@ const autoPlayMergeThreshold = 0.01;
 //用于乐谱导出的合并阈值
 const scoreExportMergeThreshold = 0.2;
 
+//应用名称, 稍后会被初始化
+let appName = undefined;
+
 let musicFormats = new MusicFormats();
 let gameProfile = new GameProfile();
 let visualizer = new Visualizer();
@@ -54,15 +57,12 @@ const ScoreExportType = {
 };
 
 
-//加载配置文件
+/**
+ * @brief 加载配置文件
+ */
 function loadConfiguration() {
     try {
-        //启动无障碍服务
-        console.verbose("等待无障碍服务..");
-        //toast("请允许本应用的无障碍权限");
-        auto.waitFor();
-        console.verbose("无障碍服务已启动");
-        //TODO: 自定义配置
+        // TODO: 自定义配置
         let userGameProfile = readGlobalConfig("userGameProfile", null);
         if (userGameProfile != null) {
             gameProfile.loadGameConfigs(userGameProfile);
@@ -80,15 +80,19 @@ function loadConfiguration() {
         }
 
         //尝试通过包名加载游戏配置 (加载失败后保留当前配置)
-        let currentPackageName = currentPackage();
-        console.log("当前包名:" + currentPackageName);
-        res = gameProfile.setConfigByPackageName(currentPackageName);
-        if (res == false) {
-            console.log("尝试通过包名加载游戏配置...失败!");
-        } else {
-            console.log("尝试通过包名加载游戏配置...成功, 当前配置: " + gameProfile.getCurrentConfigTypeName());
-            //保存当前配置
-            setGlobalConfig("activeConfigName", gameProfile.getCurrentConfigTypeName());
+        if (auto.service != null) {
+            let currentPackageName = currentPackage();
+            console.log("当前包名:" + currentPackageName);
+            res = gameProfile.setConfigByPackageName(currentPackageName);
+            if (res == false) {
+                console.log("尝试通过包名加载游戏配置...失败!");
+            } else {
+                console.log("尝试通过包名加载游戏配置...成功, 当前配置: " + gameProfile.getCurrentConfigTypeName());
+                //保存当前配置
+                setGlobalConfig("activeConfigName", gameProfile.getCurrentConfigTypeName());
+            }
+        }else{
+            console.log("未启用无障碍服务, 跳过尝试通过包名加载游戏配置");
         }
 
         if (gameProfile.getCurrentConfig() == null) {
@@ -137,7 +141,7 @@ function loadConfiguration() {
 
     } catch (error) {
         toastLog("加载配置文件失败! 已自动加载默认配置!");
-        toastLog(error);
+        console.warn(error);
         gameProfile.loadDefaultGameConfigs();
         setGlobalConfig("userGameProfile", null);
     }
@@ -1184,15 +1188,9 @@ function main() {
     });
 
     controlWindow.pauseResumeBtn.click(() => {
-        if (player.getState() == player.PlayerStates.PAUSED) {
-            player.resume();
-        } else if (player.getState() == player.PlayerStates.PLAYING) {
-            player.pause();
-        } else if (player.getState() == player.PlayerStates.FINISHED) {
-            player.seekTo(0);
-            player.resume();
-        }
+        evt.emit("pauseResumeBtnClick");
     });
+
     controlWindow.progressBar.setOnSeekBarChangeListener({
         onProgressChanged: function (seekBar, progress0, fromUser) {
             if (fromUser) {
@@ -1316,6 +1314,31 @@ function main() {
     });
 
     //主函数, 处理事件和进度更新
+    evt.on("pauseResumeBtnClick", () => {
+        function checkEnableAccessbility() {
+            //启动无障碍服务
+            console.verbose("等待无障碍服务..");
+            //toast("请允许本应用的无障碍权限");
+            if(auto.service == null){
+                toastLog(`请打开应用 "${appName}" 的无障碍权限!`);
+                auto.waitFor();
+                toastLog(`无障碍权限已开启!, 请回到游戏重新点击播放`);
+                return false;
+            }
+            console.verbose("无障碍服务已启动");
+            return true;
+        }
+        if (player.getState() == player.PlayerStates.PAUSED) {
+            if(!checkEnableAccessbility()) return;
+            player.resume();
+        } else if (player.getState() == player.PlayerStates.PLAYING) {
+            player.pause();
+        } else if (player.getState() == player.PlayerStates.FINISHED) {
+            if(!checkEnableAccessbility()) return;
+            player.seekTo(0);
+            player.resume();
+        }
+    });
 
     evt.on("fileSelect", () => {
         player.stop();
@@ -1702,6 +1725,9 @@ function loadMusicFile(fileName, exportScore) {
 }
 
 function start() {
+    //获取真实的应用名称
+    const packageManager = context.getPackageManager();
+    appName = packageManager.getApplicationLabel(context.getApplicationInfo()).toString();
     initialize();
     loadConfiguration();
     main();
