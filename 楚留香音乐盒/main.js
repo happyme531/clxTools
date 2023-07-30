@@ -843,6 +843,18 @@ function runFileConfigSetup(fullFileName) {
                         </horizontal>
                     </vertical>
                 </card>
+                <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
+                    <vertical>
+                        <text text="伪装手弹(全局):" textColor="red" />
+                        <horizontal w="*">
+                            {/* 5~150ms, 线性, 默认0->不使用*/}
+                            <text text="音符时间偏差: " />
+                            <checkbox id="noteTimeDeviationCheckbox" />
+                            <text text="defaultms" id="noteTimeDeviationValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                        </horizontal>
+                        <seekbar id="noteTimeDeviationSeekbar" w="*" max="1000" layout_gravity="center" />
+                    </vertical>
+                </card>
             </vertical>
         </ScrollView>
     );
@@ -869,6 +881,12 @@ function runFileConfigSetup(fullFileName) {
         if (progress == undefined) return;
         let value = numberRevMap(progress, 1, 99);
         view.trackDisableThresholdValueText.setText(value.toFixed(2) + "%");
+        return true;
+    });
+    view.noteTimeDeviationSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
+        if (progress == undefined) return;
+        let value = numberRevMap(progress, 5, 150);
+        view.noteTimeDeviationValueText.setText(value.toFixed(2) + "ms");
         return true;
     });
     view.autoTuneButton.click(() => {
@@ -950,6 +968,12 @@ function runFileConfigSetup(fullFileName) {
         let minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName, 0);
         view.minorPitchOffsetValueText.setText(minorPitchOffset.toFixed(0));
         view.minorPitchOffsetSeekbar.setProgress(minorPitchOffset + 4);
+        //伪装手弹
+        let noteTimeDeviation = readGlobalConfig("humanifyNoteAbsTimeStdDev", 0);
+        view.noteTimeDeviationValueText.setText(noteTimeDeviation.toFixed(2) + "ms");
+        view.noteTimeDeviationCheckbox.setChecked(noteTimeDeviation != 0);
+        view.noteTimeDeviationSeekbar.setProgress(numberMap(noteTimeDeviation, 5, 150));
+
     }).on("positive", (dialog) => {
         let limitClickSpeedHz = view.limitClickSpeedCheckbox.isChecked() ?
             numberRevMapLog(view.limitClickSpeedSeekbar.getProgress(), 1, maxClickSpeedHz) : 0;
@@ -959,12 +983,16 @@ function runFileConfigSetup(fullFileName) {
         let halfCeiling = view.halfCeilingSetting_roundUp.isChecked();
         let majorPitchOffset = view.majorPitchOffsetSeekbar.getProgress() - 2;
         let minorPitchOffset = view.minorPitchOffsetSeekbar.getProgress() - 4;
+        let noteTimeDeviation = view.noteTimeDeviationCheckbox.isChecked() ?
+            numberRevMap(view.noteTimeDeviationSeekbar.getProgress(), 5, 150) : 0;
         setFileConfig("limitClickSpeedHz", limitClickSpeedHz, rawFileName);
         setFileConfig("speedMultiplier", speedMultiplier, rawFileName);
         setFileConfig("halfCeiling", halfCeiling, rawFileName);
         setFileConfig("majorPitchOffset", majorPitchOffset, rawFileName);
         setFileConfig("minorPitchOffset", minorPitchOffset, rawFileName);
         setGlobalConfig("defaultClickDuration", defaultClickDuration);
+        setGlobalConfig("humanifyNoteAbsTimeStdDev", noteTimeDeviation);
+        
         dialog.dismiss();
         finished = true;
         configChanged = true;
@@ -991,7 +1019,7 @@ function runFileListSetup(fileList) {
 };
 
 function runGlobalSetup() {
-    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "选择游戏/乐器", "设置坐标", "伪装手弹模式", "乐谱可视化"])) {
+    switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "选择游戏/乐器", "设置坐标", "乐谱可视化"])) {
         case -1:
             break;
         case 0:
@@ -1053,51 +1081,7 @@ function runGlobalSetup() {
             runClickPosSetup();
 
             break;
-
-        case 3: //伪装手弹模式
-            let humanifyEnabled = readGlobalConfig("humanifyEnabled", false);
-            let setupFinished = false;
-            let enterDetailedSetup = false;
-            let dial = dialogs.build({
-                title: "伪装手弹模式",
-                content: "要开启假装手弹模式吗？",
-                positive: "开启",
-                negative: "关闭",
-                neutral: "更改设置...",
-                cancelable: true,
-                canceledOnTouchOutside: false,
-            }).on("positive", () => {
-                setGlobalConfig("humanifyEnabled", true);
-                setupFinished = true;
-                dial.dismiss();
-            }).on("negative", () => {
-                setGlobalConfig("humanifyEnabled", false);
-                setupFinished = true;
-                dial.dismiss();
-            }).on("neutral", () => {
-                enterDetailedSetup = true;
-                setupFinished = true;
-            }).show();
-            while (!setupFinished) {
-                sleep(100);
-            }
-            if (enterDetailedSetup) {
-                let humanifyNoteAbsTimeStdDev = readGlobalConfig("humanifyNoteAbsTimeStdDev", 50);
-
-                let res = dialogs.rawInput("设置平均偏差时间(毫秒), 越高->偏差越大", humanifyNoteAbsTimeStdDev.toString());
-                if (res === null) {
-                    toastLog("设置没有改变");
-                } else {
-                    try {
-                        setGlobalConfig("humanifyNoteAbsTimeStdDev", parseInt(res));
-                    } catch (error) {
-                        toastLog("输入无效, 设置没有改变");
-                        console.error(error);
-                    }
-                }
-            }
-            break;
-        case 4: //乐谱可视化
+        case 3: //乐谱可视化
             let visualizerEnabled = dialogs.confirm("乐谱可视化", "是否要开启乐谱可视化?");
             setGlobalConfig("visualizerEnabled", visualizerEnabled);
             break;
@@ -1573,7 +1557,7 @@ function loadMusicFile(fileName, exportScore) {
     };
 
 
-    let humanifyEnabled = readGlobalConfig("humanifyEnabled", false);
+    let humanifyNoteAbsTimeStdDev = readGlobalConfig("humanifyNoteAbsTimeStdDev", 0)
     let majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName, 0);
     let minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName, 0);
     let treatHalfAsCeiling = readFileConfig("halfCeiling", rawFileName, false);
@@ -1641,11 +1625,13 @@ function loadMusicFile(fileName, exportScore) {
 
     progressDialog.setContent("正在伪装手弹...");
     //伪装手弹
-    passManager.addPass(humanifyEnabled ? "HumanifyPass" : "NopPass", {
-        noteAbsTimeStdDev: readGlobalConfig("humanifyNoteAbsTimeStdDev", 50)
-    }, null, () => {
-        progressDialog.setContent("正在生成按键...");
-    });
+    if (humanifyNoteAbsTimeStdDev > 0) {
+        passManager.addPass("HumanifyPass", {
+            noteAbsTimeStdDev: humanifyNoteAbsTimeStdDev
+        }, null, () => {
+            progressDialog.setContent("正在生成按键...");
+        });
+    }
     //生成按键
     passManager.addPass("NoteToKeyPass", {
         majorPitchOffset: majorPitchOffset,
@@ -1721,11 +1707,11 @@ function loadMusicFile(fileName, exportScore) {
     //数据汇总
     let outRangedNoteCnt = overFlowedNoteCnt + underFlowedNoteCnt;
 
-    let statString = "音符总数:" + inputNoteCnt + " -> " + finalNoteCnt +
+    const statString = "音符总数:" + inputNoteCnt + " -> " + finalNoteCnt +
         "\n超出范围被丢弃的音符数:" + outRangedNoteCnt + "" + " (+" + overFlowedNoteCnt + ", -" + underFlowedNoteCnt + ")(" + (outRangedNoteCnt / inputNoteCnt * 100).toFixed(2) + "%)" +
         "\n被取整的音符数:" + roundedNoteCnt + " (" + (roundedNoteCnt / inputNoteCnt * 100).toFixed(2) + "%)" +
         "\n过于密集被丢弃的音符数:" + droppedNoteCnt + " (" + (droppedNoteCnt / finalNoteCnt * 100).toFixed(2) + "%)" +
-        "\n如果被取整的音符数过多,可以尝试在 调整音高 菜单中升高/降低一个半音";
+        "\n如果被取整的音符数过多, 请在菜单中选择自动调整";
     dialogs.alert("乐曲信息", statString);
 
     return gestureTimeList;
