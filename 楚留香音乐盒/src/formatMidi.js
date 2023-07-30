@@ -18,6 +18,14 @@ function MidiParser() {
         let usperTick = midiFileInfo.getMicrosecondsPerTick() == 0 ? 5000 : midiFileInfo.getMicrosecondsPerTick();
         let trackInfos = midiFileInfo.getTrackInfos();
         let tracksData = [];
+        tracksData.push({
+            "name": "",
+            "channel": 0,
+            "trackIndex": 0,
+            "instrumentId": -1, 
+            "noteCount": 0,
+            "notes": new Array()
+        });
         let it = trackInfos.iterator();
         let trackMap = new Map();
         while (it.hasNext()) {
@@ -48,7 +56,10 @@ function MidiParser() {
             let event = it.next();
             if (event instanceof NoteMidiEvent) {
                 let trackIndex = trackMap.get(event.getChannel().hashCode());
-                if (trackIndex == undefined) continue; //不知道为什么
+                if (trackIndex == undefined) {
+                    tracks[0].push(event);
+                    continue;
+                }
                 tracks[trackIndex].push(event);
             } else if (event instanceof StateChangeMidiEvent) {  
                 switch (event.getStateChangeType()) {
