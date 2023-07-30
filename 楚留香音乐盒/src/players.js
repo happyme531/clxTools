@@ -1,9 +1,23 @@
 //@ts-check
 //players.js -- 实现播放/演奏功能
 
+function NormalDistributionRandomizer(mean, stddev) {
+    this.mean = mean;
+    this.stddev = stddev;
+
+    this.next = function () {
+        var u = 0, v = 0;
+        while (u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+        while (v === 0) v = Math.random();
+        var num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        num = num * this.stddev + this.mean;
+        return num;
+    }
+}
 
 /**
- * @typedef {Array<[number,number,...import("./gameProfile").pos2d]>} Gestures
+ * 
+ * @typedef {Array<[delay: number,duration: number, points: ...import("./gameProfile").pos2d[]]>} Gestures
  */
 
 function AutoJsGesturePlayer(){
@@ -69,11 +83,33 @@ function AutoJsGesturePlayer(){
     let playSpeed = 1;
 
     /**
+     * @type number
+     * @description 点击位置的平均偏差(像素)
+     * @private
+     * @default 0
+     */
+    let clickPositionDeviationPx = 0;
+
+    /**
+     * @type {NormalDistributionRandomizer|null}
+     */
+    let clickPositionDeviationRandomizer = null;
+
+    /**
      * @brief 设置手势和时间数据
      * @param {Array<[Gestures, number]>} gestureTimeList_ 手势和时间数据
      */
     this.setGestureTimeList = function(gestureTimeList_){
         gestureTimeList = gestureTimeList_;
+    }
+
+    /**
+     * @brief 设置点击位置的平均偏差(像素)
+     * @param {number} clickPositionDeviationPx_ 点击位置的平均偏差(像素)
+     */
+    this.setClickPositionDeviationPx = function(clickPositionDeviationPx_){
+        clickPositionDeviationPx = clickPositionDeviationPx_;
+        clickPositionDeviationRandomizer = new NormalDistributionRandomizer(0, clickPositionDeviationPx);
     }
 
     /**
@@ -176,6 +212,27 @@ function AutoJsGesturePlayer(){
     }
 
     /**
+     * @brief 对这组手势做处理
+     * @param {Gestures} gestures 手势
+     * @returns {Gestures} 处理后的手势
+     */
+    function transformGesture(gestures){
+        //随机偏移
+        if (clickPositionDeviationPx > 0) {
+            gestures.forEach(gesture => {
+                let deviation, angle;
+                do {
+                    deviation = clickPositionDeviationRandomizer.next();
+                } while (Math.abs(deviation) > 3 * clickPositionDeviationPx); 
+                angle = Math.random() * 2 * Math.PI;
+                gesture[2][0] += deviation * Math.cos(angle);
+                gesture[2][1] += deviation * Math.sin(angle);
+            });
+        }
+        return gestures;
+    }
+
+    /**
      * @brief 播放线程函数
      * @private
      */
@@ -237,6 +294,8 @@ function AutoJsGesturePlayer(){
                         position++;
                         break;
                     }
+                    //处理手势
+                    currentNote = transformGesture(currentNote);
                     //播放
                     gestures.apply(null, currentNote);
                     position++;

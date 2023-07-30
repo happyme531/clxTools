@@ -188,29 +188,6 @@ function requireShared(fileName) {
     return require(cacheDir + fileName);
 }
 
-function getJsonLength(json) {
-    var jsonLength = 0;
-    for (var i in json) {
-        jsonLength++;
-    }
-    return jsonLength;
-};
-
-function getRawFileNameList() {// let humanifyer = new Humanifyer();
-    //遍历synth文件夹中所有文件，获得标题信息
-    let totalFiles = files.listDir(musicDir, function (name) {
-        return files.isFile(files.join(musicDir, name)) && musicFormats.isMusicFile(name);
-    });
-    let titles = new Array(totalFiles.length);
-    //log(totalFiles);
-    for (let file in totalFiles) {
-        //直接读取文件名
-        titles[file] = totalFiles[file].replace(".json", "").replace(".mid", "");
-
-    };
-    return titles;
-};
-
 function getFileList() {
     return files.listDir(musicDir, function (name) {
         return files.isFile(files.join(musicDir, name)) && musicFormats.isMusicFile(name);
@@ -853,6 +830,12 @@ function runFileConfigSetup(fullFileName) {
                             <text text="defaultms" id="noteTimeDeviationValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
                         </horizontal>
                         <seekbar id="noteTimeDeviationSeekbar" w="*" max="1000" layout_gravity="center" />
+                        <horizontal w="*">
+                            {/* 0~6mm, 线性, 默认1*/}
+                            <text text="点击位置偏差: " />
+                            <text text="defaultmm" id="clickPositionDeviationValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                        </horizontal>
+                        <seekbar id="clickPositionDeviationSeekbar" w="*" max="1000" layout_gravity="center" />
                     </vertical>
                 </card>
             </vertical>
@@ -887,6 +870,12 @@ function runFileConfigSetup(fullFileName) {
         if (progress == undefined) return;
         let value = numberRevMap(progress, 5, 150);
         view.noteTimeDeviationValueText.setText(value.toFixed(2) + "ms");
+        return true;
+    });
+    view.clickPositionDeviationSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
+        if (progress == undefined) return;
+        let value = numberRevMap(progress, 0, 6);
+        view.clickPositionDeviationValueText.setText(value.toFixed(2) + "mm");
         return true;
     });
     view.autoTuneButton.click(() => {
@@ -973,6 +962,9 @@ function runFileConfigSetup(fullFileName) {
         view.noteTimeDeviationValueText.setText(noteTimeDeviation.toFixed(2) + "ms");
         view.noteTimeDeviationCheckbox.setChecked(noteTimeDeviation != 0);
         view.noteTimeDeviationSeekbar.setProgress(numberMap(noteTimeDeviation, 5, 150));
+        let clickPositionDeviation = readGlobalConfig("clickPositionDeviationMm", 1);
+        view.clickPositionDeviationValueText.setText(clickPositionDeviation.toFixed(2) + "mm");
+        view.clickPositionDeviationSeekbar.setProgress(numberMap(clickPositionDeviation, 0, 6));
 
     }).on("positive", (dialog) => {
         let limitClickSpeedHz = view.limitClickSpeedCheckbox.isChecked() ?
@@ -985,6 +977,7 @@ function runFileConfigSetup(fullFileName) {
         let minorPitchOffset = view.minorPitchOffsetSeekbar.getProgress() - 4;
         let noteTimeDeviation = view.noteTimeDeviationCheckbox.isChecked() ?
             numberRevMap(view.noteTimeDeviationSeekbar.getProgress(), 5, 150) : 0;
+        let clickPositionDeviation = numberRevMap(view.clickPositionDeviationSeekbar.getProgress(), 0, 6);
         setFileConfig("limitClickSpeedHz", limitClickSpeedHz, rawFileName);
         setFileConfig("speedMultiplier", speedMultiplier, rawFileName);
         setFileConfig("halfCeiling", halfCeiling, rawFileName);
@@ -992,6 +985,7 @@ function runFileConfigSetup(fullFileName) {
         setFileConfig("minorPitchOffset", minorPitchOffset, rawFileName);
         setGlobalConfig("defaultClickDuration", defaultClickDuration);
         setGlobalConfig("humanifyNoteAbsTimeStdDev", noteTimeDeviation);
+        setGlobalConfig("clickPositionDeviationMm", clickPositionDeviation);
         
         dialog.dismiss();
         finished = true;
@@ -1470,6 +1464,13 @@ function main() {
                 musicFormats.getFileNameWithoutExtension(totalFiles[lastSelectedFileIndex]));
         });
         player.setGestureTimeList(musicFileData);
+        //设置点击位置偏移
+        const clickPositionDeviationMm = readGlobalConfig("clickPositionDeviationMm", 1); 
+        const displayMetrics = context.getResources().getDisplayMetrics();
+        const TypedValue = android.util.TypedValue;
+        const clickPositionDeviationPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_MM, clickPositionDeviationMm, displayMetrics);
+        console.verbose(`点击位置偏移: ${clickPositionDeviationPx} px`);
+        player.setClickPositionDeviationPx(clickPositionDeviationPx);
         //是否显示可视化窗口
         let visualizerEnabled = readGlobalConfig("visualizerEnabled", false);
         if (visualizerEnabled && gameProfile.getKeyLayout().type === "grid") { //TODO: 其它类型的键位布局也可以显示可视化窗口

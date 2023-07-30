@@ -394,7 +394,7 @@ function KeyToGesturePass(config) {
                     console.log("key:" + key);
                     return;
                 }
-                gestureArray.push([0, pressDuration, clickPos]);
+                gestureArray.push([0, pressDuration, clickPos.slice()]);
             });
             gestureTimeList.push([gestureArray, time/1000]);
         });
