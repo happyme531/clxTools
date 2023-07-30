@@ -256,6 +256,8 @@ function startMidiStream() {
         }
     }
     midi.openDevicePort(deviceIndex, portIndex);
+    //申请无障碍权限
+    checkEnableAccessbility();
     let receivedNoteCnt = 0;
     //悬浮窗
 
@@ -338,6 +340,19 @@ function removeEmptyTracks(tracksData) {
     return tracksData;
 }
 
+function checkEnableAccessbility() {
+    //启动无障碍服务
+    console.verbose("等待无障碍服务..");
+    //toast("请允许本应用的无障碍权限");
+    if(auto.service == null){
+        toastLog(`请打开应用 "${appName}" 的无障碍权限!`);
+        auto.waitFor();
+        toastLog(`无障碍权限已开启!, 请回到游戏重新点击播放`);
+        return false;
+    }
+    console.verbose("无障碍服务已启动");
+    return true;
+}
 
 /**
  * @param {import("./src/musicFormats.js").Chord[]} noteData 音符数据
@@ -1123,9 +1138,10 @@ function main() {
     const totalFiles = getFileList();
     if (!floaty.checkPermission()) {
         // 没有悬浮窗权限，提示用户并跳转请求
-        toast("本脚本需要悬浮窗权限来显示悬浮窗，请在随后的界面中允许并重新运行本脚本。");
+        toastLog(`请打开应用 "${appName}" 的悬浮窗权限!`);
         floaty.requestPermission();
-        exit();
+        while(!floaty.checkPermission());
+        toastLog('悬浮窗权限已开启');
     }
 
     let titleStr = "当前配置: " + getTargetTriple();
@@ -1315,19 +1331,6 @@ function main() {
 
     //主函数, 处理事件和进度更新
     evt.on("pauseResumeBtnClick", () => {
-        function checkEnableAccessbility() {
-            //启动无障碍服务
-            console.verbose("等待无障碍服务..");
-            //toast("请允许本应用的无障碍权限");
-            if(auto.service == null){
-                toastLog(`请打开应用 "${appName}" 的无障碍权限!`);
-                auto.waitFor();
-                toastLog(`无障碍权限已开启!, 请回到游戏重新点击播放`);
-                return false;
-            }
-            console.verbose("无障碍服务已启动");
-            return true;
-        }
         if (player.getState() == player.PlayerStates.PAUSED) {
             if(!checkEnableAccessbility()) return;
             player.resume();
