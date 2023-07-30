@@ -390,6 +390,10 @@ function exportNoteDataInteractive(noteData, exportType) {
             let outPutStr = "";
             noteData.forEach(key => {
                 if (key[0].length > 1) {
+                    //从高音到低音排序
+                    key[0].sort((a, b) => {
+                        return b - a;
+                    });
                     outPutStr += "(";
                     key[0].forEach(element => {
                         outPutStr += toneStr[element];
