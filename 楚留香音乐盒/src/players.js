@@ -223,7 +223,7 @@ function AutoJsGesturePlayer(){
                 let deviation, angle;
                 do {
                     deviation = clickPositionDeviationRandomizer.next();
-                } while (Math.abs(deviation) > 3 * clickPositionDeviationPx); 
+                } while (Math.abs(deviation) > 2 * clickPositionDeviationPx); 
                 angle = Math.random() * 2 * Math.PI;
                 gesture[2][0] += deviation * Math.cos(angle);
                 gesture[2][1] += deviation * Math.sin(angle);
