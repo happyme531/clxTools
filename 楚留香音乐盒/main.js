@@ -10,6 +10,7 @@ try {
     var Players = require("./src/players.js");
     var Configuration = require("./src/configuration.js");
     var PassManager = require("./src/passManager.js");
+    var runtime = require("./src/runtime.js");
 } catch (e) {
     toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
     toast("模块加载错误");
@@ -352,15 +353,27 @@ function exportNoteDataInteractive(noteData, exportType) {
                 confirmed = dialogs.confirm("", "乐谱将分为" + segmentCnt.toString() + "个小段,是否满意?");
             }
 
-            let toneStr;
+            let toneStr = null;
             switch (dialogs.select("选择导出格式", ["楚留香(键盘)", "原神(键盘)", "_简谱_"])) {
                 case 0:
+                    if(gameProfile.getCurrentKeyLayoutTypeName() !== "generic_3x7"){
+                        dialogs.alert("错误", "当前选择的游戏键位和导出格式不匹配, 请选择3x7键位");
+                        return;
+                    }
                     toneStr = "ZXCVBNMASDFGHJQWERTYU";
                     break;
                 case 1:
+                    if(gameProfile.getCurrentKeyLayoutTypeName() !== "generic_3x7"){
+                        dialogs.alert("错误", "当前选择的游戏键位和导出格式不匹配, 请选择3x7键位");
+                        return;
+                    }
                     toneStr = "ZXCVBNMASDFGHJQWERTYU";
                     break;
                 case 2:
+                    if(gameProfile.getCurrentKeyLayoutTypeName() !== "generic_3x7"){
+                        dialogs.alert("错误", "当前选择的游戏键位和导出格式不匹配, 请选择3x7键位");
+                        return;
+                    }
                     toneStr = "₁₂₃₄₅₆₇1234567¹²³⁴⁵⁶⁷"; //TODO: 这里的简谱格式可能需要调整
             }
             //开始转换
@@ -1096,6 +1109,18 @@ function getTargetTriple() {
 function initialize() {
     files.ensureDir(musicDir);
     //globalConfig.put("inited", 0);
+    let currentRuntime = runtime.getCurrentRuntime();
+    switch (currentRuntime) {
+        case runtime.Runtime.AUTOJS6:
+            console.info("当前运行环境: AutoJs6");
+            break;
+        case runtime.Runtime.AUTOXJS:
+            console.info("当前运行环境: AutoX.js");
+            break;
+        default:
+            console.warn("当前运行环境: 不支持或未知!");
+            break;
+    }
     if (readGlobalConfig("lastVersion", 0) != scriptVersion) {
         //第一次启动，初始化设置
         toast("初始化设置..");
@@ -1118,11 +1143,14 @@ function main() {
     let evt = events.emitter(threads.currentThread());
 
     const totalFiles = getFileList();
-    if (!floaty.checkPermission()) {
+    const haveFloatyPermission = runtime.getCurrentRuntime() === runtime.Runtime.AUTOXJS ?
+        floaty.checkPermission() :
+        floaty.hasPermission();
+    if (!haveFloatyPermission) {
         // 没有悬浮窗权限，提示用户并跳转请求
         toastLog(`请打开应用 "${appName}" 的悬浮窗权限!`);
         floaty.requestPermission();
-        while(!floaty.checkPermission());
+        while (!floaty.checkPermission());
         toastLog('悬浮窗权限已开启');
     }
 
