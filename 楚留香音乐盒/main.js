@@ -10,7 +10,7 @@ try {
     var Players = require("./src/players.js");
     var Configuration = require("./src/configuration.js");
     var PassManager = require("./src/passManager.js");
-    var runtime = require("./src/runtime.js");
+    var runtimes = require("./src/runtimes.js");
 } catch (e) {
     toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
     toast("模块加载错误");
@@ -1109,12 +1109,12 @@ function getTargetTriple() {
 function initialize() {
     files.ensureDir(musicDir);
     //globalConfig.put("inited", 0);
-    let currentRuntime = runtime.getCurrentRuntime();
+    let currentRuntime = runtimes.getCurrentRuntime();
     switch (currentRuntime) {
-        case runtime.Runtime.AUTOJS6:
+        case runtimes.Runtime.AUTOJS6:
             console.info("当前运行环境: AutoJs6");
             break;
-        case runtime.Runtime.AUTOXJS:
+        case runtimes.Runtime.AUTOXJS:
             console.info("当前运行环境: AutoX.js");
             break;
         default:
@@ -1143,7 +1143,7 @@ function main() {
     let evt = events.emitter(threads.currentThread());
 
     const totalFiles = getFileList();
-    const haveFloatyPermission = runtime.getCurrentRuntime() === runtime.Runtime.AUTOXJS ?
+    const haveFloatyPermission = runtimes.getCurrentRuntime() === runtimes.Runtime.AUTOXJS ?
         floaty.checkPermission() :
         floaty.hasPermission();
     if (!haveFloatyPermission) {

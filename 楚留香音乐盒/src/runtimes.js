@@ -1,5 +1,5 @@
 
-function Runtime() {
+function Runtimes() {
 
     /**
      * @brief 脚本的运行环境
@@ -38,4 +38,4 @@ function Runtime() {
     }
 }
 
-module.exports = new Runtime();
+module.exports = new Runtimes();
