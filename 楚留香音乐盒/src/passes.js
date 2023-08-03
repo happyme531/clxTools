@@ -459,6 +459,8 @@ function SkipIntroPass(config) {
     this.name = "SkipIntroPass";
     this.description = "跳过前奏的空白部分";
 
+    const maxIntroTime = 2000; // 毫秒
+
     /**
      * 运行此pass
      * @template T
@@ -469,8 +471,10 @@ function SkipIntroPass(config) {
      */
     this.run = function (noteData, progressCallback) {
         let introTime = noteData[0][1];
+        if (introTime < maxIntroTime) return noteData;
+        let deltaTime = introTime - maxIntroTime;
         for (let i = 0; i < noteData.length; i++) {
-            noteData[i][1] -= introTime;
+            noteData[i][1] -= deltaTime;
         }
         return noteData;
     }
