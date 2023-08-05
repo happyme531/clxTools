@@ -4,6 +4,7 @@
 var MusicFormats = require("./musicFormats.js");
 var Humanifyer = require("./humanify.js");
 var GameProfile = require("./gameProfile.js");
+var Algorithms = require("./algorithms.js");
 
 /**
  * @brief 什么都不做的pass, 把输入原样输出, 也不会产生任何统计数据
@@ -237,7 +238,7 @@ function NoteToKeyPass(config) {
 }
 
 /**
- * @brief 限制同一按键的最高频率
+ * @brief 限制同一按键的最高频率, 删除超过频率的音符
  * @typedef {Object} SingleKeyFrequencyLimitPassConfig
  * @property {number} minInterval - 最小间隔(毫秒)
  * @param {SingleKeyFrequencyLimitPassConfig} config
@@ -356,7 +357,7 @@ function MergeKeyPass(config) {
 /**
  * @brief 将按键列表转换为手势列表
  * @typedef {Object} KeyToGesturePassConfig
- * @property {number} pressDuration - 按键持续时间(毫秒)
+ * @property {number} [pressDuration] - 按键持续时间(毫秒)
  * @property {GameProfile} currentGameProfile - 当前游戏配置
  * @param {KeyToGesturePassConfig} config
  */
@@ -396,7 +397,7 @@ function KeyToGesturePass(config) {
                 }
                 gestureArray.push([0, pressDuration, clickPos.slice()]);
             });
-            gestureTimeList.push([gestureArray, time/1000]);
+            gestureTimeList.push([gestureArray, time / 1000]);
         });
         return gestureTimeList;
     }
@@ -407,7 +408,7 @@ function KeyToGesturePass(config) {
 }
 
 /**
- * @brief 限制过长的空白部分的长度
+ * @brief 限制过长的空白部分的长度，删除过长的空白部分
  * @typedef {Object} LimitBlankDurationPassConfig
  * @property {number} [maxBlankDuration] - 最大空白时间(毫秒), 默认为5000
  * @param {LimitBlankDurationPassConfig} config
@@ -485,9 +486,10 @@ function SkipIntroPass(config) {
 }
 
 /**
- * @brief 限制音符频率
+ * @brief 限制音符频率，延迟过快的音符
  * @typedef {Object} NoteFrequencySoftLimitPassConfig
  * @property {number} [minInterval] - 最小间隔(毫秒), 默认为150
+ * @param {NoteFrequencySoftLimitPassConfig} config
  */
 function NoteFrequencySoftLimitPass(config) {
     this.name = "NoteFrequencySoftLimitPass";
@@ -499,16 +501,16 @@ function NoteFrequencySoftLimitPass(config) {
         minInterval = config.minInterval;
     }
 
-    function saturationMap (freq) {
+    function saturationMap(freq) {
         return (1000 / minInterval) * Math.tanh(freq / (1000 / minInterval));
     }
 
     /**
      * 运行此pass
      * @template T
-     * @param {Array<[T, time: number]>} noteData - 音乐数据
+     * @param {Array<[T, number]>} noteData - 音乐数据
      * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
-     * @returns {Array<[T, time: number]>} - 返回解析后的数据
+     * @returns {Array<[T, number]>} - 返回解析后的数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (noteData, progressCallback) {
@@ -553,7 +555,7 @@ function SpeedChangePass(config) {
      * 运行此pass
      * @template T
      * @param {Array<[T, number]>} noteData - 音乐数据
-     * @param {function(number):void}
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
      * @returns {Array<[T, number]>} - 返回处理后的数据
      */
     this.run = function (noteData, progressCallback) {
@@ -568,9 +570,99 @@ function SpeedChangePass(config) {
     }
 }
 
+/**
+ * @brief 限制同一时刻按下的按键数量
+ * @typedef {Object} ChordNoteCountLimitPassConfig
+ * @property {number} [maxNoteCount] - 最大音符个数, 默认为9
+ * @property {string} [limitMode] - 限制模式, 可选值为"delete"(删除多余的音符)或"split"(拆分成多组), 默认为"delete"
+ * @property {number} [splitDelay] - 拆分后音符的延迟(毫秒), 仅在limitMode为"split"时有效, 默认为5
+ * @property {string} [selectMode] - 选择保留哪些音符, 可选值为"high"(音高最高的)/"low"(音高最低的)/"random"(随机选择), 默认为“high"
+ * @property {number} [randomSeed] - 随机种子, 默认为74751
+ * @param {ChordNoteCountLimitPassConfig} config
+ */
+function ChordNoteCountLimitPass(config) {
+    this.name = "ChordNoteCountLimitPass";
+    this.description = "限制同一时刻按下的按键数量";
 
+    let maxNoteCount = 9;
+    let limitMode = "delete";
+    let splitDelay = 5;
+    let selectMode = "high";
+    let randomSeed = 74751;
 
+    if (config.maxNoteCount != null) {
+        maxNoteCount = config.maxNoteCount;
+    }
+    if (config.limitMode != null) {
+        limitMode = config.limitMode;
+    }
+    if (config.splitDelay != null) {
+        splitDelay = config.splitDelay;
+    }
+    if (config.selectMode != null) {
+        selectMode = config.selectMode;
+    }
+    if (config.randomSeed != null) {
+        randomSeed = config.randomSeed;
+    }
 
+    /**
+     * 运行此pass
+     * @param {Array<import("./musicFormats.js").Chord>} noteData - 音乐数据
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @returns {Array<import("./musicFormats.js").Chord>} - 返回处理后的数据
+     */
+    this.run = function (noteData, progressCallback) {
+        let algorithms = new Algorithms();
+        let prng = algorithms.PRNG(randomSeed);
+        let totalLength = noteData.length;
+        for (let i = 0; i < noteData.length; i++) {
+            let chord = noteData[i];
+            if(chord[2] == undefined) chord[2] = [];
+            if (chord[0].length > maxNoteCount) {
+                progressCallback(Math.min(i / totalLength * 100, 100));
+                noteData.splice(i, 1);
+                let currentTime = chord[1];
+                let notesAttrs = new Array();
+                for (let j = 0; j < chord[0].length; j++) {
+                    notesAttrs.push([chord[0][j], chord[2][j]]);
+                }
+                switch (selectMode) {
+                    case "high": //从高到低排序
+                        notesAttrs.sort((a, b) => b[0] - a[0]);
+                        break;
+                    case "low": //
+                        notesAttrs.sort((a, b) => a[0] - b[0]);
+                        break;
+                    case "random":
+                        notesAttrs = algorithms.shuffle(notesAttrs, prng);
+                        break;
+                }
+                let current = new Array();
+                let remaining = notesAttrs;
+                do {
+                    current = remaining.slice(0, maxNoteCount);
+                    remaining = remaining.slice(maxNoteCount);
+                    let newNotes = new Array(current.length), newAttrs = new Array(current.length);
+                    for (let j = 0; j < current.length; j++) {
+                        newNotes.push(current[j][0]);
+                        newAttrs.push(current[j][1]);
+                    }
+                    let newChord = [newNotes, currentTime, newAttrs];
+                    //@ts-ignore
+                    noteData.splice(i, 0, newChord);
+                    i++; //跳过新插入的音符
+                    if (limitMode == "delete") break;
+                    currentTime += splitDelay;
+                } while (remaining.length > 0);
+            }
+        }
+        return noteData;
+    }
+    this.getStatistics = function () {
+        return {};
+    }
+}
 
 function Passes() {
     this.passes = new Array();
@@ -586,6 +678,7 @@ function Passes() {
     this.passes.push(SkipIntroPass);
     this.passes.push(NoteFrequencySoftLimitPass);
     this.passes.push(SpeedChangePass);
+    this.passes.push(ChordNoteCountLimitPass);
 
     this.getPassByName = function (name) {
         for (let i = 0; i < this.passes.length; i++) {

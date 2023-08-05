@@ -650,8 +650,6 @@ function autoTuneFileConfig(fileName,trackDisableThreshold) {
             }
         }
         console.info("选择的音轨: " + JSON.stringify(selectedTracksNonEmpty));
-
-
     }
     dial.dismiss();
     let realBestOutRangedNoteCnt = bestOverFlowedNoteCnt + bestUnderFlowedNoteCnt;
@@ -809,7 +807,7 @@ function runFileConfigSetup(fullFileName) {
                         </horizontal>
                         <horizontal>
                             {/* 1~99%, 线性, 默认50% */}
-                            <text text="自动调整: 禁用音轨阈值:" />
+                            <text text="自动调整: 禁用音轨阈值(越高->越简单):" />
                             <text text="default%" id="trackDisableThresholdValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
                         </horizontal>
                         <seekbar id="trackDisableThresholdSeekbar" w="*" max="1000" layout_gravity="center" />
@@ -831,6 +829,42 @@ function runFileConfigSetup(fullFileName) {
                         <horizontal>
                             <text text="音轨选择:" />
                             <button id="selectTracksButton" text="选择..." padding="0dp" />
+                        </horizontal>
+                    </vertical>
+                </card>
+                <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
+                    <vertical>
+                        <horizontal w="*">
+                            <text text="和弦优化:" textColor="red" />
+                            <checkbox id="chordLimitCheckbox" />
+                        </horizontal>
+                        <horizontal w="*">
+                            <text text="最多同时按键数量: " />
+                            {/* 1-9个, 默认2 */}
+                            <text text="default个" id="maxSimultaneousNoteCountValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                        </horizontal>
+                        <seekbar id="maxSimultaneousNoteCountSeekbar" w="*" max="1000" layout_gravity="center" />
+                        <horizontal>
+                            {/* 默认向下取整 */}
+                            <text text="按键数量限制方法: " layout_gravity="center_vertical" />
+                            <radiogroup id="noteCountLimitMode" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
+                                <radio id="noteCountLimitMode_delete" text="删除超出的" textSize="12sp" margin="0dp" />
+                                <radio id="noteCountLimitMode_split" text="拆分成多组" textSize="12sp" margin="0dp" />
+                            </radiogroup>
+                        </horizontal>
+                        <horizontal w="*">
+                            <text text="拆分成多组时组间间隔: " />
+                            {/* 5-500ms, 对数, 默认75ms */}
+                            <text text="defaultms" id="noteCountLimitSplitDelayValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                        </horizontal>
+                        <seekbar id="noteCountLimitSplitDelaySeekbar" w="*" max="1000" layout_gravity="center" />
+                        <horizontal w="*">
+                            <text text="选择方式: " />
+                            <radiogroup id="chordSelectMode" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
+                                <radio id="chordSelectMode_high" text="优先高音" textSize="12sp" margin="0dp" />
+                                <radio id="chordSelectMode_low" text="优先低音" textSize="12sp" margin="0dp" />
+                                <radio id="chordSelectMode_random" text="随机" textSize="12sp" margin="0dp" />
+                            </radiogroup>
                         </horizontal>
                     </vertical>
                 </card>
@@ -932,6 +966,18 @@ function runFileConfigSetup(fullFileName) {
             setFileConfig("lastSelectedTracksNonEmpty", result, rawFileName);
         });
     });
+    view.maxSimultaneousNoteCountSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
+        if (progress == undefined) return;
+        let value = numberRevMap(progress, 1, 9);
+        view.maxSimultaneousNoteCountValueText.setText(value.toFixed(0));
+        return true;
+    });
+    view.noteCountLimitSplitDelaySeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
+        if (progress == undefined) return;
+        let value = numberRevMapLog(progress, 5, 500);
+        view.noteCountLimitSplitDelayValueText.setText(value.toFixed(0) + "ms");
+        return true;
+    });
     let finished = false;
     dialogs.build({
         customView: view,
@@ -971,6 +1017,37 @@ function runFileConfigSetup(fullFileName) {
         let minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName, 0);
         view.minorPitchOffsetValueText.setText(minorPitchOffset.toFixed(0));
         view.minorPitchOffsetSeekbar.setProgress(minorPitchOffset + 4);
+        //和弦优化
+        let chordLimitEnabled = readFileConfig("chordLimitEnabled", rawFileName, false);
+        view.chordLimitCheckbox.setChecked(chordLimitEnabled);
+        let maxSimultaneousNoteCount = readFileConfig("maxSimultaneousNoteCount", rawFileName, 2);
+        view.maxSimultaneousNoteCountValueText.setText(maxSimultaneousNoteCount.toFixed(0));
+        view.maxSimultaneousNoteCountSeekbar.setProgress(numberMap(maxSimultaneousNoteCount, 1, 9));
+        let noteCountLimitMode = readFileConfig("noteCountLimitMode", rawFileName, "split");
+        switch (noteCountLimitMode) {
+            case "split":
+                view.noteCountLimitMode_split.setChecked(true);
+                break;
+            case "delete":
+                view.noteCountLimitMode_delete.setChecked(true);
+                break;
+        }
+        let noteCountLimitSplitDelay = readFileConfig("noteCountLimitSplitDelay", rawFileName, 75);
+        view.noteCountLimitSplitDelayValueText.setText(noteCountLimitSplitDelay.toFixed(0) + "ms");
+        view.noteCountLimitSplitDelaySeekbar.setProgress(numberMapLog(noteCountLimitSplitDelay, 5, 500));
+        let chordSelectMode = readFileConfig("chordSelectMode", rawFileName, "high");
+        switch (chordSelectMode) {
+            case "high":
+                view.chordSelectMode_high.setChecked(true);
+                break;
+            case "low":
+                view.chordSelectMode_low.setChecked(true);
+                break;
+                case "random":
+                view.chordSelectMode_random.setChecked(true);
+                break;
+        }
+
         //伪装手弹
         let noteTimeDeviation = readGlobalConfig("humanifyNoteAbsTimeStdDev", 0);
         view.noteTimeDeviationValueText.setText(noteTimeDeviation.toFixed(2) + "ms");
@@ -989,6 +1066,11 @@ function runFileConfigSetup(fullFileName) {
         let halfCeiling = view.halfCeilingSetting_roundUp.isChecked();
         let majorPitchOffset = view.majorPitchOffsetSeekbar.getProgress() - 2;
         let minorPitchOffset = view.minorPitchOffsetSeekbar.getProgress() - 4;
+        let chordLimitEnabled = view.chordLimitCheckbox.isChecked();
+        let maxSimultaneousNoteCount = numberRevMap(view.maxSimultaneousNoteCountSeekbar.getProgress(), 1, 9);
+        let noteCountLimitMode = view.noteCountLimitMode_split.isChecked() ? "split" : "delete";
+        let noteCountLimitSplitDelay = numberRevMapLog(view.noteCountLimitSplitDelaySeekbar.getProgress(), 5, 500);
+        let chordSelectMode = view.chordSelectMode_high.isChecked() ? "high" : view.chordSelectMode_low.isChecked() ? "low" : "random";
         let noteTimeDeviation = view.noteTimeDeviationCheckbox.isChecked() ?
             numberRevMap(view.noteTimeDeviationSeekbar.getProgress(), 5, 150) : 0;
         let clickPositionDeviation = numberRevMap(view.clickPositionDeviationSeekbar.getProgress(), 0, 6);
@@ -997,6 +1079,11 @@ function runFileConfigSetup(fullFileName) {
         setFileConfig("halfCeiling", halfCeiling, rawFileName);
         setFileConfig("majorPitchOffset", majorPitchOffset, rawFileName);
         setFileConfig("minorPitchOffset", minorPitchOffset, rawFileName);
+        setFileConfig("chordLimitEnabled", chordLimitEnabled, rawFileName);
+        setFileConfig("maxSimultaneousNoteCount", maxSimultaneousNoteCount, rawFileName);
+        setFileConfig("noteCountLimitMode", noteCountLimitMode, rawFileName);
+        setFileConfig("noteCountLimitSplitDelay", noteCountLimitSplitDelay, rawFileName);
+        setFileConfig("chordSelectMode", chordSelectMode, rawFileName);
         setGlobalConfig("defaultClickDuration", defaultClickDuration);
         setGlobalConfig("humanifyNoteAbsTimeStdDev", noteTimeDeviation);
         setGlobalConfig("clickPositionDeviationMm", clickPositionDeviation);
@@ -1594,6 +1681,11 @@ function loadMusicFile(fileName, exportScore) {
     let limitClickSpeedHz = readFileConfig("limitClickSpeedHz", rawFileName, 0);
     let speedMultiplier = readFileConfig("speedMultiplier", rawFileName, 1);
     let defaultClickDuration = readGlobalConfig("defaultClickDuration", 5);
+    let chordLimitEnabled = readFileConfig("chordLimitEnabled", rawFileName, false);
+    let maxSimultaneousNoteCount = readFileConfig("maxSimultaneousNoteCount", rawFileName, 2);
+    let noteCountLimitMode = readFileConfig("noteCountLimitMode", rawFileName, "split");
+    let noteCountLimitSplitDelay = readFileConfig("noteCountLimitSplitDelay", rawFileName, 75);
+    let chordSelectMode = readFileConfig("chordSelectMode", rawFileName, "high");
     let mergeThreshold = (exportScore == ScoreExportType.keyboardScore ? scoreExportMergeThreshold : autoPlayMergeThreshold);
     let keyRange = gameProfile.getKeyRange();
 
@@ -1705,9 +1797,11 @@ function loadMusicFile(fileName, exportScore) {
         maxInterval: mergeThreshold * 1000,
     }, null, (data, statistics, elapsedTime) => {
         console.log("合并按键耗时" + elapsedTime / 1000 + "秒");
-        visualizer.setKeyLayout(gameProfile.getKeyLayout().row, gameProfile.getKeyLayout().column);
-        visualizer.loadNoteData(data);
-        visualizer.goto(-1);
+        if (!chordLimitEnabled) {
+            visualizer.setKeyLayout(gameProfile.getKeyLayout().row, gameProfile.getKeyLayout().column);
+            visualizer.loadNoteData(data);
+            visualizer.goto(-1);
+        }
         progressDialog.setContent("正在生成手势...");
     });
     //限制按键频率
@@ -1716,7 +1810,21 @@ function loadMusicFile(fileName, exportScore) {
             minInterval: 1000 / limitClickSpeedHz
         });
     }
-
+    //限制同时按键个数
+    if (chordLimitEnabled) {
+        passManager.addPass("ChordNoteCountLimitPass", {
+            maxNoteCount: maxSimultaneousNoteCount,
+            limitMode: noteCountLimitMode,
+            splitDelay: noteCountLimitSplitDelay,
+            selectMode: chordSelectMode,
+        }, null, (data, statistics, elapsedTime) => {
+            console.log("限制同时按键个数: 耗时" + elapsedTime / 1000 + "秒");
+            visualizer.setKeyLayout(gameProfile.getKeyLayout().row, gameProfile.getKeyLayout().column);
+            visualizer.loadNoteData(data);
+            visualizer.goto(-1);
+            progressDialog.setContent("正在生成手势...");
+        });
+    }
     if (exportScore != ScoreExportType.none) {
         //如果是导出乐谱,则不需要生成手势
         let data = passManager.run(noteData);
@@ -1754,6 +1862,7 @@ function start() {
     initialize();
     loadConfiguration();
     main();
+    console.info("启动完成");
 }
 
 start();
