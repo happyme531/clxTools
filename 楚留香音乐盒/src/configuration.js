@@ -38,7 +38,6 @@ function Configuration() {
     this.setGlobalConfig = function (key, val) {
         globalConfig.put(key, val);
         console.log("设置全局配置成功: " + key + " = " + val);
-        toast("设置保存成功");
         return 0;
     };
 
@@ -89,9 +88,7 @@ function Configuration() {
 
         tmp[key] = val;
         files.write(filepath, JSON.stringify(tmp));
-        console.log("写入文件" + filepath + "成功");
-        console.verbose("配置信息: " + JSON.stringify(tmp));
-        toast("设置保存成功");
+        console.verbose("写入文件" + filepath + "成功");
         return 0;
     };
 
@@ -111,11 +108,11 @@ function Configuration() {
         };
         let tmp = files.read(filepath);
         tmp = JSON.parse(tmp);
-        console.log("读取文件:" + filepath);
-        console.verbose("读取配置信息: " + JSON.stringify(tmp));
         if (tmp[key] == null) {
+            console.verbose(`返回默认值:${key} = ${JSON.stringify(defaultValue)}`);
             return defaultValue;
         } else {
+            console.verbose(`读取配置:${key} = ${JSON.stringify(tmp[key])}`);
             return tmp[key];
         }
     };
