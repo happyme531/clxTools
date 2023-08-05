@@ -678,6 +678,7 @@ function autoTuneFileConfig(fileName,trackDisableThreshold) {
 
     setFileConfig("majorPitchOffset", bestMajorPitchOffset, fileName);
     setFileConfig("minorPitchOffset", bestMinorPitchOffset, fileName);
+    setFileConfig("lastSelectedTracksNonEmpty",selectedTracksNonEmpty,fileName);
     toast("自动调整完成");
     return 0;
 }
