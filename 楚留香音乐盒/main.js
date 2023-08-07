@@ -1103,15 +1103,90 @@ function runFileConfigSetup(fullFileName) {
     return configChanged;
 }
 
-function runFileListSetup(fileList) {
-    let rawFileNameList = fileList.map((fileName) => musicFormats.getFileNameWithoutExtension(fileName));
-    let fileIndex = dialogs.select("选择一首乐曲..", rawFileNameList);
-    if (fileIndex == -1) {
-        return;
-    }
-    let fileName = fileList[fileIndex];
-    runFileConfigSetup(fileName);
-};
+/**
+ * @brief 显示文件选择器
+ * @param {Array<string>} fileNames 文件名列表
+ * @param {(rawFileName:number)=>void} callback 回调函数，参数为选择的文件序号
+ */
+function runFileSelector(fileNames, callback) {
+    const EditorInfo = android.view.inputmethod.EditorInfo;
+    const selectorWindow = floaty.rawWindow(
+        <frame id="board" w="*" h="*" gravity="center">
+            <vertical w="{{ device.height / 2 }}px" height="{{ device.width - 160 }}px" bg="#ffffffff">
+                <horizontal id="search" w="*" bg="#ffefefef">
+                    {/* <text id="btnSearch" padding="15" textSize="15dp" textColor="#ff0f9086">搜索</text> */}
+                    <input id="input" inputType="text" layout_weight="1" hint="输入关键词" textColorHint="#ffbbbbbb" imeOptions="actionDone" singleLine="true" focusable="true" focusableInTouchMode="true"></input>
+                    <text id="btnClear" padding="15" textSize="15dp" textColor="#ff0f9086">清除</text>
+                    <text id="btnClose" padding="15" textSize="15dp" textColor="#ff0f9086">关闭</text>
+                </horizontal>
+                <list id="list" w="*" divider="#ff0000ff" dividerHeight="1px">
+                    <vertical w="*" h="wrap_content">
+                        <text textSize="15dp" textColor="#ff888888" text="{{this.name}}" w="*" padding="5" />
+                        <ImageView w="*" h="1dp" bg="#a0a0a0" />
+                    </vertical>
+                </list>
+            </vertical>
+        </frame>
+    );
+    ui.run(() => {
+        selectorWindow.setSize(-1, -1);
+        // selectorWindow.board.setVisibility(8);
+        selectorWindow.setTouchable(true);
+        selectorWindow.board.on('touch_down', () => {
+            selectorWindow.input.clearFocus();
+            selectorWindow.disableFocus();
+            // selectorWindow.board.setVisibility(8);
+            selectorWindow.setTouchable(true);
+        });
+        selectorWindow.input.setOnEditorActionListener(new android.widget.TextView.OnEditorActionListener((view, i, event) => {
+            switch (i) {
+                case EditorInfo.IME_ACTION_DONE:
+                    let keyword = selectorWindow.input.getText().toString().trim();
+                    selectorWindow.list.setDataSource(fileNames.filter(v => {
+                        if (!keyword) {
+                            return true;
+                        }
+                        return v.indexOf(keyword) > -1;
+                    }).map(v => ({ name: v })));
+                    selectorWindow.input.clearFocus();
+                    selectorWindow.disableFocus();
+                    return false;
+                default:
+                    return true;
+            }
+        }));
+        selectorWindow.input.on("touch_down", () => {
+            selectorWindow.requestFocus();
+            selectorWindow.input.requestFocus();
+        });
+        // selectorWindow.btnSearch.click(function () {
+        //     let keyword = selectorWindow.input.getText().toString().trim();
+        //     selectorWindow.list.setDataSource(fileNames.filter(v => {
+        //         if (!keyword) {
+        //             return true;
+        //         }
+        //         return v.indexOf(keyword) > -1;
+        //     }).map(v => ({ name: v })));
+        //     selectorWindow.input.clearFocus();
+        //     selectorWindow.disableFocus();
+        // });
+        selectorWindow.btnClear.click(function () {
+            if (!selectorWindow.input.getText().toString()) { return; }
+            selectorWindow.input.setText('');
+            selectorWindow.list.setDataSource(fileNames.map(v => ({ name: v })));
+        });
+        selectorWindow.btnClose.click(function () {
+            selectorWindow.close();
+        });
+        selectorWindow.list.on("item_click", function (item, index, itemView, listView) {
+            const name = item.name;
+            const absIndex = fileNames.indexOf(name);
+            callback(absIndex);
+            selectorWindow.close();
+        });
+        selectorWindow.list.setDataSource(fileNames.map(v => ({ name: v })));
+    });
+}
 
 function runGlobalSetup() {
     switch (dialogs.select("请选择一个设置，所有设置都会自动保存", ["跳过空白部分", "选择游戏/乐器", "设置坐标", "乐谱可视化"])) {
@@ -1479,41 +1554,13 @@ function main() {
         });
     });
     evt.on("fileSelectionMenuBtnClick", () => {
-        let selected = false;
-        let canceled = false;
-        let index = 0;
         const rawFileNameList = totalFiles.map((item) => {
             return musicFormats.getFileNameWithoutExtension(item);
         });
-        dialogs.build({
-            title: "选择乐曲...",
-            items: rawFileNameList,
-            itemsSelectMode: "select",
-            neutral: "导入文件...",
-            negative: "取消",
-            cancelable: true,
-            canceledOnTouchOutside: true,
-        }).on("neutral", () => {
-            importFileFromFileChooser(); //非阻塞
-            exit();
-        }).on("negative", () => {
-            canceled = true;
-            selected = true;
-        }).on("cancel", () => {
-            canceled = true;
-            selected = true;
-        }).on("item_select", (idx, item, dialog) => {
-            index = idx;
-            selected = true;
-        }).show();
-        while (!selected) {
-            sleep(100);
-        }
-        if (canceled) {
-            return;
-        }
-        lastSelectedFileIndex = index;
-        evt.emit("fileSelect");
+        runFileSelector(rawFileNameList, (fileIndex) => {
+            lastSelectedFileIndex = fileIndex;
+            evt.emit("fileSelect");
+        });
     });
     evt.on("miscInfoBtnClick", () => {
         player.pause();
