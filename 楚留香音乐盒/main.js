@@ -493,7 +493,7 @@ function selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty) {
         return [0];
     }
 
-    if (typeof (lastSelectedTracksNonEmpty) == "undefined") {
+    if (typeof (lastSelectedTracksNonEmpty) == "undefined" || lastSelectedTracksNonEmpty.length === 0){
         lastSelectedTracksNonEmpty = [];
         for (let i = 0; i < nonEmptyTrackCount; i++) {
             lastSelectedTracksNonEmpty.push(i); //默认选择所有音轨
@@ -1763,11 +1763,13 @@ function loadMusicFile(fileName, exportScore) {
 
         //上次选择的音轨(包括空音轨)
         let lastSelectedTracksNonEmpty = readFileConfig("lastSelectedTracksNonEmpty", rawFileName);
-        if (typeof (lastSelectedTracksNonEmpty) == "undefined") {
+        if (typeof (lastSelectedTracksNonEmpty) == "undefined" || lastSelectedTracksNonEmpty.length == 0) {
+            console.log("音轨选择未设置，使用默认值");
             lastSelectedTracksNonEmpty = [];
             for (let i = 0; i < nonEmptyTrackCount; i++) {
                 lastSelectedTracksNonEmpty.push(i); //默认选择所有音轨
             }
+            setFileConfig("lastSelectedTracksNonEmpty", lastSelectedTracksNonEmpty, rawFileName);
         }
         let selectedTracksNonEmpty = lastSelectedTracksNonEmpty;
         console.log("选择的音轨:" + JSON.stringify(selectedTracksNonEmpty));
