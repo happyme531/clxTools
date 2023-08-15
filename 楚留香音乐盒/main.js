@@ -8,7 +8,7 @@ try {
     var Visualizer = require("./src/visualizer.js");
     var FileChooser = require("./src/fileChooser.js");
     var Players = require("./src/players.js");
-    var Configuration = require("./src/configuration.js");
+    var configuration = require("./src/configuration.js");
     var PassManager = require("./src/passManager.js");
     var runtimes = require("./src/runtimes.js");
 } catch (e) {
@@ -18,7 +18,7 @@ try {
     console.error(e);
 }
 
-const musicDir = Configuration.getMusicDir();
+const musicDir = configuration.getMusicDir();
 const scriptVersion = 25;
 
 //如果遇到奇怪的问题, 可以将下面这行代码前面两个斜杠去掉, 之后再次运行脚本, 即可清除当前的配置文件。
@@ -41,11 +41,11 @@ let musicFormats = new MusicFormats();
 let gameProfile = new GameProfile();
 let visualizer = new Visualizer();
 
-const setGlobalConfig = Configuration.setGlobalConfig;
-const readGlobalConfig = Configuration.readGlobalConfig;
-const haveFileConfig = Configuration.haveFileConfig;
-const setFileConfig = Configuration.setFileConfig;
-const readFileConfig = Configuration.readFileConfig;
+const setGlobalConfig = configuration.setGlobalConfig;
+const readGlobalConfig = configuration.readGlobalConfig;
+const haveFileConfig = configuration.haveFileConfig;
+const setFileConfig = configuration.setFileConfig;
+const readFileConfig = configuration.readFileConfig;
 
 /**
  * @brief 导出数据的格式类型
@@ -673,10 +673,10 @@ function autoTuneFileConfig(fileName,trackDisableThreshold) {
         resultStr += "\n选择的音轨: " + JSON.stringify(selectedTracksNonEmpty);
 
     dialogs.alert("调整结果", resultStr);
-
-    setFileConfig("majorPitchOffset", bestMajorPitchOffset, fileName);
-    setFileConfig("minorPitchOffset", bestMinorPitchOffset, fileName);
-    setFileConfig("lastSelectedTracksNonEmpty",selectedTracksNonEmpty,fileName);
+    
+    configuration.setFileConfigForTarget("majorPitchOffset", bestMajorPitchOffset, fileName, gameProfile);
+    configuration.setFileConfigForTarget("minorPitchOffset", bestMinorPitchOffset, fileName, gameProfile);
+    configuration.setFileConfigForTarget("lastSelectedTracksNonEmpty", selectedTracksNonEmpty, fileName, gameProfile);
     toast("自动调整完成");
     return 0;
 }
@@ -931,10 +931,10 @@ function runFileConfigSetup(fullFileName) {
         threads.start(function () { //TODO: 重构?
             autoTuneFileConfig(fileName, trackDisableThreshold);
             ui.run(() => {
-                let majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName, 0);
+                let majorPitchOffset = configuration.readFileConfigForTarget("majorPitchOffset", rawFileName, gameProfile, 0);
                 view.majorPitchOffsetValueText.setText(majorPitchOffset.toFixed(0));
                 view.majorPitchOffsetSeekbar.setProgress(majorPitchOffset + 2);
-                let minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName, 0);
+                let minorPitchOffset = configuration.readFileConfigForTarget("minorPitchOffset", rawFileName, gameProfile, 0);
                 view.minorPitchOffsetValueText.setText(minorPitchOffset.toFixed(0));
                 view.minorPitchOffsetSeekbar.setProgress(minorPitchOffset + 4);
             });
@@ -961,9 +961,9 @@ function runFileConfigSetup(fullFileName) {
             }).show();
             let tracksData = passManager.addPass("ParseSourceFilePass").run(musicDir + fileName);
             dialog.dismiss();
-            let lastSelectedTracksNonEmpty = readFileConfig("lastSelectedTracksNonEmpty", rawFileName);
+            let lastSelectedTracksNonEmpty = configuration.readFileConfigForTarget("lastSelectedTracksNonEmpty", rawFileName, gameProfile);
             let result = selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty);
-            setFileConfig("lastSelectedTracksNonEmpty", result, rawFileName);
+            configuration.setFileConfigForTarget("lastSelectedTracksNonEmpty", result, rawFileName, gameProfile);
         });
     });
     view.maxSimultaneousNoteCountSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
@@ -1011,10 +1011,10 @@ function runFileConfigSetup(fullFileName) {
         let trackDisableThreshold = 0.5; //不会保存
         view.trackDisableThresholdValueText.setText((trackDisableThreshold * 100).toFixed(2) + "%");
         view.trackDisableThresholdSeekbar.setProgress(numberMap(trackDisableThreshold * 100, 1, 99));
-        let majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName, 0);
+        let majorPitchOffset = configuration.readFileConfigForTarget("majorPitchOffset", rawFileName, gameProfile, 0);
         view.majorPitchOffsetValueText.setText(majorPitchOffset.toFixed(0));
         view.majorPitchOffsetSeekbar.setProgress(majorPitchOffset + 2);
-        let minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName, 0);
+        let minorPitchOffset = configuration.readFileConfigForTarget("minorPitchOffset", rawFileName, gameProfile, 0);
         view.minorPitchOffsetValueText.setText(minorPitchOffset.toFixed(0));
         view.minorPitchOffsetSeekbar.setProgress(minorPitchOffset + 4);
         //和弦优化
@@ -1077,8 +1077,8 @@ function runFileConfigSetup(fullFileName) {
         setFileConfig("limitClickSpeedHz", limitClickSpeedHz, rawFileName);
         setFileConfig("speedMultiplier", speedMultiplier, rawFileName);
         setFileConfig("halfCeiling", halfCeiling, rawFileName);
-        setFileConfig("majorPitchOffset", majorPitchOffset, rawFileName);
-        setFileConfig("minorPitchOffset", minorPitchOffset, rawFileName);
+        configuration.setFileConfigForTarget("majorPitchOffset", majorPitchOffset, rawFileName, gameProfile);
+        configuration.setFileConfigForTarget("minorPitchOffset", minorPitchOffset, rawFileName, gameProfile);
         setFileConfig("chordLimitEnabled", chordLimitEnabled, rawFileName);
         setFileConfig("maxSimultaneousNoteCount", maxSimultaneousNoteCount, rawFileName);
         setFileConfig("noteCountLimitMode", noteCountLimitMode, rawFileName);
@@ -1722,8 +1722,8 @@ function loadMusicFile(fileName, exportScore) {
 
 
     let humanifyNoteAbsTimeStdDev = readGlobalConfig("humanifyNoteAbsTimeStdDev", 0)
-    let majorPitchOffset = readFileConfig("majorPitchOffset", rawFileName, 0);
-    let minorPitchOffset = readFileConfig("minorPitchOffset", rawFileName, 0);
+    let majorPitchOffset = configuration.readFileConfigForTarget("majorPitchOffset", rawFileName, gameProfile, 0);
+    let minorPitchOffset = configuration.readFileConfigForTarget("minorPitchOffset", rawFileName, gameProfile, 0);
     let treatHalfAsCeiling = readFileConfig("halfCeiling", rawFileName, false);
     let limitClickSpeedHz = readFileConfig("limitClickSpeedHz", rawFileName, 0);
     let speedMultiplier = readFileConfig("speedMultiplier", rawFileName, 1);
@@ -1762,14 +1762,14 @@ function loadMusicFile(fileName, exportScore) {
         let nonEmptyTrackCount = tracksData.tracks.length;
 
         //上次选择的音轨(包括空音轨)
-        let lastSelectedTracksNonEmpty = readFileConfig("lastSelectedTracksNonEmpty", rawFileName);
+        let lastSelectedTracksNonEmpty = configuration.readFileConfigForTarget("lastSelectedTracksNonEmpty", rawFileName, gameProfile);
         if (typeof (lastSelectedTracksNonEmpty) == "undefined" || lastSelectedTracksNonEmpty.length == 0) {
             console.log("音轨选择未设置，使用默认值");
             lastSelectedTracksNonEmpty = [];
             for (let i = 0; i < nonEmptyTrackCount; i++) {
                 lastSelectedTracksNonEmpty.push(i); //默认选择所有音轨
             }
-            setFileConfig("lastSelectedTracksNonEmpty", lastSelectedTracksNonEmpty, rawFileName);
+            configuration.setFileConfigForTarget("lastSelectedTracksNonEmpty", lastSelectedTracksNonEmpty, rawFileName, gameProfile);
         }
         let selectedTracksNonEmpty = lastSelectedTracksNonEmpty;
         console.log("选择的音轨:" + JSON.stringify(selectedTracksNonEmpty));

@@ -116,6 +116,40 @@ function Configuration() {
             return tmp[key];
         }
     };
+
+    /**
+     * 设置指定文件在指定目标(游戏-键位-乐器)的配置项
+     * @param {string} key - 配置项的键名
+     * @param {*} val - 配置项的值
+     * @param {string} filename - 文件名
+     * @param {import("./gameProfile")} gameProfile - 游戏配置
+     * @returns {number} - 返回0表示设置成功
+     */
+    this.setFileConfigForTarget = function (key, val, filename, gameProfile) {
+        const newKey = `${gameProfile.getProfileIdentifierTriple()}.${key}`;
+        return this.setFileConfig(newKey, val, filename);
+    }
+
+    /**
+     * 读取指定文件在指定目标(游戏-键位-乐器)的配置项, 如果不存在则返回公共配置, 如果公共配置也不存在则返回默认值
+     * @param {string} key - 配置项的键名
+     * @param {string} filename - 文件名
+     * @param {import("./gameProfile")} gameProfile - 游戏配置
+     * @param {*} [defaultValue] - 配置项的默认值
+     * @returns {*} - 返回配置项的值，如果不存在则返回默认值
+     */
+    this.readFileConfigForTarget = function (key, filename, gameProfile, defaultValue) {
+        const newKey = `${gameProfile.getProfileIdentifierTriple()}.${key}`;
+        const res1 = this.readFileConfig(newKey, filename, undefined);
+        if (res1 != undefined) {
+            return res1;
+        }
+        const res2 = this.readFileConfig(key, filename, undefined);
+        if (res2 != undefined) {
+            return res2;
+        }
+        return defaultValue;
+    }
 }
 
 module.exports = new Configuration();

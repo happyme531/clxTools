@@ -1127,8 +1127,13 @@ function GameProfile() {
         // }
         return KeyType.displayName;
     }
+
     this.getCurrentKeyLayoutTypeName = function () {
         return currentKeyTypeName;
+    }
+
+    this.getProfileIdentifierTriple = function () {
+        return `${this.getCurrentConfigTypeName()}-${this.getCurrentKeyLayoutTypeName()}-${this.getCurrentVariantTypeName()}`;
     }
 
     /**

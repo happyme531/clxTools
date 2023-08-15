@@ -7,6 +7,7 @@ function MidiParser() {
      */
     this.parseFile = function (filePath) {
         // https://github.com/bhaeussermann/MidiReader
+        // --MIT协议: https://mit-license.org/
         let dexPath = files.cwd() + "/src/MidiReader.dex"
         runtime.loadDex(dexPath);
 
