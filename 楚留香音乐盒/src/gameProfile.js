@@ -838,6 +838,34 @@ const PreDefinedGameConfigs = [
         sameKeyMinInterval: 20,
         packageNamePart: ["mole"],
     }),
+    new GameConfig({
+        gameType: "自定义1",
+        gameName: "自定义1",
+        keyTypes: ["generic_3x7", "generic_3x12"],
+        keyLocators: new Map([
+            ["generic_3x7", [[0, 0], [0, 0]]],
+            ["generic_3x12", [[0, 0], [0, 0]]],
+        ]),
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 0,
+        packageNamePart: [],
+    }),
+    new GameConfig({
+        gameType: "自定义2",
+        gameName: "自定义2",
+        keyTypes: ["generic_3x7", "generic_3x12"],
+        keyLocators: new Map([
+            ["generic_3x7", [[0, 0], [0, 0]]],
+            ["generic_3x12", [[0, 0], [0, 0]]],
+        ]),
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 0,
+        packageNamePart: [],
+    }),
 ];
 
 
@@ -949,6 +977,9 @@ function GameProfile() {
      * @returns {boolean} 是否设置成功
      */
     this.setConfigByPackageName = function (packageName) {
+        if(packageName == null || packageName == ""){
+            return false;
+        }
         //首先检查当前配置是否符合要求
         if (currentGameConfig != null) {
             for (let i = 0; i < currentGameConfig.packageNamePart.length; i++) {
