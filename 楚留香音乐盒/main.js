@@ -11,6 +11,7 @@ try {
     var configuration = require("./src/configuration.js");
     var PassManager = require("./src/passManager.js");
     var runtimes = require("./src/runtimes.js");
+    var midiPitch = require("./src/midiPitch.js");
 } catch (e) {
     toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
     toast("模块加载错误");
@@ -570,7 +571,7 @@ function evalFileConfig(noteData, targetMajorPitchOffset, targetMinorPitchOffset
 function autoTuneFileConfig(fileName,trackDisableThreshold) {
     const betterResultThreshold = 0.05; //如果新的结果比旧的结果好超过这个阈值，就认为新的结果更好
     const possibleMajorPitchOffset = [0, -1, 1, -2, 2];
-    const possibleMinorPitchOffset = [0, 1, -1, 2, -2, 3, -3, 4, -4];
+    const possibleMinorPitchOffset = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, 6, 7];
     let bestMajorPitchOffset = 0;
     let bestMinorPitchOffset = 0;
     let bestResult = { "outRangedNoteWeight": 10000000, "roundedNoteCnt": 10000000 };
@@ -821,11 +822,11 @@ function runFileConfigSetup(fullFileName) {
                         </horizontal>
                         <seekbar id="majorPitchOffsetSeekbar" w="*" max="4" layout_gravity="center" />
                         <horizontal>
-                            {/* -4~4 */}
-                            <text text="升/降半音:" />
+                            {/* -4~7 */}
+                            <text text="升/降半音(移调):" />
                             <text text="default" id="minorPitchOffsetValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
                         </horizontal>
-                        <seekbar id="minorPitchOffsetSeekbar" w="*" max="8" layout_gravity="center" />
+                        <seekbar id="minorPitchOffsetSeekbar" w="*" max="11" layout_gravity="center" />
                         <horizontal>
                             <text text="音轨选择:" />
                             <button id="selectTracksButton" text="选择..." padding="0dp" />
@@ -935,7 +936,7 @@ function runFileConfigSetup(fullFileName) {
                 view.majorPitchOffsetValueText.setText(majorPitchOffset.toFixed(0));
                 view.majorPitchOffsetSeekbar.setProgress(majorPitchOffset + 2);
                 let minorPitchOffset = configuration.readFileConfigForTarget("minorPitchOffset", rawFileName, gameProfile, 0);
-                view.minorPitchOffsetValueText.setText(minorPitchOffset.toFixed(0));
+                view.minorPitchOffsetValueText.setText(`${minorPitchOffset.toFixed(0)} (${midiPitch.getTranspositionName(minorPitchOffset)})`);
                 view.minorPitchOffsetSeekbar.setProgress(minorPitchOffset + 4);
             });
         });
@@ -949,7 +950,7 @@ function runFileConfigSetup(fullFileName) {
     view.minorPitchOffsetSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
         if (progress == undefined) return;
         let value = progress - 4;
-        view.minorPitchOffsetValueText.setText(value.toFixed(0));
+        view.minorPitchOffsetValueText.setText(`${value.toFixed(0)} (${midiPitch.getTranspositionName(value)})`);
         return true;
     });
     view.selectTracksButton.click(() => {
@@ -1015,7 +1016,7 @@ function runFileConfigSetup(fullFileName) {
         view.majorPitchOffsetValueText.setText(majorPitchOffset.toFixed(0));
         view.majorPitchOffsetSeekbar.setProgress(majorPitchOffset + 2);
         let minorPitchOffset = configuration.readFileConfigForTarget("minorPitchOffset", rawFileName, gameProfile, 0);
-        view.minorPitchOffsetValueText.setText(minorPitchOffset.toFixed(0));
+        view.minorPitchOffsetValueText.setText(`${minorPitchOffset.toFixed(0)} (${midiPitch.getTranspositionName(minorPitchOffset)})`);
         view.minorPitchOffsetSeekbar.setProgress(minorPitchOffset + 4);
         //和弦优化
         let chordLimitEnabled = readFileConfig("chordLimitEnabled", rawFileName, false);
