@@ -203,8 +203,16 @@ function startMidiStream() {
         runGlobalSetup();
         return;
     }
-
-    let midi = new MidiDeviceManager();
+    const midiEvt = events.emitter(threads.currentThread());
+    let midi = null;
+    const midiThread = threads.start(function () {
+        setInterval(function(){}, 1000);
+        midi = new MidiDeviceManager();
+    });
+    midiThread.waitFor();
+    while (midi == null) {
+        sleep(100);
+    }
     let devNames = [];
     while (1) {
         devNames = midi.getMidiDeviceNames();
@@ -234,7 +242,12 @@ function startMidiStream() {
             exit();
         }
     }
-    midi.openDevicePort(deviceIndex, portIndex);
+    midiThread.setImmediate(() => {
+        midi.openDevicePort(deviceIndex, portIndex);
+        midi.setDataReceivedCallback(() => {
+            midiEvt.emit("dataReceived");
+        });
+    });
     //申请无障碍权限
     checkEnableAccessbility();
     let receivedNoteCnt = 0;
@@ -256,26 +269,28 @@ function startMidiStream() {
     // controlWindow.setSize(900 + 180 + 180 + 180, -2);   
     controlWindow.setTouchable(true);
 
-    //用来更新悬浮窗的线程
-    threads.start(function () {
-        ui.run(function () {
-            controlWindow.stopBtn.click(() => {
-                midi.close();
-                threads.shutDownAll();
-                exit();
-            });
+    //更新悬浮窗
+    ui.run(function () {
+        controlWindow.stopBtn.click(() => {
+            midi.close();
+            threads.shutDownAll();
+            exit();
         });
-        while (true) {
-            sleep(300);
-            ui.run(function () {
-                controlWindow.txt.setText("正在串流中, 音符数量:" + receivedNoteCnt);
-            });
-        }
     });
-    while (1) {
+
+    function controlWindowUpdate() {
+        ui.run(function () {
+            controlWindow.txt.setText("正在串流中, 音符数量:" + receivedNoteCnt);
+        });
+    }
+    setInterval(controlWindowUpdate, 200);
+
+    midiEvt.on("dataReceived", () => {
+        console.log("ToDo:receive data");
+
         let keyList = [];
-        while (!midi.dataAvailable()) {
-            sleep(20);
+        if (!midi.dataAvailable()) {
+            return;
         }
         while (midi.dataAvailable()) {
             let data = midi.read();
@@ -300,7 +315,7 @@ function startMidiStream() {
             gestures.apply(null, gestureList);
         };
         gestureList = [];
-    }
+    });
 }
 /**
  * @brief 移除空的音轨
@@ -1583,7 +1598,7 @@ function main() {
                 controlWindow.close();
                 visualizerWindowClose();
                 startMidiStream();
-                exitApp();
+                //exitApp();
                 break;
             case 2: //导出当前乐曲
                 if (lastSelectedFileIndex == null) break;

@@ -16,6 +16,7 @@ function MidiDeviceManager() {
     this.STATUS_CHANNEL_MASK = 0x0F;
     this.STATUS_NOTE_OFF = 0x80;
     this.STATUS_NOTE_ON = 0x90;
+    let _dataReceivedCallback = null;
     let midiManager = context.getSystemService(Context.MIDI_SERVICE);
     let midiFramer = new MidiFramer();
     this.getMidiDeviceNames = function () {
@@ -50,6 +51,7 @@ function MidiDeviceManager() {
     let device = null;
     let outputPort = null;
     let pktBuffer = [];
+    const pktBufferLock = threads.lock();
     let msgBuffer = [];
     let midiReceiver = new android.media.midi.MidiReceiver(
         {
@@ -58,8 +60,12 @@ function MidiDeviceManager() {
                 for (let i = 0; i < cnt+offset; i++) {
                     arr.push(msg[i]);
                 }
+                pktBufferLock.lock();
                 pktBuffer.push([arr, offset, cnt, timeStamp]);
-                //如果在这里调用回调函数, 程序就会卡死, 因此只能轮询
+                pktBufferLock.unlock();
+                if(_dataReceivedCallback != null){
+                    _dataReceivedCallback();
+                }
             }
         });
     this.openDevicePort = function (midiDeviceIndex, midiPortIndex) {
@@ -83,10 +89,12 @@ function MidiDeviceManager() {
         outputPort.connect(midiReceiver);
     }
     this.dataAvailable = function () {
+        pktBufferLock.lock();
         while(pktBuffer.length > 0){
             let pkt = pktBuffer.shift();
             midiFramer.parse(new Uint8Array(pkt[0]), pkt[1], pkt[2], pkt[3]);
         }
+        pktBufferLock.unlock();
         while(midiFramer.dataAvailable()){
             msgBuffer.push(midiFramer.read());
         }
@@ -97,6 +105,11 @@ function MidiDeviceManager() {
         //console.log("msg:" + data[0]);
         return new Uint8Array(data[0]);
     }
+
+    this.setDataReceivedCallback = function(callback){
+        _dataReceivedCallback = callback;
+    }
+
     this.close = function () {
         if (outputPort !== null) {
             outputPort.close();
