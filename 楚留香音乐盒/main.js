@@ -1,6 +1,7 @@
 //@ts-check
 
 try {
+    //Rhino的const是全局作用域, 会报错!
     var getPosInteractive = requireShared("getPosInteractive.js");
     var MusicFormats = require("./src/musicFormats.js");
     var MidiDeviceManager = require("./src/midiDeviceManager.js");
@@ -56,6 +57,15 @@ const ScoreExportType = {
     none: "none",
     keyboardScore: "keyboardScore",
     keySequenceJSON: "keySequenceJSON",
+};
+
+/**
+ * @enum {string}
+ */
+const ScriptOperationMode = {
+    NotRunning: "NotRunning",
+    FilePlayer: "FilePlayer",
+    MIDIInputStreaming: "MIDIInputStreaming",
 };
 
 
@@ -196,14 +206,17 @@ function getFileList() {
     });
 }
 
-
-function startMidiStream() {
-    if (!gameProfile.checkKeyPosition()) {
-        dialogs.alert("错误", "坐标未设置，请设置坐标");
-        runGlobalSetup();
-        return;
-    }
+/**
+ * 启动midi串流
+ * @returns {{
+ *  onDataReceived: (callback: (data: Array<Uint8Array>) => void) => void,
+ *  close: () => void,
+ * } | null}
+ */
+function setupMidiStream() {
     const midiEvt = events.emitter(threads.currentThread());
+    /** @type {MidiDeviceManager} */ 
+    //@ts-ignore
     let midi = null;
     const midiThread = threads.start(function () {
         setInterval(function(){}, 1000);
@@ -218,7 +231,7 @@ function startMidiStream() {
         devNames = midi.getMidiDeviceNames();
         if (devNames.length == 0) {
             if (!dialogs.confirm("错误", "没有找到MIDI设备, 点击确定重试, 点击取消退出")) {
-                exit();
+                return null;
             }
         } else {
             break;
@@ -226,20 +239,20 @@ function startMidiStream() {
     }
     let deviceIndex = dialogs.select("选择MIDI设备", devNames);
     if (deviceIndex == -1) {
-        toast("您取消了选择, 脚本将会退出");
-        exit();
+        toast("您取消了选择");
+        return null;
     }
     let portNames = midi.getMidiPortNames(deviceIndex);
     if (portNames.length == 0) {
-        dialogs.alert("错误", "此MIDI设备没有可用的端口, 脚本将会退出");
-        exit();
+        dialogs.alert("错误", "此MIDI设备没有可用的端口");
+        return null;
     }
     let portIndex = 0;
     if (portNames.length > 1) {  // 不太可能出现
         portIndex = dialogs.select("选择MIDI端口", portNames);
         if (portIndex == -1) {
-            toast("您取消了选择, 脚本将会退出");
-            exit();
+            toast("您取消了选择");
+            return null;
         }
     }
     midiThread.setImmediate(() => {
@@ -248,75 +261,30 @@ function startMidiStream() {
             midiEvt.emit("dataReceived");
         });
     });
-    //申请无障碍权限
-    checkEnableAccessbility();
-    let receivedNoteCnt = 0;
-    //悬浮窗
 
-    //显示悬浮窗
-    let controlWindow = floaty.rawWindow(
-        <frame gravity="left">
-            <horizontal bg="#7fffff7f">
-                <text id="txt" text="串流已就绪" textSize="14sp" />
-                <button id="stopBtn" style="Widget.AppCompat.Button.Colored" w="180sp" text="退出⏹" />
-            </horizontal>
-        </frame>
-    );
-
-    //避免悬浮窗被屏幕边框挡住
-    controlWindow.setPosition(device.height / 5, 0);
-    // //TODO: 这里写死大小可能会有问题, 但是没有足够的测试数据来证明
-    // controlWindow.setSize(900 + 180 + 180 + 180, -2);   
-    controlWindow.setTouchable(true);
-
-    //更新悬浮窗
-    ui.run(function () {
-        controlWindow.stopBtn.click(() => {
-            midi.close();
-            threads.shutDownAll();
-            exit();
-        });
-    });
-
-    function controlWindowUpdate() {
-        ui.run(function () {
-            controlWindow.txt.setText("正在串流中, 音符数量:" + receivedNoteCnt);
-        });
-    }
-    setInterval(controlWindowUpdate, 200);
+    let _onDataReceived = (data) => { };
 
     midiEvt.on("dataReceived", () => {
-        console.log("ToDo:receive data");
-
         let keyList = [];
         if (!midi.dataAvailable()) {
             return;
         }
         while (midi.dataAvailable()) {
-            let data = midi.read();
-            let cmd = data[0] & midi.STATUS_COMMAND_MASK;
-            //console.log("cmd: " + cmd);
-            if (cmd == midi.STATUS_NOTE_ON && data[2] != 0) { // velocity != 0
-                let key = gameProfile.getKeyByPitch(data[1]);
-                if (key != -1 && keyList.indexOf(key) === -1) keyList.push(key);
-                receivedNoteCnt++;
-            }
+            _onDataReceived(midi.readAll());
         }
-        let gestureList = new Array();
-        for (let j = 0; j < keyList.length; j++) { //遍历这个数组
-            let key = keyList[j];
-            if (key != 0) {
-                gestureList.push([0, 5, gameProfile.getKeyPosition(key - 1)]);
-            };
-        };
-        if (gestureList.length > 10) gestureList.splice(9, gestureList.length - 10); //手势最多同时只能执行10个
-
-        if (gestureList.length != 0) {
-            gestures.apply(null, gestureList);
-        };
-        gestureList = [];
     });
+
+    return {
+        onDataReceived: (callback) => {
+            _onDataReceived = callback;
+        },
+        close: () => {
+            midi.close();
+            midiThread.interrupt();
+        }
+    }
 }
+
 /**
  * @brief 移除空的音轨
  * @param {MusicFormats.TracksData} tracksData 
@@ -1343,6 +1311,8 @@ function main() {
     let totalTimeStr = null;
     let currentGestureIndex = null;
     let visualizerWindow = null;
+    let operationMode = ScriptOperationMode.NotRunning;
+    let midiInputStreamingNoteCount = 0;
 
     const player = new Players.AutoJsGesturePlayer();
 
@@ -1595,9 +1565,8 @@ function main() {
                 exitApp();
                 break;
             case 1: //MIDI串流
-                controlWindow.close();
                 visualizerWindowClose();
-                startMidiStream();
+                evt.emit("midiStreamStart");
                 //exitApp();
                 break;
             case 2: //导出当前乐曲
@@ -1617,6 +1586,51 @@ function main() {
                 }
                 exportNoteDataInteractive(data, exportType);
         }
+    });
+    evt.on("midiStreamStart", () => {
+        const stream = setupMidiStream();
+        if (stream == null) {
+            toast("MIDI串流启动失败");
+            return;
+        }
+        toast("MIDI串流已启动");
+        operationMode = ScriptOperationMode.MIDIInputStreaming;
+        ui.run(() => {
+            controlWindow.musicTitleText.setText("MIDI串流中...");
+        });
+        midiInputStreamingNoteCount = 0;
+        stream.onDataReceived(function (datas) {
+            const STATUS_COMMAND_MASK = 0xF0;
+            const STATUS_CHANNEL_MASK = 0x0F;
+            const STATUS_NOTE_OFF = 0x80;
+            const STATUS_NOTE_ON = 0x90;
+            let keyList = new Array();
+            for (let data of datas) {
+                let cmd = data[0] & STATUS_COMMAND_MASK;
+                //console.log("cmd: " + cmd);
+                if (cmd == STATUS_NOTE_ON && data[2] != 0) { // velocity != 0
+                    let key = gameProfile.getKeyByPitch(data[1]);
+                    if (key != -1 && keyList.indexOf(key) === -1) keyList.push(key);
+                    midiInputStreamingNoteCount++;
+                }
+            }
+            let gestureList = new Array();
+            for (let j = 0; j < keyList.length; j++) { //遍历这个数组
+                let key = keyList[j];
+                if (key != 0) {
+                    gestureList.push([0, 5, gameProfile.getKeyPosition(key - 1)]);
+                };
+            };
+            if (gestureList.length > 10) gestureList.splice(9, gestureList.length - 10); //手势最多同时只能执行10个
+
+            if (gestureList.length != 0) {
+                player.exec(gestureList);
+            };
+        });
+        evt.on("stopBtnClick", () => {
+            stream.close();
+            exitApp();
+        });
     });
     evt.on("pauseResumeBtnLongClick", () => {
         //隐藏悬浮窗播放
@@ -1638,6 +1652,7 @@ function main() {
         exitApp();
     });
     evt.on("fileLoaded", () => {
+        operationMode = ScriptOperationMode.FilePlayer;
         ui.run(() => {
             controlWindow.musicTitleText.setText(
                 musicFormats.getFileNameWithoutExtension(totalFiles[lastSelectedFileIndex]));
@@ -1661,36 +1676,48 @@ function main() {
     });
 
     function controlWindowUpdateLoop() {
-        if (musicFileData == null || totalTimeSec == null || currentGestureIndex == null || controlWindow == null) {
+        if (controlWindow == null) {
             return;
         }
-        //如果进度条被拖动，更新播放进度
-        if (progressChanged) {
-            progressChanged = false;
-            let targetTimeSec = totalTimeSec * progress / 100;
-            for (let j = 0; j < musicFileData.length; j++) {
-                if (musicFileData[j][1] > targetTimeSec) {
-                    currentGestureIndex = j - 1;
-                    break;
+        switch (operationMode) {
+            case ScriptOperationMode.NotRunning:
+                break;
+            case ScriptOperationMode.FilePlayer: {
+                if (musicFileData == null || totalTimeSec == null || currentGestureIndex == null) break;
+                //如果进度条被拖动，更新播放进度
+                if (progressChanged) {
+                    progressChanged = false;
+                    let targetTimeSec = totalTimeSec * progress / 100;
+                    for (let j = 0; j < musicFileData.length; j++) {
+                        if (musicFileData[j][1] > targetTimeSec) {
+                            currentGestureIndex = j - 1;
+                            break;
+                        }
+                    }
+                    currentGestureIndex = Math.max(0, currentGestureIndex);
+                    player.seekTo(currentGestureIndex);
+                    console.log("seekTo:" + currentGestureIndex);
+                    setImmediate(controlWindowUpdateLoop);
                 }
+                currentGestureIndex = Math.min(currentGestureIndex, musicFileData.length - 1);
+                //计算时间
+                let curTimeSec = musicFileData[currentGestureIndex][1];
+                let curTimeStr = sec2timeStr(curTimeSec);
+                let timeStr = curTimeStr + "/" + totalTimeStr;
+                //更新窗口
+                ui.run(() => {
+                    controlWindow.progressBar.setProgress(curTimeSec / totalTimeSec * 100);
+                    controlWindow.timerText.setText(timeStr);
+                });
             }
-            currentGestureIndex = Math.max(0, currentGestureIndex);
-            player.seekTo(currentGestureIndex);
-            console.log("seekTo:" + currentGestureIndex);
-            setImmediate(controlWindowUpdateLoop);
+                break;
+            case ScriptOperationMode.MIDIInputStreaming:
+                ui.run(() => {
+                    controlWindow.timerText.setText(`音符数: ${midiInputStreamingNoteCount}`);
+                });
+                break;
         }
-        currentGestureIndex = Math.min(currentGestureIndex, musicFileData.length - 1);
-        //计算时间
-        let curTimeSec = musicFileData[currentGestureIndex][1];
-        let curTimeStr = sec2timeStr(curTimeSec);
-        let timeStr = curTimeStr + "/" + totalTimeStr;
-        //更新窗口
-        ui.run(() => {
-            controlWindow.progressBar.setProgress(curTimeSec / totalTimeSec * 100);
-            controlWindow.timerText.setText(timeStr);
-        });
     }
-
     setInterval(controlWindowUpdateLoop, 200);
 }
 

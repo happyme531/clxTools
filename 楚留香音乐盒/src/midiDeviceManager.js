@@ -12,10 +12,6 @@ var MidiFramer = require("./midiFramer.js");
 
 
 function MidiDeviceManager() {
-    this.STATUS_COMMAND_MASK = 0xF0;
-    this.STATUS_CHANNEL_MASK = 0x0F;
-    this.STATUS_NOTE_OFF = 0x80;
-    this.STATUS_NOTE_ON = 0x90;
     let _dataReceivedCallback = null;
     let midiManager = context.getSystemService(Context.MIDI_SERVICE);
     let midiFramer = new MidiFramer();
@@ -104,6 +100,13 @@ function MidiDeviceManager() {
         let data = msgBuffer.shift();
         //console.log("msg:" + data[0]);
         return new Uint8Array(data[0]);
+    }
+    this.readAll = function () {
+        let data = [];
+        while(msgBuffer.length > 0){
+            data.push(new Uint8Array(msgBuffer.shift()[0]));
+        }
+        return data;
     }
 
     this.setDataReceivedCallback = function(callback){

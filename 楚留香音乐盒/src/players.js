@@ -16,8 +16,8 @@ function NormalDistributionRandomizer(mean, stddev) {
 }
 
 /**
- * 
- * @typedef {Array<[delay: number,duration: number, points: ...import("./gameProfile").pos2d[]]>} Gestures
+ * @typedef {[delay: number,duration: number, points: ...import("./gameProfile").pos2d[]]} Gesture
+ * @typedef {Array<Gesture>} Gestures
  */
 
 function AutoJsGesturePlayer(){
@@ -212,6 +212,15 @@ function AutoJsGesturePlayer(){
     }
 
     /**
+     * @brief 执行一组操作
+     * @param {Gestures} _gestures 手势
+     */
+    this.exec = function(_gestures){
+        _gestures = transformGesture(_gestures);
+        gestures.apply(null, _gestures);
+    }
+
+    /**
      * @brief 对这组手势做处理
      * @param {Gestures} gestures 手势
      * @returns {Gestures} 处理后的手势
@@ -294,10 +303,7 @@ function AutoJsGesturePlayer(){
                         position++;
                         break;
                     }
-                    //处理手势
-                    currentNote = transformGesture(currentNote);
-                    //播放
-                    gestures.apply(null, currentNote);
+                    this.exec(currentNote);
                     position++;
                     onPlayNote(position);
                     break;
