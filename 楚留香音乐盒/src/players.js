@@ -119,7 +119,8 @@ function AutoJsGesturePlayer(){
     this.start = function(){
         playerState = PlayerStates.UNINITIALIZED;
         position = 0;
-        playerThread = threads.start(playerThreadFunc);
+        let func = playerThreadFunc.bind(this);
+        playerThread = threads.start(func);
     }
 
     /**
