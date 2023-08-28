@@ -150,6 +150,19 @@ function Configuration() {
         }
         return defaultValue;
     }
+
+    /**
+     * 清除指定文件的配置
+     * @param {string} filename - 文件名
+     * @returns {number} - 返回0表示清除成功
+     */
+    this.clearFileConfig = function (filename) {
+        filename = musicFormats.getFileNameWithoutExtension(filename);
+        filename += ".json.cfg";
+        let filepath = musicDir + filename;
+        initFileConfig(filepath);
+        return 0;
+    }
 }
 
 module.exports = new Configuration();
