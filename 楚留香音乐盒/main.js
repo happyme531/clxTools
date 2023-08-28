@@ -1510,8 +1510,19 @@ function main() {
         }
         let fileName = totalFiles[lastSelectedFileIndex];
         gameProfile.clearCurrentConfigCache();
-        let data = loadMusicFile(fileName, ScoreExportType.none);
+        let data = null;
+        try {
+            data = loadMusicFile(fileName, ScoreExportType.none);
+        }catch(e){
+            console.error(`加载乐曲文件失败: ${e}`);
+            let res = dialogs.confirm("加载失败!", `加载乐曲文件失败, 这可能是因为文件已损坏, 配置错误或脚本的bug.\n点击"确定"将重置此乐曲的配置, 这有时可以解决问题.\n也可以将以下的错误信息反馈给开发者(截图最靠上部分即可):\n\n${e}\n${e.stack}`);
+            if(res){
+                configuration.clearFileConfig(fileName);
+            }
+            return;
+        }
         if (data == null) {
+            console.error("加载乐曲文件失败, data == null");
             return;
         }
         totalTimeSec = data[data.length - 1][1];
