@@ -49,6 +49,11 @@ const clickDurationSec = 0.05; //点击时间
 const delayAfterClickSec = 0.2; //点击后的延迟
 const swapDurationSec = 0.3; //滑动时间
 
+//点击位置的标准差, 用于模拟人类的点击误差. 0表示不使用. 单位: 像素
+const clickPositionStdDev = 7;
+//点击时间的标准差, 用于模拟人类的点击误差. 0表示不使用. 单位: 毫秒
+const clickDurationStdDev = 10;
+
 //设备相关的常量 - 屏幕坐标
 //以下坐标是在2340x1080的屏幕上设置的, Autojs有坐标缩放功能, 理论上不修改也能在其他分辨率的屏幕上运行.
 //但如果你发现点击位置不对, 就需要手动修改以下所有坐标.
@@ -96,19 +101,63 @@ const travelTimePerGridSec = 3.34 / 20;
 //每四分之一格需要的时间
 const travelTimePerQuarterGridSec = travelTimePerGridSec / 4;
 
+function NormalDistributionRandomizer(mean, stddev) {
+    this.mean = mean;
+    this.stddev = stddev;
+
+    this.next = function () {
+        var u = 0, v = 0;
+        while (u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+        while (v === 0) v = Math.random();
+        var num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        num = num * this.stddev + this.mean;
+        return num;
+    }
+}
+
+const clickPositionRandomizer = new NormalDistributionRandomizer(0, clickPositionStdDev);
+const clickDurationRandomizer = new NormalDistributionRandomizer(0, clickDurationStdDev);
+
+function randomizeClickPosition(point) {
+    // @ts-ignore
+    if (clickPositionStdDev === 0) {
+        return point;
+    }
+    let deviation = 0;
+    do {
+        deviation = clickPositionRandomizer.next();
+    } while (Math.abs(deviation) > 2 * clickPositionStdDev); 
+    let angle = Math.random() * 2 * Math.PI;
+    return [point[0] + deviation * Math.cos(angle), point[1] + deviation * Math.sin(angle)];
+}
+
+function randomizeClickDuration(duration) {
+    // @ts-ignore
+    if (clickDurationStdDev === 0) {
+        return duration;
+    }
+    let deviation = 0;
+    do {
+        deviation = clickDurationRandomizer.next();
+    } while (Math.abs(deviation) > 2 * clickDurationStdDev);
+    duration = Math.max(4, duration + deviation);
+    return duration;
+}
 
 function clickPoint(point) {
-    press(point[0], point[1],clickDurationSec*1000);
-    sleep(delayAfterClickSec*1000);
+    let point2 = randomizeClickPosition(point);
+    press(point2[0], point2[1], randomizeClickDuration(clickDurationSec * 1000));
+    sleep(randomizeClickDuration(delayAfterClickSec * 1000));
 }
 
-function clickPointFast(point){
-    press(point[0], point[1],clickDurationSec*1000 /2);
-    sleep(delayAfterClickSec*1000 /3);
+function clickPointFast(point) {
+    let point2 = randomizeClickPosition(point);
+    press(point2[0], point2[1], randomizeClickDuration(clickDurationSec * 1000 / 2));
+    sleep(randomizeClickDuration(delayAfterClickSec * 1000 / 3));
 }
 
-function shortSleep(){
-    sleep(delayAfterClickSec/2);
+function shortSleep() {
+    sleep(delayAfterClickSec / 2);
 }
 
 const DirectionUp = 0;
@@ -117,11 +166,13 @@ const DirectionDown = 1;
 const DirectionLeft = 2;
 const DirectionRight = 3;
 
-function blockSelectorsSwipe(direction){
+function blockSelectorsSwipe(direction) {
     let startPoint = direction === DirectionUp ? blockSelectorsLowerBound : blockSelectorsUpperBound;
+    startPoint = randomizeClickPosition(startPoint);
     let endPoint = direction === DirectionUp ? blockSelectorsUpperBound : blockSelectorsLowerBound;
-    swipe(startPoint[0], startPoint[1], endPoint[0], endPoint[1], swapDurationSec*1000);
-    sleep(delayAfterClickSec*1000);
+    endPoint = randomizeClickPosition(endPoint);
+    swipe(startPoint[0], startPoint[1], endPoint[0], endPoint[1], randomizeClickDuration(swapDurationSec * 1000));
+    sleep(randomizeClickDuration(delayAfterClickSec * 1000));
 }
 
 const GranularityGrid = 0;
