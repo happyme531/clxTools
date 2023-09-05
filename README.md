@@ -10,7 +10,7 @@
 
 1. 下载:
   先下载脚本文件: [脚本文件](https://github.com/happyme531/clxTools/archive/master.zip)  
-  如果上面的链接无法访问，也可以点击[镜像地址](https://gh.api.99988866.xyz/https://gh.api.99988866.xyz/https://github.com/happyme531/clxTools/archive/master.zip)下载  
+  如果上面的链接无法访问，也可以点击[镜像地址](https://gh.api.99988866.xyz/https://github.com/happyme531/clxTools/archive/master.zip)下载  
   之后再下载脚本运行环境(AutoX): [进入apk下载](https://github.com/kkevsekk1/AutoX/releases)
 
 2. 安装:  
