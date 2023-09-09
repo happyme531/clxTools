@@ -9,7 +9,7 @@
         "checkJs": true,
         "downlevelIteration": true, // Rhino支持es6的for-of
         "typeRoots": [
-            "../declarations" //https://github.com/SuperMonster003/AutoJs6-TypeScript-Declarations
+            "./declarations" //https://github.com/SuperMonster003/AutoJs6-TypeScript-Declarations
           ]
     },
     "exclude": [

@@ -25,8 +25,9 @@ function Humanify() {
     }
 
     /**
-     * @param {Array<[number, number]>} 乐曲数组 [音高, 所在时间(ms)]
+     * @param {import("./noteUtils.js").NoteLike[]} notes 乐曲数组
      * @brief 为乐曲加入扰动, 让它听起来更像是人弹的. 处理速度应该很快
+     * @return {import("./noteUtils.js").NoteLike[]} 扰动后的乐曲数组
      */
     this.humanify = function(notes){
         var randomizer = new NormalDistributionRandomizer(0, this.stddev);

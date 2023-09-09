@@ -13,6 +13,7 @@ try {
     var PassManager = require("./src/passManager.js");
     var runtimes = require("./src/runtimes.js");
     var midiPitch = require("./src/midiPitch.js");
+    var noteUtils = require("./src/noteUtils.js");
 } catch (e) {
     toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
     toast("模块加载错误");
@@ -249,7 +250,7 @@ function setupMidiStream() {
     }
     let portIndex = 0;
     if (portNames.length > 1) {  // 不太可能出现
-        portIndex = dialogs.select("选择MIDI端口", portNames);
+        portIndex = /** @type {Number} */ (dialogs.select("选择MIDI端口", portNames)) ;
         if (portIndex == -1) {
             toast("您取消了选择");
             return null;
@@ -317,7 +318,7 @@ function checkEnableAccessbility() {
 }
 
 /**
- * @param {import("./src/musicFormats.js").Chord[]} noteData 音符数据
+ * @param {noteUtils.PackedNoteLike[]} noteData 音符数据
  * @param {ScoreExportType} exportType 导出类型
  * @brief 导出音符数据
  */
@@ -334,7 +335,7 @@ function exportNoteDataInteractive(noteData, exportType) {
                 noteData.forEach(key => {
                     if (key[1] >= gapTime) segmentCnt++;
                 });
-                confirmed = dialogs.confirm("", "乐谱将分为" + segmentCnt.toString() + "个小段,是否满意?");
+                confirmed = /** @type {Boolean} */ (dialogs.confirm("", "乐谱将分为" + segmentCnt.toString() + "个小段,是否满意?")) ;
             }
 
             let toneStr = null;
@@ -493,7 +494,7 @@ function selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty) {
         avgPitch /= track.notes.length;
         trackInfoStrs.push(track.name + " (" + track.noteCount + "个音符, 平均音高" + avgPitch.toFixed(1) + ")");
     }
-    let selectedTracksNonEmpty = dialogs.multiChoice("选择音轨", trackInfoStrs, lastSelectedTracksNonEmpty);
+    let selectedTracksNonEmpty = /** @type {Number[]} */ (dialogs.multiChoice("选择音轨", trackInfoStrs, lastSelectedTracksNonEmpty)) ;
     if (selectedTracksNonEmpty.length == 0) { //取消选择, 保持原样
         selectedTracksNonEmpty = lastSelectedTracksNonEmpty;
     }
@@ -501,7 +502,7 @@ function selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty) {
 }
 
 /**
- * @param {MusicFormats.Note[]} noteData
+ * @param {noteUtils.Note[]} noteData
  * @param {number} targetMajorPitchOffset
  * @param {number} targetMinorPitchOffset
  * @brief 测试配置效果 
@@ -1183,7 +1184,7 @@ function runGlobalSetup() {
         case 1:
             //目标游戏
             let configList = gameProfile.getConfigNameList();
-            let sel = dialogs.select("选择目标游戏...", configList);
+            let sel = /** @type {Number} */ (dialogs.select("选择目标游戏...", configList)) ;
             if (sel == -1) {
                 toastLog("设置没有改变");
                 break;
@@ -1195,12 +1196,14 @@ function runGlobalSetup() {
             console.log("目标游戏已设置为: " + configName);
             //目标乐器
             let instrumentList = gameProfile.getCurrentAvailableVariants();
-            if (instrumentList.length == 1) {
+            if (instrumentList == null || instrumentList.length == 0) {
+                throw new Error("当前游戏没有可用的乐器!");
+            } else if (instrumentList.length == 1) {
                 gameProfile.setCurrentVariantDefault();
                 setGlobalConfig("lastVariantName", gameProfile.getCurrentVariantTypeName());
             } else {
                 let nameList = instrumentList.map((variant) => variant.variantName);
-                let sel = dialogs.select("选择目标乐器...", nameList);
+                let sel = /** @type {Number} */ (dialogs.select("选择目标乐器...", nameList)) ;
                 if (sel == -1) {
                     toastLog("设置没有改变");
                     break;
@@ -1212,13 +1215,15 @@ function runGlobalSetup() {
             }
             //目标键位
             let keyLayoutList = gameProfile.getCurrentAvailableKeyLayouts();
-            if (keyLayoutList.length == 1) {
+            if(keyLayoutList == null || keyLayoutList.length == 0){
+                throw new Error("当前游戏没有可用的键位!");
+            }else if (keyLayoutList.length == 1) {
                 gameProfile.setCurrentKeyLayoutDefault();
                 setGlobalConfig("lastKeyTypeName", gameProfile.getCurrentKeyLayoutTypeName());
             } else {
                 let allKeyLayoutList = gameProfile.getAllKeyLayouts();
                 let nameList = keyLayoutList.map((keyLayout) => allKeyLayoutList[keyLayout].displayName);
-                let sel = dialogs.select("选择目标键位...", nameList);
+            let sel = /** @type {Number} */ (dialogs.select("选择目标键位...", nameList)) ;
                 if (sel == -1) {
                     toastLog("设置没有改变");
                     break;
@@ -1898,13 +1903,8 @@ function loadMusicFile(fileName, exportScore) {
     //合并按键
     passManager.addPass("MergeKeyPass", {
         maxInterval: mergeThreshold * 1000,
-    }, null, (data, statistics, elapsedTime) => {
+    }, null, (data , statistics, elapsedTime) => {
         console.log("合并按键耗时" + elapsedTime / 1000 + "秒");
-        if (!chordLimitEnabled) {
-            visualizer.setKeyLayout(gameProfile.getKeyLayout().row, gameProfile.getKeyLayout().column);
-            visualizer.loadNoteData(data);
-            visualizer.goto(-1);
-        }
         progressDialog.setContent("正在生成手势...");
     });
     //限制按键频率
@@ -1922,18 +1922,24 @@ function loadMusicFile(fileName, exportScore) {
             selectMode: chordSelectMode,
         }, null, (data, statistics, elapsedTime) => {
             console.log("限制同时按键个数: 耗时" + elapsedTime / 1000 + "秒");
-            visualizer.setKeyLayout(gameProfile.getKeyLayout().row, gameProfile.getKeyLayout().column);
-            visualizer.loadNoteData(data);
-            visualizer.goto(-1);
             progressDialog.setContent("正在生成手势...");
         });
     }
+
     if (exportScore != ScoreExportType.none) {
         //如果是导出乐谱,则不需要生成手势
         let data = passManager.run(noteData);
         progressDialog.dismiss();
-        return data;
+        return noteUtils.packNotes(data);
     }
+
+    //加载可视化窗口
+    passManager.addPass("NopPass", null, null, (data, statistics, elapsedTime) => {
+        visualizer.setKeyLayout(gameProfile.getKeyLayout().row, gameProfile.getKeyLayout().column);
+        visualizer.loadNoteData(noteUtils.packNotes(data));
+        visualizer.goto(-1);
+    });
+    
     //生成手势
     passManager.addPass("KeyToGesturePass", {
         currentGameProfile: gameProfile,

@@ -17,7 +17,7 @@ function Visualizer(){
 
     /**
      * 加载乐曲数据
-     * @param {Array<[Array<number>, number]>} data 乐曲数据[[按键编号(从0开始),...], 所在时间[s]]
+     * @param {Array<import("./noteUtils.js").PackedKey>} data 乐曲数据[[按键编号(从0开始),...], 所在时间[s]]
      */
     this.loadNoteData = function(data){
         mergedNoteData = data.slice();

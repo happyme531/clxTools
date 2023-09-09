@@ -6,6 +6,8 @@ var Humanifyer = require("./humanify.js");
 var GameProfile = require("./gameProfile.js");
 var Algorithms = require("./algorithms.js");
 
+var noteUtils = require("./noteUtils.js");
+
 /**
  * @brief 什么都不做的pass, 把输入原样输出, 也不会产生任何统计数据
  * @param {Object} config
@@ -78,7 +80,7 @@ function MergeTracksPass(config) {
      * 运行此pass
      * @param {MusicFormats.TracksData} tracksData - 音乐数据
      * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
-     * @returns {MusicFormats.Note[]} - 返回解析后的数据
+     * @returns {noteUtils.Note[]} - 返回解析后的数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (tracksData, progressCallback) {
@@ -116,9 +118,9 @@ function HumanifyPass(config) {
     noteAbsTimeStdDev = config.noteAbsTimeStdDev;
     /**
      * 运行此pass
-     * @param {MusicFormats.Note[]} noteData - 音乐数据
+     * @param {noteUtils.Note[]} noteData - 音乐数据
      * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
-     * @returns {MusicFormats.Note[]} - 返回解析后的数据
+     * @returns {noteUtils.Note[]} - 返回解析后的数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (noteData, progressCallback) {
@@ -207,9 +209,9 @@ function NoteToKeyPass(config) {
 
     /**
      * 运行此pass
-     * @param {MusicFormats.Note[]} noteList - 音乐数据
+     * @param {noteUtils.Note[]} noteList - 音乐数据
      * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
-     * @returns {Array<[key: number, time: number]>} - 返回解析后的数据
+     * @returns {noteUtils.Key[]} - 返回解析后的数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (noteList, progressCallback) {
@@ -219,7 +221,7 @@ function NoteToKeyPass(config) {
             if (key == -1) {
                 continue;
             }
-            keyList.push([key, noteList[i][1]]);
+            keyList.push([key, noteList[i][1],noteList[i][2]]);
             if (progressCallback != null && i % 10 == 0) {
                 progressCallback(100 * i / noteList.length);
             }
@@ -257,14 +259,13 @@ function SingleKeyFrequencyLimitPass(config) {
     minInterval = config.minInterval;
     /**
      * 运行此pass
-     * @param {Array<[key: number, time: number]>} noteData - 音乐数据
+     * @param {noteUtils.NoteLike[]} noteData - 音乐数据
      * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
-     * @returns {Array<[key: number, time: number]>} - 返回解析后的数据
+     * @returns {noteUtils.NoteLike} - 返回解析后的数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (noteData, progressCallback) {
         const sameNoteGapMin = minInterval;
-
         for (let i = 0; i < noteData.length; i++) {
             let note = noteData[i];
             let j = i + 1;
@@ -321,32 +322,37 @@ function MergeKeyPass(config) {
     if (config.maxBatchSize != null) {
         maxBatchSize = config.maxBatchSize;
     }
+
     /**
      * 运行此pass
-     * @param {Array<[key: number, time: number]>} noteData - 音乐数据
+     * @param {noteUtils.NoteLike[]} noteData - 音乐数据
      * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
-     * @returns {Array<[keys: number[], time: number]>} - 返回解析后的数据
+     * @returns {noteUtils.NoteLike[]} - 返回解析后的数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (noteData, progressCallback) {
-        let mergedNoteData = new Array();
-        let lastTime = 0;
-        let lastNotes = new Set();
-        for (let i = 0; i < noteData.length; i++) {
+        let lastTime = noteData[0][1];
+        let lastSize = 0;
+        let lastNotes = new Array(maxBatchSize);
+        for (let i = 1; i < noteData.length; i++) {
             let note = noteData[i];
-            if (note[1] - lastTime < maxInterval && lastNotes.size < maxBatchSize) {
-                lastNotes.add(note[0] - 1);
-            } else {
-                if (lastNotes.size > 0) {
-                    mergedNoteData.push([Array.from(lastNotes), lastTime]);
+            if (note[1] - lastTime < maxInterval && lastSize < maxBatchSize) {
+                note[1] = lastTime;
+                //检查重复
+                if(lastNotes.indexOf(note[0]) != -1){
+                    noteUtils.softDeleteNoteAt(noteData,i);
+                    continue;
                 }
-                lastNotes = new Set([note[0] - 1]);
+                lastNotes.push(note[0]);
+                lastSize++;
+            } else {
+                lastNotes = new Array(maxBatchSize);
+                lastSize = 0;
                 lastTime = note[1];
             }
         }
-        if (lastNotes.size > 0)
-            mergedNoteData.push([Array.from(lastNotes), lastTime]);
-        return mergedNoteData;
+        noteUtils.applyChanges(noteData);
+        return noteData;
     }
 
     this.getStatistics = function () {
@@ -378,27 +384,28 @@ function KeyToGesturePass(config) {
     }
     /**
      * 运行此pass
-     * @param {Array<[keys: number[], time: number]>} noteData - 音乐数据
+     * @param {noteUtils.Key[]} noteData - 音乐数据
      * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
      * @returns {import("./players.js").Gestures} - 返回解析后的数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (noteData, progressCallback) {
         let gestureTimeList = new Array();
-        noteData.forEach((note) => {
-            let time = note[1];
+        let it = noteUtils.chordIterator(noteData);
+        for (let keys of it) {
+            let time = keys[0][1];
             let gestureArray = new Array();
-            note[0].forEach((key) => {
-                let clickPos = currentGameProfile.getKeyPosition(key);
+            keys.forEach((key) => {
+                const keyIndex = key[0]
+                const clickPos = currentGameProfile.getKeyPosition(keyIndex);
                 if (clickPos == null) {
-                    console.log("音符超出范围，被丢弃");
-                    console.log("key:" + key);
+                    console.log(`按键 ${keyIndex} 超出范围，被丢弃`);
                     return;
                 }
                 gestureArray.push([0, pressDuration, clickPos.slice()]);
             });
             gestureTimeList.push([gestureArray, time / 1000]);
-        });
+        };
         return gestureTimeList;
     }
 
@@ -424,25 +431,18 @@ function LimitBlankDurationPass(config) {
     }
     /**
      * 运行此pass
-     * @template T
-     * @param {Array<[T, time: number]>} noteData - 音乐数据
+     * @param {noteUtils.NoteLike[]} noteData - 音乐数据
      * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
-     * @returns {Array<[T, time: number]>} - 返回解析后的数据
+     * @returns {noteUtils.NoteLike[]} - 返回解析后的数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (noteData, progressCallback) {
-        let deltaTimes = new Array();
-        for (let i = 0; i < noteData.length - 1; i++) {
-            deltaTimes.push(noteData[i + 1][1] - noteData[i][1]);
+        noteData = noteUtils.toRelativeTime(noteData);
+        for (let i = 0; i < noteData.length; i++) {
+            if (noteData[i][1] > maxBlankDuration) 
+                noteData[i][1] = maxBlankDuration;
         }
-        for (let i = 0; i < deltaTimes.length; i++) {
-            if (deltaTimes[i] > maxBlankDuration) {
-                deltaTimes[i] = maxBlankDuration;
-            }
-        }
-        for (let i = 0; i < noteData.length - 1; i++) {
-            noteData[i + 1][1] = noteData[i][1] + deltaTimes[i];
-        }
+        noteData = noteUtils.toAbsoluteTime(noteData);
         return noteData;
     }
 
@@ -465,9 +465,9 @@ function SkipIntroPass(config) {
     /**
      * 运行此pass
      * @template T
-     * @param {Array<[T, time: number]>} noteData - 音乐数据
+     * @param {noteUtils.NoteLike[]} noteData - 音乐数据
      * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
-     * @returns {Array<[T, time: number]>} - 返回解析后的数据
+     * @returns {noteUtils.NoteLike[]} - 返回解析后的数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (noteData, progressCallback) {
@@ -507,10 +507,9 @@ function NoteFrequencySoftLimitPass(config) {
 
     /**
      * 运行此pass
-     * @template T
-     * @param {Array<[T, number]>} noteData - 音乐数据
+     * @param {noteUtils.NoteLike[]} noteData - 音乐数据
      * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
-     * @returns {Array<[T, number]>} - 返回解析后的数据
+     * @returns {noteUtils.NoteLike[]} - 返回解析后的数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (noteData, progressCallback) {
@@ -553,10 +552,9 @@ function SpeedChangePass(config) {
 
     /**
      * 运行此pass
-     * @template T
-     * @param {Array<[T, number]>} noteData - 音乐数据
+     * @param {noteUtils.NoteLike[]} noteData - 音乐数据
      * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
-     * @returns {Array<[T, number]>} - 返回处理后的数据
+     * @returns {noteUtils.NoteLike[]} - 返回处理后的数据
      */
     this.run = function (noteData, progressCallback) {
         for (let i = 0; i < noteData.length; i++) {
@@ -608,55 +606,44 @@ function ChordNoteCountLimitPass(config) {
 
     /**
      * 运行此pass
-     * @param {Array<import("./musicFormats.js").Chord>} noteData - 音乐数据
+     * @param {noteUtils.NoteLike[]} noteData - 音乐数据
      * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
-     * @returns {Array<import("./musicFormats.js").Chord>} - 返回处理后的数据
+     * @returns {noteUtils.NoteLike[]} - 返回处理后的数据
      */
     this.run = function (noteData, progressCallback) {
-        let algorithms = new Algorithms();
-        let prng = algorithms.PRNG(randomSeed);
-        let totalLength = noteData.length;
-        for (let i = 0; i < noteData.length; i++) {
-            let chord = noteData[i];
-            if(chord[2] == undefined) chord[2] = [];
-            if (chord[0].length > maxNoteCount) {
-                progressCallback(Math.min(i / totalLength * 100, 100));
-                noteData.splice(i, 1);
-                let currentTime = chord[1];
-                let notesAttrs = new Array();
-                for (let j = 0; j < chord[0].length; j++) {
-                    notesAttrs.push([chord[0][j], chord[2][j]]);
-                }
+        const algorithms = new Algorithms();
+        const prng = algorithms.PRNG(randomSeed);
+        const totalLength = noteData.length;
+        let i = 0;
+        while(true){
+            let ni = noteUtils.nextChordStart(noteData,i);
+            if(ni == noteData.length) break;
+            let chord = noteData.subarray(i, ni - 1);
+            if (chord.length > maxNoteCount) {
                 switch (selectMode) {
                     case "high": //从高到低排序
-                        notesAttrs.sort((a, b) => b[0] - a[0]);
+                        chord.sort((a, b) => b[0] - a[0]);
                         break;
                     case "low": //
-                        notesAttrs.sort((a, b) => a[0] - b[0]);
+                        chord.sort((a, b) => a[0] - b[0]);
                         break;
                     case "random":
-                        notesAttrs = algorithms.shuffle(notesAttrs, prng);
+                        chord = algorithms.shuffle(chord, prng);
                         break;
                 }
-                let current = new Array();
-                let remaining = notesAttrs;
-                do {
-                    current = remaining.slice(0, maxNoteCount);
-                    remaining = remaining.slice(maxNoteCount);
-                    let newNotes = new Array(current.length), newAttrs = new Array(current.length);
-                    for (let j = 0; j < current.length; j++) {
-                        newNotes.push(current[j][0]);
-                        newAttrs.push(current[j][1]);
+
+                for (let j = maxNoteCount; j < chord.length; j++) {
+                    if (limitMode == "delete") {
+                        noteUtils.softDeleteNoteAt(noteData, i + j);
+                    } else if (limitMode == "split") {
+                        noteUtils.softChangeNoteTime(chord[j], chord[j][1] + splitDelay * (j - maxNoteCount + 1));
                     }
-                    let newChord = [newNotes, currentTime, newAttrs];
-                    //@ts-ignore
-                    noteData.splice(i, 0, newChord);
-                    i++; //跳过新插入的音符
-                    if (limitMode == "delete") break;
-                    currentTime += splitDelay;
-                } while (remaining.length > 0);
+                }
             }
+            i = ni;
         }
+        noteUtils.applyChanges(noteData);
+        noteData.sort((a, b) => a[1] - b[1]);
         return noteData;
     }
     this.getStatistics = function () {
