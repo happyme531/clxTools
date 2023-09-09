@@ -11,7 +11,7 @@
 1. 下载:
   先下载脚本文件: [脚本文件](https://github.com/happyme531/clxTools/archive/master.zip)  
   如果上面的链接无法访问，也可以点击[镜像地址](https://gh.api.99988866.xyz/https://github.com/happyme531/clxTools/archive/master.zip)下载  
-  之后再下载脚本运行环境(AutoX): [进入apk下载](https://github.com/kkevsekk1/AutoX/releases)
+  之后再下载脚本运行环境(AutoX): [进入apk下载](https://github.com/kkevsekk1/AutoX/releases)或[使用镜像地址下载](http://autoxoss.autoxjs.com/autoxjs/6.4.3/app-v6-arm64-v8a-release-unsigned-signed.apk)
 
 2. 安装:  
      - 点击下载的apk文件，安装AutoX
@@ -68,6 +68,7 @@
   - 第五人格
   - 阴阳师
   - 摩尔庄园
+  - 明日之后(传统模式)
   - 其它通过触摸屏幕演奏乐曲，且音符为矩阵分布的游戏
 + 游戏提供的所有按键都有效(例如黑键/额外的音域), 不被21键限制, 效果更好
 + 自动识别游戏
