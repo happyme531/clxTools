@@ -747,7 +747,7 @@ function runFileConfigSetup(fullFileName) {
                     <vertical>
                         <text text="速度控制:" textColor="red" />
                         <horizontal>
-                            {/* 33~300%, 对数, 默认1->不使用 */}
+                            {/* 5~1500%, 对数, 默认1->不使用 */}
                             <text text="变速:" />
                             <checkbox id="speedMultiplier" />
                             <text text="default%" id="speedMultiplierValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
@@ -883,7 +883,7 @@ function runFileConfigSetup(fullFileName) {
     });
     view.speedMultiplierSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
         if (progress == undefined) return;
-        let value = numberRevMapLog(progress, 0.33, 3);
+        let value = numberRevMapLog(progress, 0.05, 15);
         view.speedMultiplierValueText.setText((value * 100).toFixed(2) + "%");
         return true;
     });
@@ -978,7 +978,7 @@ function runFileConfigSetup(fullFileName) {
         view.limitClickSpeedSeekbar.setProgress(numberMapLog(limitClickSpeedHz, 1, maxClickSpeedHz));
         view.speedMultiplier.setChecked(speedMultiplier != 1);
         view.speedMultiplierValueText.setText((speedMultiplier * 100).toFixed(2) + "%");
-        view.speedMultiplierSeekbar.setProgress(numberMapLog(speedMultiplier, 0.33, 3));
+        view.speedMultiplierSeekbar.setProgress(numberMapLog(speedMultiplier, 0.05, 15));
         //时长控制
         let defaultClickDuration = readGlobalConfig("defaultClickDuration", 5);
         view.defaultClickDurationValueText.setText(defaultClickDuration.toFixed(2) + "ms");
@@ -1046,7 +1046,7 @@ function runFileConfigSetup(fullFileName) {
         let limitClickSpeedHz = view.limitClickSpeedCheckbox.isChecked() ?
             numberRevMapLog(view.limitClickSpeedSeekbar.getProgress(), 1, maxClickSpeedHz) : 0;
         let speedMultiplier = view.speedMultiplier.isChecked() ?
-            numberRevMapLog(view.speedMultiplierSeekbar.getProgress(), 0.33, 3) : 1;
+            numberRevMapLog(view.speedMultiplierSeekbar.getProgress(), 0.05, 15) : 1;
         let defaultClickDuration = numberRevMapLog(view.defaultClickDurationSeekbar.getProgress(), 1, 500);
         let halfCeiling = view.halfCeilingSetting_roundUp.isChecked();
         let majorPitchOffset = view.majorPitchOffsetSeekbar.getProgress() - 2;
