@@ -1,26 +1,32 @@
 
 /** @type {{subarray: (i: number, j: number) => any[]}} */
 Array.prototype;
+
 /**
  * @brief 获取数组的子数组(引用)
  */
-Array.prototype.subarray = function (/** @type {number} */ i, /** @type {number} */ j) {
-    var self = this, arr = [];
-    for (var n = 0; i <= j; i++, n++) {
-        (function (i) {
-            Object.defineProperty(arr, n, {       //Array is an Object
-                get: function () {
-                    return self[i];
-                },
-                set: function (value) {
-                    self[i] = value;
-                    return value;
-                }
-            });
-        })(i);
-    }
-    return arr;
-}
+Object.defineProperty(Array.prototype, 'subarray', {
+    value: function (/** @type {number} */ i, /** @type {number} */ j) {
+        var self = this, arr = [];
+        for (var n = 0; i <= j; i++, n++) {
+            (function (i) {
+                Object.defineProperty(arr, n, {       //Array is an Object
+                    get: function () {
+                        return self[i];
+                    },
+                    set: function (value) {
+                        self[i] = value;
+                        return value;
+                    }
+                });
+            })(i);
+        }
+        return arr;
+    },
+    writable: true,
+    configurable: true
+});
+
 /** 
  * @typedef {[pitch: number, startTime: number, attributes: Object.<string,Object>|undefined]} Note
  * @typedef {[keyIndex: number, startTime: number, attributes: Object.<string,Object>|undefined]} Key // 按键
