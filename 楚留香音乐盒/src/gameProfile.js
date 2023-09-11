@@ -1482,7 +1482,7 @@ function GameProfile() {
     /**
      * 根据 MIDI 音高值获取对应的按键名。
      * @param {number} pitch - MIDI 音高值。
-     * @returns {number} MIDI 音高值对应的按键序号，从1开始，如果没有对应的按键则返回-1。
+     * @returns {number} MIDI 音高值对应的按键序号，从0开始，如果没有对应的按键则返回-1。
      */
     this.getKeyByPitch = function (pitch) {
         if (cachedPitchKeyMap == null) {
@@ -1492,7 +1492,7 @@ function GameProfile() {
         if (res === undefined) {
             return -1;
         }
-        return res;
+        return res - 1;
     }
 
     /**
