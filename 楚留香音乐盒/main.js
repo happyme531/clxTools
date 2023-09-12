@@ -765,6 +765,16 @@ function runFileConfigSetup(fullFileName) {
                 <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
                     <vertical>
                         <text text="时长控制(输出):" textColor="red" />
+                        {/* 音符时长输出模式 */}
+                        <horizontal>
+                            <text text="时长输出模式:" />
+                            <radiogroup id="noteDurationOutputMode" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
+                                <radio id="noteDurationOutputMode_none" text="固定值" textSize="12sp" margin="0dp" />
+                                <radio id="noteDurationOutputMode_native" text="真实时长(实验性)" textSize="12sp" margin="0dp" />
+                                {/* <radio id="noteDurationOutputMode_extraLongKey" text="额外长音按钮" textSize="12sp" margin="0dp" /> */}
+                            </radiogroup>
+                         </horizontal>
+                         {/* 默认点击时长 */}
                         <horizontal w="*">
                             <text text="默认点击时长: " />
                             {/* <radiogroup id="defaultClickDurationMode" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
@@ -776,6 +786,18 @@ function runFileConfigSetup(fullFileName) {
                             <text text="defaultms" id="defaultClickDurationValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
                         </horizontal>
                         <seekbar id="defaultClickDurationSeekbar" w="*" max="1000" layout_gravity="center" />
+                        {/* 最长手势持续时间: 100~30000ms, 对数, 默认8000ms */}
+                        <horizontal w="*">
+                            <text text="最长手势持续时间: " />
+                            <text text="defaultms" id="maxGestureDurationValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                        </horizontal>
+                        <seekbar id="maxGestureDurationSeekbar" w="*" max="1000" layout_gravity="center" />
+                        {/* 按键间留空时间: 1~600ms, 对数, 默认100ms */}
+                        <horizontal w="*">
+                            <text text="按键间留空时间: " />
+                            <text text="defaultms" id="marginDurationValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                        </horizontal>
+                        <seekbar id="marginDurationSeekbar" w="*" max="1000" layout_gravity="center" />
                     </vertical>
                 </card>
                 <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
@@ -893,6 +915,18 @@ function runFileConfigSetup(fullFileName) {
         view.defaultClickDurationValueText.setText(value.toFixed(2) + "ms");
         return true;
     });
+    view.maxGestureDurationSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
+        if (progress == undefined) return;
+        let value = numberRevMapLog(progress, 100, 30000);
+        view.maxGestureDurationValueText.setText(value.toFixed(2) + "ms");
+        return true;
+    });
+    view.marginDurationSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
+        if (progress == undefined) return;
+        let value = numberRevMapLog(progress, 1, 600);
+        view.marginDurationValueText.setText(value.toFixed(2) + "ms");
+        return true;
+    });
     view.trackDisableThresholdSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
         if (progress == undefined) return;
         let value = numberRevMap(progress, 1, 99);
@@ -980,9 +1014,25 @@ function runFileConfigSetup(fullFileName) {
         view.speedMultiplierValueText.setText((speedMultiplier * 100).toFixed(2) + "%");
         view.speedMultiplierSeekbar.setProgress(numberMapLog(speedMultiplier, 0.05, 15));
         //时长控制
+        let noteDurationOutputMode = configuration.readFileConfigForTarget("noteDurationOutputMode", rawFileName, gameProfile, "none");
+        switch (noteDurationOutputMode) {
+            case "none":
+                view.noteDurationOutputMode_none.setChecked(true);
+                break;
+            case "native":
+                view.noteDurationOutputMode_native.setChecked(true);
+                break;
+        }
         let defaultClickDuration = readGlobalConfig("defaultClickDuration", 5);
         view.defaultClickDurationValueText.setText(defaultClickDuration.toFixed(2) + "ms");
         view.defaultClickDurationSeekbar.setProgress(numberMapLog(defaultClickDuration, 1, 500));
+        let maxGestureDuration = readGlobalConfig("maxGestureDuration", 8000);
+        view.maxGestureDurationValueText.setText(maxGestureDuration.toFixed(2) + "ms");
+        view.maxGestureDurationSeekbar.setProgress(numberMapLog(maxGestureDuration, 100, 30000));
+        let marginDuration = readGlobalConfig("marginDuration", 100);
+        view.marginDurationValueText.setText(marginDuration.toFixed(2) + "ms");
+        view.marginDurationSeekbar.setProgress(numberMapLog(marginDuration, 1, 600));
+
         //音域优化
         let halfCeiling = readFileConfig("halfCeiling", rawFileName, false);
         switch (halfCeiling) {
@@ -1047,7 +1097,10 @@ function runFileConfigSetup(fullFileName) {
             numberRevMapLog(view.limitClickSpeedSeekbar.getProgress(), 1, maxClickSpeedHz) : 0;
         let speedMultiplier = view.speedMultiplier.isChecked() ?
             numberRevMapLog(view.speedMultiplierSeekbar.getProgress(), 0.05, 15) : 1;
+        let noteDurationOutputMode = view.noteDurationOutputMode_native.isChecked() ? "native" : "none";
         let defaultClickDuration = numberRevMapLog(view.defaultClickDurationSeekbar.getProgress(), 1, 500);
+        let maxGestureDuration = numberRevMapLog(view.maxGestureDurationSeekbar.getProgress(), 100, 30000);
+        let marginDuration = numberRevMapLog(view.marginDurationSeekbar.getProgress(), 1, 600);
         let halfCeiling = view.halfCeilingSetting_roundUp.isChecked();
         let majorPitchOffset = view.majorPitchOffsetSeekbar.getProgress() - 2;
         let minorPitchOffset = view.minorPitchOffsetSeekbar.getProgress() - 4;
@@ -1061,6 +1114,10 @@ function runFileConfigSetup(fullFileName) {
         let clickPositionDeviation = numberRevMap(view.clickPositionDeviationSeekbar.getProgress(), 0, 6);
         setFileConfig("limitClickSpeedHz", limitClickSpeedHz, rawFileName);
         setFileConfig("speedMultiplier", speedMultiplier, rawFileName);
+        configuration.setFileConfigForTarget("noteDurationOutputMode", noteDurationOutputMode, rawFileName, gameProfile);
+        setGlobalConfig("defaultClickDuration", defaultClickDuration);
+        setGlobalConfig("maxGestureDuration", maxGestureDuration);
+        setGlobalConfig("marginDuration", marginDuration);
         setFileConfig("halfCeiling", halfCeiling, rawFileName);
         configuration.setFileConfigForTarget("majorPitchOffset", majorPitchOffset, rawFileName, gameProfile);
         configuration.setFileConfigForTarget("minorPitchOffset", minorPitchOffset, rawFileName, gameProfile);
@@ -1069,7 +1126,6 @@ function runFileConfigSetup(fullFileName) {
         setFileConfig("noteCountLimitMode", noteCountLimitMode, rawFileName);
         setFileConfig("noteCountLimitSplitDelay", noteCountLimitSplitDelay, rawFileName);
         setFileConfig("chordSelectMode", chordSelectMode, rawFileName);
-        setGlobalConfig("defaultClickDuration", defaultClickDuration);
         setGlobalConfig("humanifyNoteAbsTimeStdDev", noteTimeDeviation);
         setGlobalConfig("clickPositionDeviationMm", clickPositionDeviation);
         
@@ -1786,6 +1842,9 @@ function loadMusicFile(fileName, exportScore) {
     let treatHalfAsCeiling = readFileConfig("halfCeiling", rawFileName, false);
     let limitClickSpeedHz = readFileConfig("limitClickSpeedHz", rawFileName, 0);
     let speedMultiplier = readFileConfig("speedMultiplier", rawFileName, 1);
+    let noteDurationOutputMode = configuration.readFileConfigForTarget("noteDurationOutputMode", rawFileName, gameProfile, "none");
+    let maxGestureDuration = readGlobalConfig("maxGestureDuration", 8000);
+    let marginDuration = readGlobalConfig("marginDuration", 100);
     let defaultClickDuration = readGlobalConfig("defaultClickDuration", 5);
     let chordLimitEnabled = readFileConfig("chordLimitEnabled", rawFileName, false);
     let maxSimultaneousNoteCount = readFileConfig("maxSimultaneousNoteCount", rawFileName, 2);
@@ -1943,6 +2002,9 @@ function loadMusicFile(fileName, exportScore) {
     //生成手势
     passManager.addPass("KeyToGesturePass", {
         currentGameProfile: gameProfile,
+        durationMode: noteDurationOutputMode,
+        maxGestureDuration: maxGestureDuration,
+        marginDuration: marginDuration,
         pressDuration: defaultClickDuration,
     }, null, (data, statistics, elapsedTime) => {
         console.log("生成手势耗时" + elapsedTime / 1000 + "秒");

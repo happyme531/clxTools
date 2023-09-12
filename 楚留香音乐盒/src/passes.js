@@ -363,7 +363,11 @@ function MergeKeyPass(config) {
 /**
  * @brief 将按键列表转换为手势列表
  * @typedef {Object} KeyToGesturePassConfig
- * @property {number} [pressDuration] - 按键持续时间(毫秒)
+ * @property {GameProfile.NoteDurationImplementionType} [durationMode] - 按键时长模式, 默认为"none"
+ * @property {number} [pressDuration] - 默认的按键持续时间(毫秒), 仅在durationMode为"none"时有效, 默认为5
+ * @property {number} [maxGestureDuration] - 最大手势持续时间(毫秒)
+ * @property {number} [maxGestureSize] - 最大手势长度
+ * @property {number} [marginDuration] - 手势间隔时间(毫秒), 仅在durationMode为"native"时有效, 默认为100
  * @property {GameProfile} currentGameProfile - 当前游戏配置
  * @param {KeyToGesturePassConfig} config
  */
@@ -372,45 +376,177 @@ function KeyToGesturePass(config) {
     this.description = "将按键列表转换为手势列表";
 
     let pressDuration = 5; // 毫秒
+    let durationMode = "none";
+    let maxGestureDuration = 10000; // 毫秒
+    let maxGestureSize = 19;
+    let marginDuration = 100; // 毫秒
     let currentGameProfile = null;
 
 
     if (config.currentGameProfile == null) {
         throw new Error("currentGameProfile is null");
     }
+    
     currentGameProfile = config.currentGameProfile;
-    if (config.pressDuration != null) {
+    if (config.pressDuration != null)
         pressDuration = config.pressDuration;
-    }
+    if (config.durationMode != null)
+        durationMode = config.durationMode;
+    if (config.maxGestureDuration != null)
+        maxGestureDuration = config.maxGestureDuration;
+    if (config.maxGestureSize != null)
+        maxGestureSize = config.maxGestureSize;
+    if (config.marginDuration != null)
+        marginDuration = config.marginDuration;
+
+    //统计数据
+    let directlyTruncatedNoteCnt = 0;
+    let groupTruncatedNoteCnt = 0;
+    let sameKeyTruncatedNoteCnt = 0;
+    let removedShortNoteCnt = 0;
+
+
     /**
      * 运行此pass
      * @param {noteUtils.Key[]} noteData - 音乐数据
      * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
      * @returns {import("./players.js").Gestures} - 返回解析后的数据
-     * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (noteData, progressCallback) {
+        let haveDurationProperty = noteData[0][2] != null && noteData[0][2]["duration"] != null;
         let gestureTimeList = new Array();
-        let it = noteUtils.chordIterator(noteData);
-        for (let keys of it) {
-            let time = keys[0][1];
-            let gestureArray = new Array();
-            keys.forEach((key) => {
-                const keyIndex = key[0]
-                const clickPos = currentGameProfile.getKeyPosition(keyIndex);
-                if (clickPos == null) {
-                    console.log(`按键 ${keyIndex} 超出范围，被丢弃`);
-                    return;
+        console.log(`durationMode: ${durationMode}`);
+        if (durationMode == "none" || !haveDurationProperty) {
+            let it = noteUtils.chordIterator(noteData);
+            for (let keys of it) {
+                let time = keys[0][1];
+                let gestureArray = new Array();
+                keys.forEach((key) => {
+                    const keyIndex = key[0]
+                    const clickPos = currentGameProfile.getKeyPosition(keyIndex);
+                    if (clickPos == null) {
+                        console.log(`按键 ${keyIndex} 超出范围，被丢弃`);
+                        return;
+                    }
+                    gestureArray.push([0, pressDuration, clickPos.slice()]);
+                });
+                if(gestureArray.length > 0)
+                 gestureTimeList.push([gestureArray, time / 1000]);
+            };
+        } else if (durationMode == "native") {
+            // 这组按键的结束时间
+            let currentGroupEndTime = 0;
+            // 这组按键的开始时间
+            let currentGroupStartTime = 0;
+
+            // 这组按键的按键列表
+            /** @type {Array<[keyIndex:number, startTime:number, endTime:number]>} */
+            let currentGroupKeys = new Array();
+            // 组列表
+            let groupList = new Array();
+            for (let key of noteData) {
+                // console.log(`key: ${JSON.stringify(key)}`);
+                let thisStartTime = key[1];
+                //@ts-ignore
+                let thisDuration = key[2]["duration"];
+                let thisEndTime = thisStartTime + thisDuration;
+                //截断超过最大手势长度的部分
+                if (thisEndTime - currentGroupStartTime > maxGestureDuration) {
+                    thisEndTime = currentGroupStartTime + maxGestureDuration;
+                    directlyTruncatedNoteCnt++;
                 }
-                gestureArray.push([0, pressDuration, clickPos.slice()]);
-            });
-            gestureTimeList.push([gestureArray, time / 1000]);
-        };
+                //这是这组按键的第一个按键
+                if (currentGroupKeys.length == 0) {
+                    currentGroupStartTime = thisStartTime;
+                    currentGroupEndTime = thisEndTime;
+                    currentGroupKeys.push([key[0], thisStartTime, thisEndTime]);
+                    continue;
+                }
+                //检查是否要开始新的一组
+                //这个按键的开始时间大于这组按键的结束时间, 或当前组按键数量已经达到最大值
+                //则开始新的一组
+                 if (thisStartTime > currentGroupEndTime ||
+                    currentGroupKeys.length >= maxGestureSize) {
+                    // console.log(`start: ${currentGroupStartTime}ms, end: ${currentGroupEndTime}ms, current: ${thisStartTime}ms, duration: ${currentGroupEndTime - currentGroupStartTime}ms`);
+                    //截断所有的音符结束时间到当前音符开始时间 TODO: 这不是最优解
+                    for (let i = 0; i < currentGroupKeys.length; i++) {
+                        let key = currentGroupKeys[i];
+                        if(key[2] > thisStartTime){
+                            groupTruncatedNoteCnt++;
+                            key[2] = thisStartTime;
+                        }
+                    }
+                    //避免首尾相连
+                    for (let i = 0; i < currentGroupKeys.length; i++) {
+                        let key = currentGroupKeys[i];
+                        if (Math.abs(key[2] - thisStartTime) < marginDuration) {
+                            key[2] = thisStartTime - marginDuration;
+                        }
+                    }
+                    groupList.push(currentGroupKeys);
+                    currentGroupKeys = new Array();
+                }
+                //这是这组按键的第一个按键
+                if (currentGroupKeys.length == 0) {
+                    currentGroupStartTime = thisStartTime;
+                    currentGroupEndTime = thisEndTime;
+                    currentGroupKeys.push([key[0], thisStartTime, thisEndTime]);
+                    continue;
+                }
+                //检查是否与相同的按键重叠
+                let overlappedSamekeyIndex = currentGroupKeys.findIndex((e) => {
+                    return e[0] == key[0] && e[2] > thisStartTime;
+                });
+                if (overlappedSamekeyIndex != -1) {
+                    //把重叠的按键截断
+                    let overlappedSamekey = currentGroupKeys[overlappedSamekeyIndex];
+                    overlappedSamekey[2] = thisStartTime - marginDuration;
+                    sameKeyTruncatedNoteCnt++;
+                }
+                //检测是否存在头尾相连的问题(一个按键的尾部正好与另一个按键的头部相连, 会导致systemUi崩溃!)
+                for (let i = 0; i < currentGroupKeys.length; i++) {
+                    let key = currentGroupKeys[i];
+                    if (Math.abs(key[2] - thisStartTime) < marginDuration) {
+                        key[2] = thisStartTime - marginDuration;
+                    }
+                }
+                //添加这个按键
+                currentGroupKeys.push([key[0], thisStartTime, thisEndTime]);
+            }
+            if(currentGroupKeys.length > 0) groupList.push(currentGroupKeys);
+            //转换为手势
+            for (let group of groupList) {
+                /** @type {Array <[delay: number, duration: number, pos: [x: number,y: number]]>} */
+                let gestureArray = new Array();
+                let groupStartTime = group[0][1];
+                for (let key of group) {
+                    let delay = key[1] - groupStartTime;
+                    let duration = key[2] - key[1];
+                    if (duration < pressDuration) {
+                        removedShortNoteCnt++;
+                        continue; //忽略持续时间过短的按键
+                    }
+                    let clickPos = currentGameProfile.getKeyPosition(key[0]);
+                    if (clickPos == null) {
+                        console.log(`按键 ${key[0]} 超出范围，被丢弃`);
+                        continue;
+                    }
+                    gestureArray.push([delay, duration, clickPos.slice()]);
+                }
+                if (gestureArray.length > 0)
+                    gestureTimeList.push([gestureArray, groupStartTime / 1000]);
+            }
+        }
         return gestureTimeList;
     }
 
     this.getStatistics = function () {
-        return {};
+        return {
+            "directlyTruncatedNoteCnt": directlyTruncatedNoteCnt,
+            "groupTruncatedNoteCnt": groupTruncatedNoteCnt,
+            "sameKeyTruncatedNoteCnt": sameKeyTruncatedNoteCnt,
+            "removedShortNoteCnt": removedShortNoteCnt
+        };
     }
 }
 
@@ -650,6 +786,67 @@ function ChordNoteCountLimitPass(config) {
         return {};
     }
 }
+
+
+// /**
+//  * @brief 随机添加漏音/按错按键/不小心碰到别的按键的情况, 伪装手工输入
+//  * @typedef {Object} RandomErrorPassConfig
+//  * @property {number} [missRate] - 漏音概率(0-1), 默认为0
+//  * @property {number} [wrongRate] - 按错概率(0-1), 默认为0
+//  * @property {number} [extraRate] - 多按概率(0-1), 默认为0 //即随机插入额外的按键
+//  * @property {number} [rollBackMs] - 回滚长度(毫秒), 默认为0 //发生错误时退回到之前一段时间重新弹
+//  * @property {number} [rollBackProb] - 回滚概率(0-1), 默认为0.8 
+//  * @property {number} [randomSeed] - 随机种子, 默认为74751
+//  * @property {boolean} [freqAware] - 是否根据音符频率调整错误率(即弹得越快越容易出错), 默认为true
+//  * @property {GameProfile} gameProfile - 游戏配置
+//  * @param {RandomErrorPassConfig} config
+//  */
+// function RandomErrorPass(config) {
+//     this.name = "RandomErrorPass";
+//     this.description = "随机添加漏音/按错按键/不小心碰到别的按键的情况, 伪装手工输入";
+
+//     const maxWeight = 10; // 单个音符的最大权重限制
+//     const nullKey = -1; // 空按键
+
+//     let missRate = 0;
+//     let wrongRate = 0;
+//     let extraRate = 0;
+//     let rollBackMs = 0;
+//     let rollBackProb = 0.8;
+//     let randomSeed = 74751;
+//     let freqAware = true;
+//     /** @type {GameProfile| null} */
+//     let gameProfile = null;
+
+//     if (config.missRate != null) missRate = config.missRate;
+//     if (config.wrongRate != null) wrongRate = config.wrongRate;
+//     if (config.extraRate != null) extraRate = config.extraRate;
+//     if (config.rollBackMs != null) rollBackMs = config.rollBackMs;
+//     if (config.rollBackProb != null) rollBackProb = config.rollBackProb;
+//     if (config.randomSeed != null) randomSeed = config.randomSeed;
+//     if (config.freqAware != null) freqAware = config.freqAware;
+//     if (config.gameProfile == null) throw new Error("gameProfile is null");
+//     gameProfile = config.gameProfile;
+
+//     /**
+//      * @brief 回滚的实现
+//      * @param {Array<[key: number[], time: number]>} noteData - 音乐数据
+//      */
+
+
+//     /**
+//      * 运行此pass
+//      * @param {Array<[key: number[], time: number]>} noteData - 音乐数据
+//      * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+//      * @returns {Array<[keys: number[], time: number]>} - 返回解析后的数据
+//      * @throws {Error} - 如果解析失败则抛出异常
+//      */
+//     function run(noteData, progressCallback) {
+//     }
+// }
+
+
+
 
 function Passes() {
     this.passes = new Array();
