@@ -71,8 +71,8 @@
   - 明日之后(传统模式)
   - 其它通过触摸屏幕演奏乐曲，且音符为矩阵分布的游戏
 + 游戏提供的所有按键都有效(例如黑键/额外的音域), 不被21键限制, 效果更好
-+ 自动识别游戏
-+ 自动获取坐标(10秒完成, 无需手动填写)
++ 支持长音(长按), 真实的音符长度带来更好的演奏效果 (光遇: 小提琴,萨克斯; 逆水寒:曲笛; ...)
++ 自动识别游戏, 自动获取坐标(10秒完成, 无需手动填写)
 + 支持多种音乐格式(MIDI, DoMiSo, SkyStudio)
 + 强大的优化器, 自动优化乐谱, 使其更加适合自动演奏
 + 实时可视化功能, 可以看到详细的演奏过程
@@ -132,9 +132,20 @@
 
 针对楚留香 "无常棋" 开发的脚本，算法不是我写的。很破坏游戏公平性且计算很慢，建议只用来和npc对战("灵犀对战")。需要手动修改坐标，且对坐标精确度要求很高，建议截图后使用ps分析。  
 
-### Star历史
+## Star历史
 
 [![Star History Chart](https://api.star-history.com/svg?repos=happyme531/clxTools&type=Date)](https://star-history.com/#happyme531/clxTools&Date)
+
+--------
+
+## 开源协议
+
+[LGPLv2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html)
+
+衍生项目:
+
+- [QiuMusicPro](https://qiu.zhilill.com/code/a729e3167514f8d2235e4a565c47d472) / [部分源码](https://github.com/CencYun/QiuMusicPro): 基于**楚留香音乐盒**的免费自动演奏app, 有很多在线乐谱, 但其它功能受限.  
+  注意: 强烈建议不要加入他们的QQ群, 因为(群内的机器人声称)退群后(对应的app)账号会被封禁!  
 
 --------  
 
@@ -143,3 +154,4 @@
 ![1658421643](https://user-images.githubusercontent.com/20812356/180462109-b9971abc-ad18-4e2e-9284-fdbf1856a8e3.jpg)
 
 官方QQ交流群: 954694570 (较慢, 有问题建议直接开issue或者发邮件)  
+
