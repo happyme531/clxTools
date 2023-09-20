@@ -43,7 +43,7 @@ function SkyStudioJSONParser(){
             let n = notes[i];
             let key = parseInt(n.key.split("y")[1]); //"key"
             let pitch = this.skyKey2Midi[key];
-            ret.push([pitch, n.time, undefined]);
+            ret.push([pitch, n.time, {}]);
         }
         return {
             "haveMultipleTrack": false,

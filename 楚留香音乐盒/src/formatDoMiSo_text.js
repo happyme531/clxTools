@@ -184,7 +184,7 @@ function DoMiSoTextParser(){
             if(s === ')'){
                 inChord = false;
                 chordPitchArr.forEach(function(pitch){
-                    ret.push([pitch, curMsTime]);
+                    ret.push([pitch, curMsTime, {}]);
                 });
                 curMsTime += chordTickTime * tickTimems;
                 chordPitchArr = [];
@@ -211,7 +211,7 @@ function DoMiSoTextParser(){
                     chordPitchArr.push(noteData.pitch);
                     chordTickTime = Math.max(chordTickTime, noteData.tickTime);
                 }else{
-                    if(noteData.pitch != -1) ret.push([noteData.pitch, curMsTime]);
+                    if(noteData.pitch != -1) ret.push([noteData.pitch, curMsTime, {}]);
                     curMsTime += noteData.tickTime * tickTimems;
                 }
             }
