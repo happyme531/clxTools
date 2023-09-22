@@ -1,5 +1,5 @@
 // 格式设计者为 nigh@github.com , 参见 https://github.com/Nigh/DoMiSo-genshin
-const MidiPitch = require('./midiPitch.js');
+var MidiPitch = require('./midiPitch.js');
 
 let basePitch = 60; //C5
 let defaultBPM = 80;

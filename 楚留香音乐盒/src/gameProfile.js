@@ -1,5 +1,5 @@
 //@ts-check
-const midiPitch = require("./midiPitch.js");
+var midiPitch = require("./midiPitch.js");
 
 /**
  * @typedef {[number, number]} pos2d
