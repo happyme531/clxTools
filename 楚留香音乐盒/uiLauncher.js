@@ -1,6 +1,8 @@
 "ui";
 
-let runtimes = require("./src/runtimes");
+var { requireShared } = require("./src/requireShared.js");
+
+var runtimes = requireShared("runtimes.js");
 
 const 说明文字 = "\
 1. 为了点击屏幕与显示播放进度条, 此脚本需要悬浮窗,后台弹出界面与无障碍权限. 其它权限均不需要. 脚本无需联网, 不会收集任何数据.\n\

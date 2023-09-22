@@ -2,7 +2,15 @@
 
 try {
     //Rhino的const是全局作用域, 会报错!
+    var { requireShared } = require("./src/requireShared.js");
+    /**
+     * @type {import("../shared/getPosInteractive.js")}
+     */
     var getPosInteractive = requireShared("getPosInteractive.js");
+    /**
+     * @type {import("../shared/runtimes.js")}
+     */
+    var runtimes = requireShared("runtimes.js");
     var MusicFormats = require("./src/musicFormats.js");
     var MidiDeviceManager = require("./src/midiDeviceManager.js");
     var GameProfile = require("./src/gameProfile.js");
@@ -11,7 +19,6 @@ try {
     var Players = require("./src/players.js");
     var configuration = require("./src/configuration.js");
     var PassManager = require("./src/passManager.js");
-    var runtimes = require("./src/runtimes.js");
     var midiPitch = require("./src/midiPitch.js");
     var noteUtils = require("./src/noteUtils.js");
 } catch (e) {
@@ -160,46 +167,6 @@ function loadConfiguration() {
     }
 }
 
-/**
- * 加载共享的js文件, 和require类似，用来解决几个项目共享js文件的问题。
- * 安卓不能软链接，如果把共享的js文件放上一个目录，打包之后就找不到了。
- * @param {string} fileName
- */
-function requireShared(fileName) {
-    const sharedDirRel = "../shared/";
-    const cacheDirRel = "./sharedcache/";
-    const alternativeSharedDir = "/sdcard/脚本/shared/";
-    let sharedDir = files.path(sharedDirRel);
-    let cacheDir = files.path(cacheDirRel);
-    //检查是否在/data/user/目录下运行，如果是，则使用备用目录 (调试用)
-    console.log(files.cwd());
-    if (files.cwd().startsWith("/data/user/")) {
-        sharedDir = alternativeSharedDir;
-    }
-    files.ensureDir(cacheDir);
-    let sourceExists = files.exists(sharedDir + fileName);
-    let cacheExists = files.exists(cacheDir + fileName);
-    if (sourceExists && !cacheExists) {
-        console.log("复制共享文件: " + fileName);
-        files.copy(sharedDir + fileName, cacheDir + fileName);
-        return require(cacheDir + fileName);
-    } else if (!sourceExists && cacheExists) {
-        //如果共享文件不存在，但是缓存文件存在，则直接加载缓存文件（打包之后，共享文件会丢失）
-        console.log("共享文件不存在，加载缓存文件: " + fileName);
-        return require(cacheDir + fileName);
-    } else if (!sourceExists && !cacheExists) {
-        throw new Error("共享文件不存在: " + fileName);
-    }
-
-    //都存在，检查是否有更新
-    let sourceLastModified = java.nio.file.Files.getLastModifiedTime(java.nio.file.Paths.get(sharedDir + fileName)).toMillis();
-    let cacheLastModified = java.nio.file.Files.getLastModifiedTime(java.nio.file.Paths.get(cacheDir + fileName)).toMillis();
-    if (sourceLastModified > cacheLastModified) {
-        console.log("共享文件有更新: " + fileName);
-        files.copy(sharedDir + fileName, cacheDir + fileName);
-    }
-    return require(cacheDir + fileName);
-}
 
 function getFileList() {
     return files.listDir(musicDir, function (name) {
