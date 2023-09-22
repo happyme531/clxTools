@@ -1,5 +1,7 @@
 "ui";
 
+let runtimes = require("./src/runtimes");
+
 const 说明文字 = "\
 1. 为了点击屏幕与显示播放进度条, 此脚本需要悬浮窗,后台弹出界面与无障碍权限. 其它权限均不需要. 脚本无需联网, 不会收集任何数据.\n\
 2. 使用方法: 点击右下角按钮打开悬浮窗, 切回游戏, 点击悬浮窗即可使用. 长按悬浮窗退出.\n\
@@ -50,13 +52,20 @@ function startFloatWindow(size) {
         toastLog("脚本文件不存在: " + path);
         exit();
     }
-    if (!floaty.checkPermission()) {
+
+    const packageManager = context.getPackageManager();
+    const appName = packageManager.getApplicationLabel(context.getApplicationInfo()).toString();
+
+    const haveFloatyPermission = runtimes.getCurrentRuntime() === runtimes.Runtime.AUTOXJS ?
+        floaty.checkPermission() :
+        floaty.hasPermission();
+        
+    if (!haveFloatyPermission) {
         // 没有悬浮窗权限，提示用户并跳转请求
-        toast("本脚本需要悬浮窗权限来显示悬浮窗，请在随后的界面中允许并重新运行本脚本。");
+        toastLog(`请打开应用 "${appName}" 的悬浮窗权限!`);
         floaty.requestPermission();
-        exit();
-    } else {
-        toastLog('已有悬浮窗权限');
+        while (!floaty.checkPermission()) sleep(100);
+        toastLog('悬浮窗权限已开启');
     }
 
 
@@ -167,7 +176,9 @@ ui.launchBtn.on("click", () => {
         });
         floatWindowStarted = true;
     }
-    home();
+    if (auto.service != null) {
+        home();
+    }
 });
 
 ui.projectLinkBtn.on("click", () => {
@@ -177,3 +188,19 @@ ui.projectLinkBtn.on("click", () => {
 ui.anotherProjectLinkBtn.on("click", () => {
     app.openUrl(anotherProjectUrl);
 });
+
+let canExit = false;
+let canExitTimeout = null;
+ui.emitter.on("back_pressed", (e) => {
+    if (!canExit) {
+        toast("再按一次关闭悬浮窗并退出脚本");
+        canExit = true;
+        canExitTimeout = setTimeout(() => {
+            canExit = false;
+        }, 2000);
+        e.consumed = true;
+    } else {
+        clearTimeout(canExitTimeout);
+        e.consumed = false;
+    };
+})
