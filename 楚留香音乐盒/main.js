@@ -1120,7 +1120,7 @@ function runFileSelector(fileNames, callback) {
     const EditorInfo = android.view.inputmethod.EditorInfo;
     const selectorWindow = floaty.rawWindow(
         <frame id="board" w="*" h="*" gravity="center">
-            <vertical w="{{ device.height / 2 }}px" height="{{ device.width - 160 }}px" bg="#ffffffff">
+            <vertical w="{{ device.width / 2 }}px" height="{{ device.height - 160 }}px" bg="#ffffffff">
                 <horizontal id="search" w="*" bg="#ffefefef">
                     {/* <text id="btnSearch" padding="15" textSize="15dp" textColor="#ff0f9086">搜索</text> */}
                     <input id="input" inputType="text" layout_weight="1" hint="输入关键词" textColorHint="#ffbbbbbb" imeOptions="actionDone" singleLine="true" focusable="true" focusableInTouchMode="true"></input>
@@ -1425,10 +1425,10 @@ function main() {
     toast("点击时间可调整悬浮窗位置");
 
     //悬浮窗位置/大小调节
-    let controlWindowPosition = readGlobalConfig("controlWindowPosition", [device.height / 3, 0]);
+    let controlWindowPosition = readGlobalConfig("controlWindowPosition", [device.width / 3, 0]);
     //避免悬浮窗被屏幕边框挡住
     controlWindow.setPosition(controlWindowPosition[0], controlWindowPosition[1]);
-    let controlWindowSize = readGlobalConfig("controlWindowSize", [device.height / 4, -2]);
+    let controlWindowSize = readGlobalConfig("controlWindowSize", [device.width / 4, -2]);
     controlWindow.setSize(controlWindowSize[0], controlWindowSize[1]);
     //controlWindow.setTouchable(true);
 
@@ -1438,8 +1438,8 @@ function main() {
         let now = new Date().getTime();
         if (now - controlWindowLastClickTime < 500) {
             toast("重置悬浮窗大小与位置");
-            controlWindow.setSize(device.height / 2, -2);
-            controlWindow.setPosition(device.height / 3, 40);
+            controlWindow.setSize(device.width / 2, -2);
+            controlWindow.setPosition(device.width / 3, 40);
         }
         controlWindowLastClickTime = now;
 
@@ -1480,7 +1480,7 @@ function main() {
             let now = new Date().getTime();
             if (now - visualizerLastClickTime < 500) {
                 toast("重置悬浮窗大小与位置");
-                visualizerWindow.setSize(device.height * 2 / 3, device.width * 2 / 3);
+                visualizerWindow.setSize(device.width * 2 / 3, device.height * 2 / 3);
                 visualizerWindow.setPosition(100, 100);
             }
             visualizerLastClickTime = now;
@@ -1994,6 +1994,34 @@ function loadMusicFile(fileName, exportScore) {
 }
 
 function start() {
+    /**
+     * see: https://github.com/kkevsekk1/AutoX/issues/672
+     */
+    if (runtimes.getCurrentRuntime() == runtimes.Runtime.AUTOXJS) {
+        try {
+            // console.log("宽度: " + device.width);
+            //Java, 启动!!!
+            let deviceClass = device.getClass();
+            let widthField = deviceClass.getDeclaredField("width");
+            let heightField = deviceClass.getDeclaredField("height");
+            widthField.setAccessible(true);
+            heightField.setAccessible(true);
+            widthField.setInt(device, context.getResources().getDisplayMetrics().widthPixels);
+            heightField.setInt(device, context.getResources().getDisplayMetrics().heightPixels);
+            let rotationListener = new JavaAdapter(android.view.OrientationEventListener, {
+                onOrientationChanged: function (orientation) {
+                    widthField.setInt(device, context.getResources().getDisplayMetrics().widthPixels);
+                    heightField.setInt(device, context.getResources().getDisplayMetrics().heightPixels);
+                    console.verbose(`width: ${device.width}, height: ${device.height}`);
+                }
+            }, context);
+            rotationListener.enable();
+        } catch (e) {
+            console.warn("Workaround failed");
+            console.error(e);
+        }
+    }
+
     //获取真实的应用名称
     const packageManager = context.getPackageManager();
     appName = packageManager.getApplicationLabel(context.getApplicationInfo()).toString();

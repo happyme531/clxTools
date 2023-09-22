@@ -1,11 +1,23 @@
+let runtimes = require("./runtimes.js");
+
 function getPosInteractive(promptText) {
     let gotPos = false;
-    //pos[0] 长边, pos[1] 短边
+    //pos[0] 宽, pos[1] 高
     let pos = [];
     let fingerReleased = false;
     let confirmed = false;
     let fullScreenWindowRequestClose = false;
     let canvasDebugCounter = 0;
+    let deviceWidth = 0;
+    let deviceHeight = 0;
+    if(runtimes.getCurrentRuntime() == runtimes.Runtime.AUTOXJS){
+        deviceWidth = context.getResources().getDisplayMetrics().widthPixels;
+        deviceHeight = context.getResources().getDisplayMetrics().heightPixels;
+    }else{ //AUTOJS6
+        //FIXME: 这里使用context反而会出错. 为什么?
+        deviceWidth = device.width;
+        deviceHeight = device.height;
+    }
     console.log("getPosInteractive(): " + promptText);
     //提示和确认按钮的框
     let confirmWindow = floaty.rawWindow(
@@ -17,7 +29,7 @@ function getPosInteractive(promptText) {
             </vertical>
         </frame>
     );
-    confirmWindow.setPosition(device.height/3, 0);
+    confirmWindow.setPosition(deviceWidth/3, 0);
     confirmWindow.setTouchable(true);
 
     let fullScreenWindow = floaty.rawWindow(<canvas id="canv" w="*" h="*"/>);
@@ -37,17 +49,17 @@ function getPosInteractive(promptText) {
         const Color = android.graphics.Color;
         const Paint = android.graphics.Paint;
         const PorterDuff = android.graphics.PorterDuff;
-        const w = canvas.getWidth();    //在横屏时, 这是长边
-        const h = canvas.getHeight();   //在横屏时, 这是短边
-        const woffset = device.height - w; //长边的偏移量
-        const hoffset = device.width - h; //短边的偏移量
+        const w = canvas.getWidth();    
+        const h = canvas.getHeight();   
+        const woffset = deviceWidth - w; //长边的偏移量
+        const hoffset = deviceHeight - h; //短边的偏移量
         const centerCircleRadius = 10;
         let paint = new Paint();
         if(canvasDebugCounter != -1 && canvasDebugCounter < 60){
             canvasDebugCounter++;
         }else if(canvasDebugCounter == 60){
             console.log("canvas [长,短] = [" + w + "," + h + "]");
-            console.log("device [长,短] = [" + device.height + "," + device.width + "]");
+            console.log("device [长,短] = [" + deviceWidth + "," + deviceHeight + "]");
             console.log("offset [长,短] = [" + woffset + "," + hoffset + "]");
             canvasDebugCounter = -1;
         }
