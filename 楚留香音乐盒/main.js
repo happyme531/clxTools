@@ -4,13 +4,13 @@ try {
     //Rhino的const是全局作用域, 会报错!
     var { requireShared } = require("./src/requireShared.js");
     /**
-     * @type {import("../shared/getPosInteractive.js")}
-     */
-    var getPosInteractive = requireShared("getPosInteractive.js");
-    /**
      * @type {import("../shared/runtimes.js")}
      */
     var runtimes = requireShared("runtimes.js");
+    /**
+     * @type {import("../shared/getPosInteractive.js")}
+     */
+    var getPosInteractive = requireShared("getPosInteractive.js");
     var MusicFormats = require("./src/musicFormats.js");
     var MidiDeviceManager = require("./src/midiDeviceManager.js");
     var GameProfile = require("./src/gameProfile.js");
@@ -2012,7 +2012,6 @@ function start() {
                 onOrientationChanged: function (orientation) {
                     widthField.setInt(device, context.getResources().getDisplayMetrics().widthPixels);
                     heightField.setInt(device, context.getResources().getDisplayMetrics().heightPixels);
-                    console.verbose(`width: ${device.width}, height: ${device.height}`);
                 }
             }, context);
             rotationListener.enable();
