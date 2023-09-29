@@ -5,6 +5,20 @@
     "build_number": 16,
     "build_time": 1581926794584
   },
+  "launchConfig": {
+    "displaySplash": false,
+    "hideLauncher": false,
+    "hideLogs": false,
+    "stableMode": true,
+    "volumeUpcontrol": true,
+    "permissions": [
+      "accessibility_services",
+      "background_start",
+      "draw_overlay"
+    ],
+    "serviceDesc": "脚本需要无障碍服务来点击屏幕。",
+    "splashText": "Powered by Autoxjs.com"
+  },
   "useFeatures": [],
   "icon": "res/logo.png",
   "main": "main.js",
