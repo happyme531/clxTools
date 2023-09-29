@@ -8,6 +8,18 @@ function requireShared(fileName) {
     const sharedDirRel = "../shared/";
     const cacheDirRel = "./sharedcache/";
     const alternativeSharedDir = "/sdcard/脚本/shared/";
+    function copyDir(src, dst) {
+        let filess = files.listDir(src);
+        for (let i = 0; i < filess.length; i++) {
+            let file = filess[i];
+            if (files.isDir(src + file)) {
+                copyDir(src + file + "/", dst + file + "/");
+            } else {
+                console.verbose(`复制文件: ${src + file} -> ${dst + file}`);
+                files.copy(src + file, dst + file);
+            }
+        }
+    }
     let sharedDir = files.path(sharedDirRel);
     let cacheDir = files.path(cacheDirRel);
     //检查是否在/data/user/目录下运行，如果是，则使用备用目录 (调试用)
@@ -19,8 +31,8 @@ function requireShared(fileName) {
     let sourceExists = files.exists(sharedDir + fileName);
     let cacheExists = files.exists(cacheDir + fileName);
     if (sourceExists && !cacheExists) {
-        console.log("复制共享文件: " + fileName);
-        files.copy(sharedDir + fileName, cacheDir + fileName);
+        console.log("复制共享文件夹");
+        copyDir(sharedDir, cacheDir);
         return require(cacheDir + fileName);
     } else if (!sourceExists && cacheExists) {
         //如果共享文件不存在，但是缓存文件存在，则直接加载缓存文件（打包之后，共享文件会丢失）
@@ -35,7 +47,7 @@ function requireShared(fileName) {
     let cacheLastModified = java.nio.file.Files.getLastModifiedTime(java.nio.file.Paths.get(cacheDir + fileName)).toMillis();
     if (sourceLastModified > cacheLastModified) {
         console.log("共享文件有更新: " + fileName);
-        files.copy(sharedDir + fileName, cacheDir + fileName);
+        copyDir(sharedDir, cacheDir);
     }
     return require(cacheDir + fileName);
 }
