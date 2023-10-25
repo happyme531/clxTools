@@ -1,6 +1,8 @@
 //@ts-check
 //players.js -- 实现播放/演奏功能
 
+var { SimpleInstructPlayerImpl } = require("./instruct.js");
+
 function NormalDistributionRandomizer(mean, stddev) {
     this.mean = mean;
     this.stddev = stddev;
@@ -16,22 +18,63 @@ function NormalDistributionRandomizer(mean, stddev) {
 }
 
 /**
+ * @enum {string}
+ */
+const PlayerType = {
+    None: "None",
+    AutoJsGesturePlayer: "AutoJsGesturePlayer",
+    SimpleInstructPlayer: "SimpleInstructPlayer",
+}
+
+/**
+ * @constructor
+ */
+function AutoJsGesturePlayerImpl() {
+    /**
+    * @brief 执行一组操作
+    * @param {Gestures} _gestures 手势
+    */
+    this.exec = function (_gestures) {
+        gestures.apply(null, _gestures);
+    }
+
+    this.getType = function () {
+        return PlayerType.AutoJsGesturePlayer;
+    }
+
+    this.doTransform = true;
+}
+
+/**
+ * @enum {number}
+ */
+const PlayerStates = {
+    PLAYING: 0,
+    PAUSED: 1,
+    SEEKING: 2,
+    SEEK_END: 3,
+    UNINITIALIZED: 4,
+    FINISHED: 5,
+}
+
+/**
  * @typedef {[delay: number,duration: number, points: ...import("./gameProfile").pos2d[]]} Gesture
  * @typedef {Array<Gesture>} Gestures
+ * @typedef {object} PlayerImpl
+ * @property {boolean} doTransform 是否要使用transformGesture函数处理手势
+ * @property {(function(Gestures):void)|(function(import('./noteUtils').PackedKey):void)} exec 执行一组操作
+ * @property {function(): PlayerType} getType 获取播放器类型
+ * @property {function(object):void} [setGestureTimeList] 设置手势和时间数据
+ * @property {function(number):void} [seekTo] 设置播放位置
+ * @property {function():void} [next] 播放下一个音符
+ * @property {function(PlayerStates):void} [setState] 设置播放状态
  */
 
-function AutoJsGesturePlayer(){
-    /**
-     * @enum {number}
-     */
-    const PlayerStates = {
-        PLAYING: 0,
-        PAUSED: 1,
-        SEEKING: 2,
-        SEEK_END: 3,
-        UNINITIALIZED: 4,
-        FINISHED: 5,
-    }
+/**
+ * 播放器. 可能有不同的实现
+ * @param {PlayerImpl} playerImpl 
+ */
+function Player(playerImpl){
 
     this.PlayerStates = PlayerStates;
 
@@ -43,7 +86,7 @@ function AutoJsGesturePlayer(){
     let playerState = PlayerStates.UNINITIALIZED;
 
     /**
-     * @type {Array<[Gestures, number]>?}
+     * @type {Array<[Gestures, number]>|Array<import('./noteUtils').PackedKey>?}
      * @description 手势和时间数据
      */
     let gestureTimeList = null;
@@ -95,12 +138,28 @@ function AutoJsGesturePlayer(){
      */
     let clickPositionDeviationRandomizer = null;
 
+    let implSync = function(){
+        if (playerImpl.setState != null) playerImpl.setState(playerState);
+        if (playerImpl.seekTo != null) playerImpl.seekTo(position);
+    }
+
+    this.getType = function(){
+        return playerImpl.getType();
+    }
+
+    this.getImplementationInstance = function(){
+        return playerImpl;
+    }
+
     /**
      * @brief 设置手势和时间数据
-     * @param {Array<[Gestures, number]>} gestureTimeList_ 手势和时间数据
+     * @param {Array<[Gestures, number]>|Array<import('./noteUtils').PackedKey>} gestureTimeList_ 手势和时间数据
      */
     this.setGestureTimeList = function(gestureTimeList_){
         gestureTimeList = gestureTimeList_;
+        if(playerImpl.setGestureTimeList != null){
+            playerImpl.setGestureTimeList(gestureTimeList_);
+        }
     }
 
     /**
@@ -119,6 +178,7 @@ function AutoJsGesturePlayer(){
     this.start = function(){
         playerState = PlayerStates.UNINITIALIZED;
         position = 0;
+        implSync();
         let func = playerThreadFunc.bind(this);
         playerThread = threads.start(func);
     }
@@ -128,6 +188,7 @@ function AutoJsGesturePlayer(){
      */
     this.pause = function(){
         playerState = PlayerStates.PAUSED;
+        implSync();
     }
 
     /**
@@ -135,6 +196,7 @@ function AutoJsGesturePlayer(){
      */
     this.resume = function(){
         playerState = PlayerStates.SEEK_END;
+        implSync();
     }
 
     /**
@@ -146,6 +208,7 @@ function AutoJsGesturePlayer(){
         if (playerState == PlayerStates.PLAYING || playerState == PlayerStates.SEEK_END)
             playerState = PlayerStates.SEEKING;
         position = position_;
+        implSync();
     }
 
     /**
@@ -207,6 +270,7 @@ function AutoJsGesturePlayer(){
             playerState = PlayerStates.FINISHED;
             onStateChange(playerState);
             position = 0;
+            implSync();
             return true;
         }
         return false;
@@ -216,9 +280,11 @@ function AutoJsGesturePlayer(){
      * @brief 执行一组操作
      * @param {Gestures} _gestures 手势
      */
-    this.exec = function(_gestures){
-        _gestures = transformGesture(_gestures);
-        gestures.apply(null, _gestures);
+    this.exec = function (_gestures) {
+        if (playerImpl.doTransform)
+            playerImpl.exec(transformGesture(_gestures));
+        else
+            playerImpl.exec(_gestures);
     }
 
     /**
@@ -260,6 +326,7 @@ function AutoJsGesturePlayer(){
                 oldState = playerState;
                 onStateChange(playerState);
             }
+            implSync();
             switch (playerState) {
                 case PlayerStates.FINISHED:
                 case PlayerStates.UNINITIALIZED:
@@ -277,7 +344,7 @@ function AutoJsGesturePlayer(){
                         break;
                     }
                     //设置播放起始时间
-                    let currentNoteTimeAbs = gestureTimeList[position][1]*1000*(1/playSpeed);
+                    let currentNoteTimeAbs = gestureTimeList[position][1]*(1/playSpeed);
                     startTimeAbs = new Date().getTime() - currentNoteTimeAbs;
                     onPlayNote(position);
                     break;
@@ -288,7 +355,7 @@ function AutoJsGesturePlayer(){
                         break;
                     }
                     let currentNote = gestureTimeList[position][0];
-                    let currentNoteTimeAbs = gestureTimeList[position][1]*1000*(1/playSpeed);
+                    let currentNoteTimeAbs = gestureTimeList[position][1]*(1/playSpeed);
                     let elapsedTimeAbs = new Date().getTime() - startTimeAbs;
                     let delayTime = currentNoteTimeAbs - elapsedTimeAbs - 7; //7ms是手势执行时间
                     if (delayTime > 0) {
@@ -316,9 +383,14 @@ function AutoJsGesturePlayer(){
     }
 }
 
-function Players() {
-    this.AutoJsGesturePlayer = AutoJsGesturePlayer;
-}
+/**
+ * @typedef {Player} PlayerBase
+ */
 
-module.exports = new Players();
+
+module.exports = {
+    "PlayerType": PlayerType,
+    "AutoJsGesturePlayer": Player.bind(null, new AutoJsGesturePlayerImpl()),
+    "SimpleInstructPlayer": Player.bind(null, new SimpleInstructPlayerImpl()),
+}
     

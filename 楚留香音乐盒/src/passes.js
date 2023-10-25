@@ -431,7 +431,7 @@ function KeyToGesturePass(config) {
                     gestureArray.push([0, pressDuration, clickPos.slice()]);
                 });
                 if(gestureArray.length > 0)
-                 gestureTimeList.push([gestureArray, time / 1000]);
+                 gestureTimeList.push([gestureArray, time]);
             };
         } else if (durationMode == "native") {
             // 这组按键的结束时间
@@ -534,7 +534,7 @@ function KeyToGesturePass(config) {
                     gestureArray.push([delay, duration, clickPos.slice()]);
                 }
                 if (gestureArray.length > 0)
-                    gestureTimeList.push([gestureArray, groupStartTime / 1000]);
+                    gestureTimeList.push([gestureArray, groupStartTime]);
             }
         }
         return gestureTimeList;

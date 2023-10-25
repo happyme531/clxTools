@@ -27,6 +27,7 @@ const KeyLocatorTypes = {
 
 /**
  * @enum {string}
+ * @typedef {string} NoteDurationImplementionType
  */
 const NoteDurationImplementionTypes = {
     //根本不支持，所有音符都是一样长, 不管按住多久 //最简单
@@ -225,6 +226,60 @@ const noteKeyMaps = {
         "A4": 6,
         "B4": 7,
     },
+    "nshm_zhuangyuan_noteplacer_4x12": {  //逆水寒宅邸的聆音骨牌
+        //C#2 D#2 F#2 G#2 A#2 C2 D2 E2 F2 G2 A2 B2
+        //C#5 D#5 F#5 G#5 A#5 C5 D5 E5 F5 G5 A5 B5
+        //C#4 D#4 F#4 G#4 A#4 C4 D4 E4 F4 G4 A4 B4
+        //C#3 D#3 F#3 G#3 A#3 C3 D3 E3 F3 G3 A3 B3
+        "C#3": 1,
+        "D#3": 2,
+        "F#3": 3,
+        "G#3": 4,
+        "A#3": 5,
+        "C3": 6,
+        "D3": 7,
+        "E3": 8,
+        "F3": 9,
+        "G3": 10,
+        "A3": 11,
+        "B3": 12,
+        "C#4": 13,
+        "D#4": 14,
+        "F#4": 15,
+        "G#4": 16,
+        "A#4": 17,
+        "C4": 18,
+        "D4": 19,
+        "E4": 20,
+        "F4": 21,
+        "G4": 22,
+        "A4": 23,
+        "B4": 24,
+        "C#5": 25,
+        "D#5": 26,
+        "F#5": 27,
+        "G#5": 28,
+        "A#5": 29,
+        "C5": 30,
+        "D5": 31,
+        "E5": 32,
+        "F5": 33,
+        "G5": 34,
+        "A5": 35,
+        "B5": 36,
+        "C#2": 37,
+        "D#2": 38,
+        "F#2": 39,
+        "G#2": 40,
+        "A#2": 41,
+        "C2": 42,
+        "D2": 43,
+        "E2": 44,
+        "F2": 45,
+        "G2": 46,
+        "A2": 47,
+        "B2": 48,
+    },
     "dzpd_7_8":{
         //C5 D5 E5 F5 G5 A5 B5 C6
         //C4 D4 E4 F4 G4 A4 B4
@@ -393,6 +448,10 @@ const keyLayouts = {
         displayName: "专业模式(唢呐)",
         type: KeyLayoutTypes.nshm_professional,
         locator: KeyLocatorTypes.left_top_right_bottom,
+    },
+    "nshm_zhuangyuan_noteplacer_4x12": {  //逆水寒宅邸的聆音骨牌
+        displayName: "宅邸聆音骨牌",
+        noteKeyMap: noteKeyMaps.nshm_zhuangyuan_noteplacer_4x12,
     },
     "dzpd_interleaved3x7": { //蛋仔派对 交错的3x7
         displayName: "21键",
@@ -750,7 +809,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "逆水寒手游",
         gameName: "逆水寒",
-        keyTypes: ["generic_3x7", "generic_3x12", "nshm_1x7", "nshm_professional.gu_zheng", "nshm_professional.qv_di", "nshm_professional.pi_pa", "nshm_professional.suo_na"],
+        keyTypes: ["generic_3x7", "generic_3x12", "nshm_1x7", "nshm_professional.gu_zheng", "nshm_professional.qv_di", "nshm_professional.pi_pa", "nshm_professional.suo_na", "nshm_zhuangyuan_noteplacer_4x12"],
         keyLocators: new Map([
             ["generic_3x7", [[0, 0], [0, 0]]],
             ["generic_3x12", [[0, 0], [0, 0]]],
@@ -931,7 +990,9 @@ const PreDefinedGameConfigs = [
     }),
 ];
 
-
+/**
+ * @constructor
+ */
 function GameProfile() {
 
     var preDefinedGameConfigs = PreDefinedGameConfigs;
@@ -1402,6 +1463,7 @@ function GameProfile() {
                 return false;
         }
     }
+
     /**
      * 获取按键位置
      * @param {number} key 按键序号(从0开始)
@@ -1411,7 +1473,20 @@ function GameProfile() {
         if (cachedKeyPos == null) {
             this.generateKeyPosition();
         }
+        //@ts-ignore
         return cachedKeyPos[key];
+    }
+
+    /**
+     * 获取全部按键位置
+     * @returns {Array<pos2d>} 按键位置数组
+     */
+    this.getAllKeyPositions = function () {
+        if (cachedKeyPos == null) {
+            this.generateKeyPosition();
+        }
+        //@ts-ignore
+        return cachedKeyPos;
     }
 
     this.generatePitchKeyMap = function () {
@@ -1575,6 +1650,26 @@ function GameProfile() {
             return a[1] - b[1];
         });
         return closestKeys;
+    }
+
+    /**
+     * 获取物理上的按键最小距离
+     * @returns {number} 物理上的按键最小距离(像素)
+     */
+    this.getPhysicalMinKeyDistance = function () {
+        if (cachedKeyPos == null) {
+            this.generateKeyPosition();
+        }
+        let minDistance = 999999;
+        for (let i = 0; i < cachedKeyPos.length; i++) {
+            for (let j = i + 1; j < cachedKeyPos.length; j++) {
+                let distance = Math.sqrt(Math.pow(cachedKeyPos[i][0] - cachedKeyPos[j][0], 2) + Math.pow(cachedKeyPos[i][1] - cachedKeyPos[j][1], 2));
+                if (distance < minDistance) {
+                    minDistance = distance;
+                }
+            }
+        }
+        return minDistance;
     }
 
     /**
