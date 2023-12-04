@@ -21,6 +21,7 @@ try {
     var PassManager = require("./src/passManager.js");
     var midiPitch = require("./src/midiPitch.js");
     var noteUtils = require("./src/noteUtils.js");
+    var { ConfigurationUi, ConfigurationFlags } = require("./src/ui/config_ui.js");
 } catch (e) {
     toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
     toast("模块加载错误");
@@ -652,523 +653,72 @@ function runClickPosSetup() {
 }
 
 /**
- * @brief 将一个数值转换到0-1000的另一个区间, 给进度条用
- * @param {number} value
- * @param {number} min
- * @param {number} max
- * @returns {number}
+ * @param {string} fullFileName
+ * @param {(isAnythingChanged:boolean)=>void} onFinish
  */
-function numberMap(value, min, max) {
-    const newMin = 0;
-    const newMax = 1000;
-    if (value < min) value = min;
-    if (value > max) value = max;
-    return (value - min) / (max - min) * (newMax - newMin) + newMin;
-}
-
-/**
- * @brief numberMap的对数版本
- * @param {number} value
- * @param {number} min
- * @param {number} max
- * @returns {number}
- * @see numberMap
- */
-function numberMapLog(value, min, max) {
-    const newMin = 0;
-    const newMax = 1000;
-    if (value < min) value = min;
-    if (value > max) value = max;
-    return Math.log(value - min + 1) / Math.log(max - min + 1) * (newMax - newMin) + newMin;
-}
-
-/**
- * @brief numberMap的反函数
- * @param {number} value
- * @param {number} min
- * @param {number} max
- * @returns {number}
- * @see numberMap
- */
-function numberRevMap(value, min, max) {
-    const newMin = 0;
-    const newMax = 1000;
-    return (value - newMin) / (newMax - newMin) * (max - min) + min;
-}
-
-/**
- * @brief numberMapLog的反函数
- * @param {number} value
- * @param {number} min
- * @param {number} max
- * @returns {number}
- * @see numberMapLog
- */
-function numberRevMapLog(value, min, max) {
-    const newMin = 0;
-    const newMax = 1000;
-    return min + (Math.exp((value - newMin) / (newMax - newMin) * Math.log(max - min + 1)) - 1);
-}
-
-function runFileConfigSetup(fullFileName) {
+function runFileConfigSetup(fullFileName, onFinish) {
     let fileName = fullFileName;
     let rawFileName = musicFormats.getFileNameWithoutExtension(fileName);
-    let configChanged = false;
-    const maxClickSpeedHz = 20;
-    const view = ui.inflate(
-        <ScrollView margin="0dp" padding="0dp">
-            <vertical margin="0dp" padding="0dp">
-            <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
-                    <vertical>
-                        <text text="运行模式:" />
-                        <radiogroup id="playerSelection" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
-                            <radio id="playerSelection_AutoJsGesturePlayer" text="自动弹奏" textSize="12sp" margin="0dp" />
-                            <radio id="playerSelection_SimpleInstructPlayer" text="跟弹模式(简易)" textSize="12sp" margin="0dp" />
-                        </radiogroup>
-                    </vertical>
-                </card>
-            <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
-                    <vertical>
-                        <text text="速度控制:" textColor="red" />
-                        <horizontal>
-                            {/* 5~1500%, 对数, 默认1->不使用 */}
-                            <text text="变速:" />
-                            <checkbox id="speedMultiplier" />
-                            <text text="default%" id="speedMultiplierValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
-                        </horizontal>
-                        <seekbar id="speedMultiplierSeekbar" w="*" max="1000" layout_gravity="center" />
-                        <horizontal w="*">
-                            {/* 1~20hz, 对数 , 默认0->不使用*/}
-                            <text text="限制点击速度(在变速后应用):" />
-                            <checkbox id="limitClickSpeedCheckbox" />
-                            <text text="default次/秒" id="limitClickSpeedValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
-                        </horizontal>
-                        <seekbar id="limitClickSpeedSeekbar" w="*" max="1000" layout_gravity="center" />
-                    </vertical>
-                </card>
-                <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
-                    <vertical>
-                        <text text="时长控制(输出):" textColor="red" />
-                        {/* 音符时长输出模式 */}
-                        <horizontal>
-                            <text text="时长输出模式:" />
-                            <radiogroup id="noteDurationOutputMode" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
-                                <radio id="noteDurationOutputMode_none" text="固定值" textSize="12sp" margin="0dp" />
-                                <radio id="noteDurationOutputMode_native" text="真实时长(实验性)" textSize="12sp" margin="0dp" />
-                                {/* <radio id="noteDurationOutputMode_extraLongKey" text="额外长音按钮" textSize="12sp" margin="0dp" /> */}
-                            </radiogroup>
-                        </horizontal>
-                        {/* 默认点击时长 */}
-                        <horizontal w="*">
-                            <text text="默认点击时长: " />
-                            {/* <radiogroup id="defaultClickDurationMode" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
-                                 固定的值, 1~500ms, 对数, 默认5ms 
-                                <radio id="defaultClickDurationMode_fixed" text="固定值" textSize="12sp" margin="0dp" selected="true" />
-                                音符间隔的比例, 例如0.5代表点击时长为到下一个音符的间隔的一半. 0.05~0.98, 线性, 默认0.5
-                                <radio id="defaultClickDurationMode_intervalRatio" text="音符间隔比例" textSize="12sp" margin="0dp" />
-                            </radiogroup> */}
-                            <text text="defaultms" id="defaultClickDurationValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
-                        </horizontal>
-                        <seekbar id="defaultClickDurationSeekbar" w="*" max="1000" layout_gravity="center" />
-                        {/* 最长手势持续时间: 100~30000ms, 对数, 默认8000ms */}
-                        <horizontal w="*">
-                            <text text="最长手势持续时间: " />
-                            <text text="defaultms" id="maxGestureDurationValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
-                        </horizontal>
-                        <seekbar id="maxGestureDurationSeekbar" w="*" max="1000" layout_gravity="center" />
-                        {/* 按键间留空时间: 1~600ms, 对数, 默认100ms */}
-                        <horizontal w="*">
-                            <text text="按键间留空时间: " />
-                            <text text="defaultms" id="marginDurationValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
-                        </horizontal>
-                        <seekbar id="marginDurationSeekbar" w="*" max="1000" layout_gravity="center" />
-                    </vertical>
-                </card>
-                <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
-                    <vertical>
-                        <text text="音域优化:" textColor="red" />
-                        {/* <ImageView w="*" h="1dp" bg="#a0a0a0" /> */}
-                        <horizontal>
-                            {/* 默认向下取整 */}
-                            <text text="半音处理方法:" layout_gravity="center_vertical" />
-                            <radiogroup id="halfCeilingSetting" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
-                                <radio id="halfCeilingSetting_roundDown" text="向下取整" textSize="12sp" margin="0dp" />
-                                <radio id="halfCeilingSetting_roundUp" text="向上取整" textSize="12sp" margin="0dp" />
-                            </radiogroup>
-                        </horizontal>
-                        <horizontal>
-                            {/* 1~99%, 线性, 默认50% */}
-                            <text text="自动调整: 禁用音轨阈值(越高->越简单):" />
-                            <text text="default%" id="trackDisableThresholdValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
-                        </horizontal>
-                        <seekbar id="trackDisableThresholdSeekbar" w="*" max="1000" layout_gravity="center" />
-                        <horizontal>
-                            <button id="autoTuneButton" text="自动优化以下设置(重要!)" />
-                        </horizontal>
-                        <horizontal>
-                            {/* -2~2 */}
-                            <text text="升/降八度:" />
-                            <text text="default" id="majorPitchOffsetValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
-                        </horizontal>
-                        <seekbar id="majorPitchOffsetSeekbar" w="*" max="4" layout_gravity="center" />
-                        <horizontal>
-                            {/* -4~7 */}
-                            <text text="升/降半音(移调):" />
-                            <text text="default" id="minorPitchOffsetValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
-                        </horizontal>
-                        <seekbar id="minorPitchOffsetSeekbar" w="*" max="11" layout_gravity="center" />
-                        <horizontal>
-                            <text text="音轨选择:" />
-                            <button id="selectTracksButton" text="选择..." padding="0dp" />
-                        </horizontal>
-                    </vertical>
-                </card>
-                <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
-                    <vertical>
-                        <horizontal w="*">
-                            <text text="和弦优化:" textColor="red" />
-                            <checkbox id="chordLimitCheckbox" />
-                        </horizontal>
-                        <horizontal w="*">
-                            <text text="最多同时按键数量: " />
-                            {/* 1-9个, 默认2 */}
-                            <text text="default个" id="maxSimultaneousNoteCountValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
-                        </horizontal>
-                        <seekbar id="maxSimultaneousNoteCountSeekbar" w="*" max="1000" layout_gravity="center" />
-                        <horizontal>
-                            {/* 默认向下取整 */}
-                            <text text="按键数量限制方法: " layout_gravity="center_vertical" />
-                            <radiogroup id="noteCountLimitMode" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
-                                <radio id="noteCountLimitMode_delete" text="删除超出的" textSize="12sp" margin="0dp" />
-                                <radio id="noteCountLimitMode_split" text="拆分成多组" textSize="12sp" margin="0dp" />
-                            </radiogroup>
-                        </horizontal>
-                        <horizontal w="*">
-                            <text text="拆分成多组时组间间隔: " />
-                            {/* 5-500ms, 对数, 默认75ms */}
-                            <text text="defaultms" id="noteCountLimitSplitDelayValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
-                        </horizontal>
-                        <seekbar id="noteCountLimitSplitDelaySeekbar" w="*" max="1000" layout_gravity="center" />
-                        <horizontal w="*">
-                            <text text="选择方式: " />
-                            <radiogroup id="chordSelectMode" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
-                                <radio id="chordSelectMode_high" text="优先高音" textSize="12sp" margin="0dp" />
-                                <radio id="chordSelectMode_low" text="优先低音" textSize="12sp" margin="0dp" />
-                                <radio id="chordSelectMode_random" text="随机" textSize="12sp" margin="0dp" />
-                            </radiogroup>
-                        </horizontal>
-                    </vertical>
-                </card>
-                <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
-                    <vertical>
-                        <text text="伪装手弹(全局):" textColor="red" />
-                        <horizontal w="*">
-                            {/* 5~150ms, 线性, 默认0->不使用*/}
-                            <text text="音符时间偏差: " />
-                            <checkbox id="noteTimeDeviationCheckbox" />
-                            <text text="defaultms" id="noteTimeDeviationValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
-                        </horizontal>
-                        <seekbar id="noteTimeDeviationSeekbar" w="*" max="1000" layout_gravity="center" />
-                        <horizontal w="*">
-                            {/* 0~6mm, 线性, 默认1*/}
-                            <text text="点击位置偏差: " />
-                            <text text="defaultmm" id="clickPositionDeviationValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
-                        </horizontal>
-                        <seekbar id="clickPositionDeviationSeekbar" w="*" max="1000" layout_gravity="center" />
-                    </vertical>
-                </card>
-                <card cardElevation="5dp" cardCornerRadius="2dp" margin="2dp" contentPadding="2dp">
-                    <vertical>
-                        <text text="跟弹模式配置:" textColor="red" />
-                        <horizontal w="*">
-                            {/* 30~300%, 对数, 默认100%*/}
-                            <text text="图案大小: " />
-                            <text text="default%" id="SimpleInstructPlayer_MarkSizeValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
-                        </horizontal>
-                        <seekbar id="SimpleInstructPlayer_MarkSizeSeekbar" w="*" max="1000" layout_gravity="center" />
-                        {/*TODO: 取色器(Android居然没有这个组件?)*/}
-                    </vertical>
-                </card>
-            </vertical>
-        </ScrollView>
-    );
-    //回调函数们
-    view.limitClickSpeedSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
-        if (progress == undefined) return;
-        let value = numberRevMapLog(progress, 1, maxClickSpeedHz);
-        view.limitClickSpeedValueText.setText(value.toFixed(2) + "次/秒");
-        return true;
-    });
-    view.speedMultiplierSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
-        if (progress == undefined) return;
-        let value = numberRevMapLog(progress, 0.05, 15);
-        view.speedMultiplierValueText.setText((value * 100).toFixed(2) + "%");
-        return true;
-    });
-    view.defaultClickDurationSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
-        if (progress == undefined) return;
-        let value = numberRevMapLog(progress, 1, 500);
-        view.defaultClickDurationValueText.setText(value.toFixed(2) + "ms");
-        return true;
-    });
-    view.maxGestureDurationSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
-        if (progress == undefined) return;
-        let value = numberRevMapLog(progress, 100, 30000);
-        view.maxGestureDurationValueText.setText(value.toFixed(2) + "ms");
-        return true;
-    });
-    view.marginDurationSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
-        if (progress == undefined) return;
-        let value = numberRevMapLog(progress, 1, 600);
-        view.marginDurationValueText.setText(value.toFixed(2) + "ms");
-        return true;
-    });
-    view.trackDisableThresholdSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
-        if (progress == undefined) return;
-        let value = numberRevMap(progress, 1, 99);
-        view.trackDisableThresholdValueText.setText(value.toFixed(2) + "%");
-        return true;
-    });
-    view.noteTimeDeviationSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
-        if (progress == undefined) return;
-        let value = numberRevMap(progress, 5, 150);
-        view.noteTimeDeviationValueText.setText(value.toFixed(2) + "ms");
-        return true;
-    });
-    view.clickPositionDeviationSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
-        if (progress == undefined) return;
-        let value = numberRevMap(progress, 0, 6);
-        view.clickPositionDeviationValueText.setText(value.toFixed(2) + "mm");
-        return true;
-    });
-    view.autoTuneButton.click(() => {
-        let trackDisableThreshold = numberRevMap(view.trackDisableThresholdSeekbar.getProgress(), 1, 99) / 100;
-        threads.start(function () { //TODO: 重构?
-            autoTuneFileConfig(fileName, trackDisableThreshold);
-            ui.run(() => {
-                let majorPitchOffset = configuration.readFileConfigForTarget("majorPitchOffset", rawFileName, gameProfile, 0);
-                view.majorPitchOffsetValueText.setText(majorPitchOffset.toFixed(0));
-                view.majorPitchOffsetSeekbar.setProgress(majorPitchOffset + 2);
-                let minorPitchOffset = configuration.readFileConfigForTarget("minorPitchOffset", rawFileName, gameProfile, 0);
-                view.minorPitchOffsetValueText.setText(`${minorPitchOffset.toFixed(0)} (${midiPitch.getTranspositionName(minorPitchOffset)})`);
-                view.minorPitchOffsetSeekbar.setProgress(minorPitchOffset + 4);
-            });
-        });
-    });
-    view.majorPitchOffsetSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
-        if (progress == undefined) return;
-        let value = progress - 2;
-        view.majorPitchOffsetValueText.setText(value.toFixed(0));
-        return true;
-    });
-    view.minorPitchOffsetSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
-        if (progress == undefined) return;
-        let value = progress - 4;
-        view.minorPitchOffsetValueText.setText(`${value.toFixed(0)} (${midiPitch.getTranspositionName(value)})`);
-        return true;
-    });
-    view.selectTracksButton.click(() => {
-        threads.start(function () {
-            const passManager = new PassManager();
-            let dialog = dialogs.build({
-                title: "加载中...",
-                content: "正在加载数据...",
-            }).show();
-            let tracksData = passManager.addPass("ParseSourceFilePass").run(musicDir + fileName);
-            dialog.dismiss();
-            let lastSelectedTracksNonEmpty = configuration.readFileConfigForTarget("lastSelectedTracksNonEmpty", rawFileName, gameProfile);
-            let result = selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty);
-            configuration.setFileConfigForTarget("lastSelectedTracksNonEmpty", result, rawFileName, gameProfile);
-        });
-    });
-    view.maxSimultaneousNoteCountSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
-        if (progress == undefined) return;
-        let value = numberRevMap(progress, 1, 9);
-        view.maxSimultaneousNoteCountValueText.setText(value.toFixed(0));
-        return true;
-    });
-    view.noteCountLimitSplitDelaySeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
-        if (progress == undefined) return;
-        let value = numberRevMapLog(progress, 5, 500);
-        view.noteCountLimitSplitDelayValueText.setText(value.toFixed(0) + "ms");
-        return true;
-    });
-    view.SimpleInstructPlayer_MarkSizeSeekbar.setOnSeekBarChangeListener((seekBar, progress, fromUser) => {
-        if (progress == undefined) return;
-        let value = numberRevMapLog(progress, 30, 300);
-        view.SimpleInstructPlayer_MarkSizeValueText.setText(value.toFixed(0) + "%");
-        return true;
-    });
-
-    let finished = false;
-    dialogs.build({
-        customView: view,
-        title: "乐曲配置",
-        positive: "确定",
-        negative: "取消"
-    }).on("show", (dialog) => {
-        //模式选择
-        let playerSelection = configuration.readGlobalConfig("playerSelection", ["AutoJsGesturePlayer"]);
-        if (playerSelection.includes("AutoJsGesturePlayer")) {
-            view.playerSelection_AutoJsGesturePlayer.setChecked(true);
-        }
-        if (playerSelection.includes("SimpleInstructPlayer")) {
-            view.playerSelection_SimpleInstructPlayer.setChecked(true);
-        }
-
-        ///速度控制
-        let limitClickSpeedHz = readFileConfig("limitClickSpeedHz", rawFileName, 0);
-        let speedMultiplier = readFileConfig("speedMultiplier", rawFileName, 1);
-        view.limitClickSpeedCheckbox.setChecked(limitClickSpeedHz != 0);
-        view.limitClickSpeedValueText.setText(limitClickSpeedHz.toFixed(2) + "次/秒");
-        view.limitClickSpeedSeekbar.setProgress(numberMapLog(limitClickSpeedHz, 1, maxClickSpeedHz));
-        view.speedMultiplier.setChecked(speedMultiplier != 1);
-        view.speedMultiplierValueText.setText((speedMultiplier * 100).toFixed(2) + "%");
-        view.speedMultiplierSeekbar.setProgress(numberMapLog(speedMultiplier, 0.05, 15));
-        //时长控制
-        let noteDurationOutputMode = configuration.readFileConfigForTarget("noteDurationOutputMode", rawFileName, gameProfile, "none");
-        switch (noteDurationOutputMode) {
-            case "none":
-                view.noteDurationOutputMode_none.setChecked(true);
-                break;
-            case "native":
-                view.noteDurationOutputMode_native.setChecked(true);
-                break;
-        }
-        let defaultClickDuration = readGlobalConfig("defaultClickDuration", 5);
-        view.defaultClickDurationValueText.setText(defaultClickDuration.toFixed(2) + "ms");
-        view.defaultClickDurationSeekbar.setProgress(numberMapLog(defaultClickDuration, 1, 500));
-        let maxGestureDuration = readGlobalConfig("maxGestureDuration", 8000);
-        view.maxGestureDurationValueText.setText(maxGestureDuration.toFixed(2) + "ms");
-        view.maxGestureDurationSeekbar.setProgress(numberMapLog(maxGestureDuration, 100, 30000));
-        let marginDuration = readGlobalConfig("marginDuration", 100);
-        view.marginDurationValueText.setText(marginDuration.toFixed(2) + "ms");
-        view.marginDurationSeekbar.setProgress(numberMapLog(marginDuration, 1, 600));
-
-        //音域优化
-        let halfCeiling = readFileConfig("halfCeiling", rawFileName, false);
-        switch (halfCeiling) {
-            case false:
-                view.halfCeilingSetting_roundDown.setChecked(true);
-                break;
-            case true:
-                view.halfCeilingSetting_roundUp.setChecked(true);
-                break;
-        }
-        let trackDisableThreshold = 0.5; //不会保存
-        view.trackDisableThresholdValueText.setText((trackDisableThreshold * 100).toFixed(2) + "%");
-        view.trackDisableThresholdSeekbar.setProgress(numberMap(trackDisableThreshold * 100, 1, 99));
-        let majorPitchOffset = configuration.readFileConfigForTarget("majorPitchOffset", rawFileName, gameProfile, 0);
-        view.majorPitchOffsetValueText.setText(majorPitchOffset.toFixed(0));
-        view.majorPitchOffsetSeekbar.setProgress(majorPitchOffset + 2);
-        let minorPitchOffset = configuration.readFileConfigForTarget("minorPitchOffset", rawFileName, gameProfile, 0);
-        view.minorPitchOffsetValueText.setText(`${minorPitchOffset.toFixed(0)} (${midiPitch.getTranspositionName(minorPitchOffset)})`);
-        view.minorPitchOffsetSeekbar.setProgress(minorPitchOffset + 4);
-        //和弦优化
-        let chordLimitEnabled = readFileConfig("chordLimitEnabled", rawFileName, false);
-        view.chordLimitCheckbox.setChecked(chordLimitEnabled);
-        let maxSimultaneousNoteCount = readFileConfig("maxSimultaneousNoteCount", rawFileName, 2);
-        view.maxSimultaneousNoteCountValueText.setText(maxSimultaneousNoteCount.toFixed(0));
-        view.maxSimultaneousNoteCountSeekbar.setProgress(numberMap(maxSimultaneousNoteCount, 1, 9));
-        let noteCountLimitMode = readFileConfig("noteCountLimitMode", rawFileName, "split");
-        switch (noteCountLimitMode) {
-            case "split":
-                view.noteCountLimitMode_split.setChecked(true);
-                break;
-            case "delete":
-                view.noteCountLimitMode_delete.setChecked(true);
-                break;
-        }
-        let noteCountLimitSplitDelay = readFileConfig("noteCountLimitSplitDelay", rawFileName, 75);
-        view.noteCountLimitSplitDelayValueText.setText(noteCountLimitSplitDelay.toFixed(0) + "ms");
-        view.noteCountLimitSplitDelaySeekbar.setProgress(numberMapLog(noteCountLimitSplitDelay, 5, 500));
-        let chordSelectMode = readFileConfig("chordSelectMode", rawFileName, "high");
-        switch (chordSelectMode) {
-            case "high":
-                view.chordSelectMode_high.setChecked(true);
-                break;
-            case "low":
-                view.chordSelectMode_low.setChecked(true);
-                break;
-            case "random":
-                view.chordSelectMode_random.setChecked(true);
-                break;
-        }
-
-        //伪装手弹
-        let noteTimeDeviation = readGlobalConfig("humanifyNoteAbsTimeStdDev", 0);
-        view.noteTimeDeviationValueText.setText(noteTimeDeviation.toFixed(2) + "ms");
-        view.noteTimeDeviationCheckbox.setChecked(noteTimeDeviation != 0);
-        view.noteTimeDeviationSeekbar.setProgress(numberMap(noteTimeDeviation, 5, 150));
-        let clickPositionDeviation = readGlobalConfig("clickPositionDeviationMm", 1);
-        view.clickPositionDeviationValueText.setText(clickPositionDeviation.toFixed(2) + "mm");
-        view.clickPositionDeviationSeekbar.setProgress(numberMap(clickPositionDeviation, 0, 6));
-
-        //跟弹模式配置
-        let markSize = readGlobalConfig("SimpleInstructPlayer_MarkSize", 1); //是不是对每个键位单独保存比较好?
-        view.SimpleInstructPlayer_MarkSizeValueText.setText((markSize * 100).toFixed(0) + "%");
-        view.SimpleInstructPlayer_MarkSizeSeekbar.setProgress(numberMapLog(markSize * 100, 30, 300));
-
-    }).on("positive", (dialog) => {
-        let playerSelection = [];
-        if (view.playerSelection_AutoJsGesturePlayer.isChecked()) {
-            playerSelection.push("AutoJsGesturePlayer");
-        }
-        if (view.playerSelection_SimpleInstructPlayer.isChecked()) {
-            playerSelection.push("SimpleInstructPlayer");
-        }
-        setGlobalConfig("playerSelection", playerSelection);
-        let limitClickSpeedHz = view.limitClickSpeedCheckbox.isChecked() ?
-            numberRevMapLog(view.limitClickSpeedSeekbar.getProgress(), 1, maxClickSpeedHz) : 0;
-        let speedMultiplier = view.speedMultiplier.isChecked() ?
-            numberRevMapLog(view.speedMultiplierSeekbar.getProgress(), 0.05, 15) : 1;
-        let noteDurationOutputMode = view.noteDurationOutputMode_native.isChecked() ? "native" : "none";
-        let defaultClickDuration = numberRevMapLog(view.defaultClickDurationSeekbar.getProgress(), 1, 500);
-        let maxGestureDuration = numberRevMapLog(view.maxGestureDurationSeekbar.getProgress(), 100, 30000);
-        let marginDuration = numberRevMapLog(view.marginDurationSeekbar.getProgress(), 1, 600);
-        let halfCeiling = view.halfCeilingSetting_roundUp.isChecked();
-        let majorPitchOffset = view.majorPitchOffsetSeekbar.getProgress() - 2;
-        let minorPitchOffset = view.minorPitchOffsetSeekbar.getProgress() - 4;
-        let chordLimitEnabled = view.chordLimitCheckbox.isChecked();
-        let maxSimultaneousNoteCount = numberRevMap(view.maxSimultaneousNoteCountSeekbar.getProgress(), 1, 9);
-        let noteCountLimitMode = view.noteCountLimitMode_split.isChecked() ? "split" : "delete";
-        let noteCountLimitSplitDelay = numberRevMapLog(view.noteCountLimitSplitDelaySeekbar.getProgress(), 5, 500);
-        let chordSelectMode = view.chordSelectMode_high.isChecked() ? "high" : view.chordSelectMode_low.isChecked() ? "low" : "random";
-        let noteTimeDeviation = view.noteTimeDeviationCheckbox.isChecked() ?
-            numberRevMap(view.noteTimeDeviationSeekbar.getProgress(), 5, 150) : 0;
-        let clickPositionDeviation = numberRevMap(view.clickPositionDeviationSeekbar.getProgress(), 0, 6);
-        let markSize = numberRevMapLog(view.SimpleInstructPlayer_MarkSizeSeekbar.getProgress(), 30, 300) / 100;
-        setFileConfig("limitClickSpeedHz", limitClickSpeedHz, rawFileName);
-        setFileConfig("speedMultiplier", speedMultiplier, rawFileName);
-        configuration.setFileConfigForTarget("noteDurationOutputMode", noteDurationOutputMode, rawFileName, gameProfile);
-        setGlobalConfig("defaultClickDuration", defaultClickDuration);
-        setGlobalConfig("maxGestureDuration", maxGestureDuration);
-        setGlobalConfig("marginDuration", marginDuration);
-        setFileConfig("halfCeiling", halfCeiling, rawFileName);
-        configuration.setFileConfigForTarget("majorPitchOffset", majorPitchOffset, rawFileName, gameProfile);
-        configuration.setFileConfigForTarget("minorPitchOffset", minorPitchOffset, rawFileName, gameProfile);
-        setFileConfig("chordLimitEnabled", chordLimitEnabled, rawFileName);
-        setFileConfig("maxSimultaneousNoteCount", maxSimultaneousNoteCount, rawFileName);
-        setFileConfig("noteCountLimitMode", noteCountLimitMode, rawFileName);
-        setFileConfig("noteCountLimitSplitDelay", noteCountLimitSplitDelay, rawFileName);
-        setFileConfig("chordSelectMode", chordSelectMode, rawFileName);
-        setGlobalConfig("humanifyNoteAbsTimeStdDev", noteTimeDeviation);
-        setGlobalConfig("clickPositionDeviationMm", clickPositionDeviation);
-        setGlobalConfig("SimpleInstructPlayer_MarkSize", markSize);
-
-        dialog.dismiss();
-        finished = true;
-        configChanged = true;
-    }).on("negative", (dialog) => {
-        toast("取消")
-        dialog.dismiss();
-        finished = true;
-    }).show();
-    while (!finished) {
-        sleep(100);
+    let format = musicFormats.getFileFormat(fileName);
+    /**
+     * @type {Dialogs.JsDialog?}
+     */
+    let dialog = null;
+    let flags = [];
+    if (format.haveDurationInfo) {
+        flags.push(ConfigurationFlags.MUSIC_HAS_DURATION_INFO);
+    }
+    if (format.haveTracks) {
+        flags.push(ConfigurationFlags.MUSIC_HAS_TRACKS);
     }
 
-    return configChanged;
+    function showConfigDialog() {
+        function refreshConfigUi() {
+            if (dialog != null) {
+                dialog.dismiss();
+                dialog = null;
+            }
+            showConfigDialog();
+        }
+        let configUi = new ConfigurationUi(rawFileName, gameProfile, flags, (cmd, arg) => {
+            console.info(`${cmd} : ${JSON.stringify(arg)}`);
+            switch (cmd) {
+                case "refreshConfigurationUi":
+                    refreshConfigUi();
+                    break;
+                case "runAutoTune":
+                    autoTuneFileConfig(fileName, arg.trackDisableThreshold);
+                    refreshConfigUi();
+                    break;
+                case "selectTracks":
+                    //这是主线程, 可以阻塞
+                    const passManager = new PassManager();
+                    let dialog = dialogs.build({
+                        title: "加载中...",
+                        content: "正在加载数据...",
+                    }).show();
+                    let tracksData = passManager.addPass("ParseSourceFilePass").run(musicDir + fileName);
+                    dialog.dismiss();
+                    let lastSelectedTracksNonEmpty = configuration.readFileConfigForTarget("lastSelectedTracksNonEmpty", rawFileName, gameProfile);
+                    let result = selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty);
+                    configuration.setFileConfigForTarget("lastSelectedTracksNonEmpty", result, rawFileName, gameProfile);
+                    break;
+            }
+        });
+        let view = configUi.getView();
+        dialog = dialogs.build({
+            customView: view,
+            title: "配置...",
+            neutral: "完成",
+        }).on("show", (dialog) => {
+        }).on("neutral", (dialog) => {
+            dialog.dismiss();
+            onFinish(configUi.isAnythingChanged());
+        }).show();
+    }
+    showConfigDialog();
+
+    return;
 }
 
 /**
@@ -1635,14 +1185,18 @@ function main() {
         evt.emit("fileLoaded");
     });
     evt.on("currentFileConfigBtnClick", () => {
-        if (lastSelectedFileIndex == null) return;
+        if (lastSelectedFileIndex == null){
+            toast("请先选择乐曲");
+            return;
+        }
         for (let player of selectedPlayers)
             player.pause();
         let fileName = totalFiles[lastSelectedFileIndex];
-        let res = runFileConfigSetup(fileName);
-        if (res) { //设置改变了
-            evt.emit("fileSelect");
-        }
+        runFileConfigSetup(fileName, (res) => {
+            if (res) { //设置改变了
+                evt.emit("fileSelect");
+            }
+        });
     });
     evt.on("globalConfigBtnClick", () => {
         for (let player of selectedPlayers)
@@ -1930,8 +1484,11 @@ function loadMusicFile(fileName, loadType) {
         let res = dialogs.confirm("设置向导", "检测到您是第一次演奏这首乐曲，是否要运行设置?");
         if (res) {
             progressDialog.dismiss();
-            runFileConfigSetup(fileName);
+            runFileConfigSetup(fileName, (anythingChanged) => {
+                toast("设置已保存, 请重新选择乐曲...");
+            });
         };
+        return null;
     };
 
 

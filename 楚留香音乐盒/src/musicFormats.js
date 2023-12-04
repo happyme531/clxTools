@@ -67,7 +67,9 @@ function MusicFormats() {
      * @typedef {{
      * "name": string,
      * "friendlyName": string,
-     * "fileExtension": string
+     * "fileExtension": string,
+     * "haveDurationInfo": boolean,
+     * "haveTracks": boolean,
      * }} MusicFormat
      * 
      * @type {MusicFormat[]}
@@ -76,22 +78,30 @@ function MusicFormats() {
         [{
             "name": "tonejsjson",
             "friendlyName": "Tone.js JSON 格式",
-            "fileExtension": ".json"
+            "fileExtension": ".json",
+            "haveDurationInfo": true,
+            "haveTracks": true
         },
         {
             "name": "midi",
             "friendlyName": "MIDI 格式",
-            "fileExtension": ".mid"
+            "fileExtension": ".mid",
+            "haveDurationInfo": true,
+            "haveTracks": true
         },
         {
             "name": "domiso",
             "friendlyName": "DoMiSo格式",
-            "fileExtension": ".dms.txt"
+            "fileExtension": ".dms.txt",
+            "haveDurationInfo": false,
+            "haveTracks": false
         },
         {
             "name": "skystudiojson",
             "friendlyName": "SkyStudio JSON 格式",
-            "fileExtension": ".skystudio.txt"
+            "fileExtension": ".skystudio.txt",
+            "haveDurationInfo": false,
+            "haveTracks": false
         }];
     
     /**
