@@ -961,6 +961,19 @@ const PreDefinedGameConfigs = [
         packageNamePart: ["mrzh"],
     }),
     new GameConfig({
+        gameType: "元梦之星",
+        gameName: "元梦之星",
+        keyTypes: ["generic_3x7"],
+        keyLocators: new Map([
+            ["generic_3x7", [[0, 0], [0, 0]]],
+        ]),
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["com.tencent.letsgo"],
+    }),
+    new GameConfig({
         gameType: "自定义1",
         gameName: "自定义1",
         keyTypes: ["generic_3x7", "generic_3x12"],
