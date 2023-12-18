@@ -1,3 +1,5 @@
+<img align="right" width="23%" src="https://github.com/happyme531/clxTools/assets/20812356/1706f681-a66a-44a8-b09f-83362c1df2f8" alt='"Java"Script'>
+
 # clxTools
 
 适用于一些RPG手游，例如《楚留香(一梦江湖)》的自动脚本。 Automatics scripts for some mobile RPGs, such as netease ChuLiuXiang.
