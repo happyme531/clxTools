@@ -107,7 +107,7 @@ function getPosInteractive(promptText) {
             }else if(!fingerReleased){
                 confirmWindow.promptText.setText("当前坐标:" + pos.toString());
             }else{
-                confirmWindow.promptText.setText("当前坐标:" + pos.toString() + ", 点击'确定'结束, 点击'取消'重新获取");
+                confirmWindow.promptText.setText("当前坐标:" + pos.toString() + ", 点击'确定'结束, 点击'取消'重新获取(坐标不准? 把手机转180度再试)");  //TODO: 修这个bug
             }
         });
     }
