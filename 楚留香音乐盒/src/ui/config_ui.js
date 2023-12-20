@@ -621,7 +621,7 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
     view_range.majorPitchOffsetValueText.setText(majorPitchOffset.toFixed(0));
     view_range.majorPitchOffsetSeekbar.setProgress(majorPitchOffset + 2);
     let minorPitchOffset = configuration.readFileConfigForTarget("minorPitchOffset", rawFileName, gameProfile, 0);
-    view_range.minorPitchOffsetValueText.setText(`${minorPitchOffset.toFixed(0)} (${midiPitch.getTranspositionName(minorPitchOffset)})`);
+    view_range.minorPitchOffsetValueText.setText(`${minorPitchOffset.toFixed(0)} (${midiPitch.getTranspositionEstimatedKey(minorPitchOffset)})`);
     view_range.minorPitchOffsetSeekbar.setProgress(minorPitchOffset + 4);
 
     view_range.halfCeilingSetting.setOnCheckedChangeListener(function (group, checkedId) {
@@ -669,7 +669,7 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
         onProgressChanged: function (seekbar, progress, fromUser) {
             if (progress == undefined) return;
             let value = progress - 4;
-            view_range.minorPitchOffsetValueText.setText(`${value.toFixed(0)} (${midiPitch.getTranspositionName(value)})`);
+            view_range.minorPitchOffsetValueText.setText(`${value.toFixed(0)} (${midiPitch.getTranspositionEstimatedKey(value)})`);
             return true;
         },
         onStartTrackingTouch: function (seekbar) { },

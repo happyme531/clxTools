@@ -51,9 +51,9 @@ function MidiPitch() {
      * @param {number} offset - 移调值。
      * @returns {string} 移调值对应的调号。
      */
-    this.getTranspositionName = function (offset) {
+    this.getTranspositionEstimatedKey = function (offset) {
         const transpositionName = [
-            'Ab', 'A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G'
+            'Ab', 'A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G'
         ];
         return transpositionName[(-offset + 4 + 12) % 12]; //反向...
     };

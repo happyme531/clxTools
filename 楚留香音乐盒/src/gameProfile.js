@@ -507,7 +507,7 @@ const keyLayouts = {
             [0, 0], [1 / 12, -0.105], [2 / 12, 0], [3 / 12, -0.105], [4 / 12, 0], [6 / 12, 0], [7 / 12, -0.105], [8 / 12, 0], [9 / 12, -0.105], [10 / 12, 0], [11 / 12, -0.105], [12 / 12, 0],
         ],
         noteKeyMap: noteKeyMaps.generic_3x12,
-    }
+    },
     "abd_7_8_7": { //奥比岛 7+8+7
         displayName: "22键",
         type: KeyLayoutTypes.arbitrary,
@@ -582,6 +582,23 @@ const keyLayouts = {
     },
 
 };
+
+//光遇: 乐曲调式对应的地图所在位置
+//https://www.bilibili.com/read/cv15735140/
+const skyTuneMapPosition = {
+    "C": "遇境/晨岛沙漠地带/预言山谷中间/雨林第三个到第四个门之间（隐藏图入口）左侧有小金人的亭子/雨林四个金人的隐藏图的开头/雨林终点/霞光城/霞光城水底/禁阁地下室？/暴风眼第一阶段",
+    "Db": "晨岛终点旁的小岛/云野八人图/雨林第四道门到终点之间小金人的亭子（隐藏图出口）/禁阁三楼",
+    "D": "云野初始图后面/云野的中央大图（二图?）/云野右侧隐藏图（两个小破塔的那个）/圣岛/霞谷终点/霞谷迷宫/禁阁二楼/墓土三龙图/墓土终点/禁阁开头没到一楼的位置",
+    "Eb": "雨林第三道门到第四道门中间右侧的有小金人的亭子/墓土无龙图/墓土方舟/墓土四龙图/墓土沉船",
+    "E": "重生之路的星河",
+    "F": "云野三塔的终点大塔/雨林两个金人的隐藏图/霞谷飞行赛道的城堡（中间有个球的那个小破城）/办公室两个入口之间/禁阁一楼",
+    "Gb": "雨林第四道门到终点的最后一个塔",
+    "G": "雨林初始图/晨岛飞往终点的悬崖",
+    "Ab": "晨岛终点祭坛/预言山谷开头/霞谷赛道终点",
+    "A": "霞谷开头的溜冰三岔口/禁阁终点祭坛/禁阁四楼小破塔顶",
+    "Bb": "云野三塔图的二塔/雨林到霞谷的过渡图",
+    "B": "禁阁二楼第一次变调后",
+}
 
 /**
  * 变体类型的具体配置
@@ -1716,6 +1733,24 @@ function GameProfile() {
         cachedNoteRange = null;
     }
 
+    /**
+     * 获取当前游戏与乐曲调式相关的提示信息
+     * @param {string} key 调号
+     * @returns {string} 提示信息
+     * @see MidiPitch.getTranspositionEstimatedKey
+     */
+    this.getGameSpecificHintByEstimatedKey = function (key) {
+        if (currentGameConfig == undefined) {
+            return "";
+        }
+        if (currentGameConfig.gameType === "光遇") {
+            return `光遇: 建议演奏位置: ${skyTuneMapPosition[key]}`;
+        }
+        if (currentGameConfig.gameType === "逆水寒手游") {
+            return `逆水寒手游: 建议选择调式: ${key}`;       
+        }
+        return "";
+    }
 }
 
 console.info("GameProfile.js loaded");

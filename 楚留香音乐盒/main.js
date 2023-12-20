@@ -1678,8 +1678,11 @@ function loadMusicFile(fileName, loadType) {
         "\n超出范围被丢弃的音符数:" + outRangedNoteCnt + "" + " (+" + overFlowedNoteCnt + ", -" + underFlowedNoteCnt + ")(" + (outRangedNoteCnt / inputNoteCnt * 100).toFixed(2) + "%)" +
         "\n被取整的音符数:" + roundedNoteCnt + " (" + (roundedNoteCnt / inputNoteCnt * 100).toFixed(2) + "%)" +
         "\n过于密集被丢弃的音符数:" + droppedNoteCnt + " (" + (droppedNoteCnt / finalNoteCnt * 100).toFixed(2) + "%)" +
-        "\n如果被取整的音符数过多, 请在菜单中选择自动调整";
-    dialogs.alert("乐曲信息", statString);
+        "\n(如果被取整的音符数过多, 请在菜单中选择自动调整)";
+    const estimatedKey = midiPitch.getTranspositionEstimatedKey(minorPitchOffset);
+    const hintString = `估计乐曲调号: ${estimatedKey}\n` + gameProfile.getGameSpecificHintByEstimatedKey(estimatedKey);
+
+    dialogs.alert("乐曲信息", statString + "\n\n" + hintString);
 
     return gestureTimeList;
 }
