@@ -390,7 +390,7 @@ const keyLayouts = {
         row: 3,
         //列数
         column: 7,
-        //按键位置(只在定位方式为arbritary时有效)
+        //按键位置(只在定位方式为arbritary时有效), 左上角为(0,0), 左下角为(0,1), 右上角为(1,0), 右下角为(1,1). 顺序与noteKeyMap一致.
         relativeKeyPosition: undefined,
         //音高与按键的映射, 左下角开始, 从左到右, 从下到上
         noteKeyMap: noteKeyMaps.generic_3x7,
@@ -487,6 +487,27 @@ const keyLayouts = {
         ],
         noteKeyMap: noteKeyMaps.dzpd_7_8,
     },
+    "dzpd_yinterleaved36" :{ //蛋仔派对 交错的3x12
+        displayName: "36键",
+        type: KeyLayoutTypes.arbitrary,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: undefined,
+        column: undefined,
+        /*
+         x x   x x x 
+        x x x x x x x
+         x x   x x x 
+        x x x x x x x
+         x x   x x x 
+        x x x x x x x
+        */
+        relativeKeyPosition: [
+            [0, 1], [1 / 12, 1 - 0.105], [2 / 12, 1], [3 / 12, 1 - 0.105], [4 / 12, 1], [6 / 12, 1], [7 / 12, 1 - 0.105], [8 / 12, 1], [9 / 12, 1 - 0.105], [10 / 12, 1], [11 / 12, 1 - 0.105], [12 / 12, 1],
+            [0, 1 / 2], [1 / 12, 1 / 2 - 0.105], [2 / 12, 1 / 2], [3 / 12, 1 / 2 - 0.105], [4 / 12, 1 / 2], [6 / 12, 1 / 2], [7 / 12, 1 / 2 - 0.105], [8 / 12, 1 / 2], [9 / 12, 1 / 2 - 0.105], [10 / 12, 1 / 2], [11 / 12, 1 / 2 - 0.105], [12 / 12, 1 / 2],
+            [0, 0], [1 / 12, -0.105], [2 / 12, 0], [3 / 12, -0.105], [4 / 12, 0], [6 / 12, 0], [7 / 12, -0.105], [8 / 12, 0], [9 / 12, -0.105], [10 / 12, 0], [11 / 12, -0.105], [12 / 12, 0],
+        ],
+        noteKeyMap: noteKeyMaps.generic_3x12,
+    }
     "abd_7_8_7": { //奥比岛 7+8+7
         displayName: "22键",
         type: KeyLayoutTypes.arbitrary,
@@ -856,10 +877,11 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "蛋仔派对",
         gameName: "蛋仔派对",
-        keyTypes: ["dzpd_interleaved3x7", "dzpd_7_8"],
+        keyTypes: ["dzpd_interleaved3x7", "dzpd_yinterleaved36", "dzpd_7_8"],
         keyLocators: new Map([
             ["dzpd_interleaved3x7", [[0, 0], [0, 0]]],
             ["dzpd_7_8", [[0, 0], [0, 0]]],
+            ["dzpd_yinterleaved36", [[0, 0], [0, 0]]],
         ]),
         variants: [
             defaultVariantConfig 
