@@ -1038,7 +1038,7 @@ function main() {
     let controlWindowPosition = readGlobalConfig("controlWindowPosition", [device.width / 3, 0]);
     //避免悬浮窗被屏幕边框挡住
     controlWindow.setPosition(controlWindowPosition[0], controlWindowPosition[1]);
-    let controlWindowSize = readGlobalConfig("controlWindowSize", [device.width / 4, -2]);
+    let controlWindowSize = readGlobalConfig("controlWindowSize", [Math.max(device.width, device.height) * 2 / 5, -2]);
     controlWindow.setSize(controlWindowSize[0], controlWindowSize[1]);
     //controlWindow.setTouchable(true);
 
