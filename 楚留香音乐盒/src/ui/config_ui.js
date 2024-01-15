@@ -70,8 +70,9 @@ function floatEqual(a, b) {
 
 /**
  * @enum {string}
+ * @readonly
  */
-const ConfigurationFlags = {
+var ConfigurationFlags = {
     //设置的详细程度
     LEVEL_SIMPLE: "LEVEL_SIMPLE",
     LEVEL_ADVANCED: "LEVEL_ADVANCED",

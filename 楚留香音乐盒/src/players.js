@@ -19,8 +19,9 @@ function NormalDistributionRandomizer(mean, stddev) {
 
 /**
  * @enum {string}
+ * @readonly
  */
-const PlayerType = {
+var PlayerType = {
     None: "None",
     AutoJsGesturePlayer: "AutoJsGesturePlayer",
     SimpleInstructPlayer: "SimpleInstructPlayer",
