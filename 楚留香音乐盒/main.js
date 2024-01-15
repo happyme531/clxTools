@@ -22,6 +22,10 @@ try {
     var midiPitch = require("./src/midiPitch.js");
     var noteUtils = require("./src/noteUtils.js");
     var { ConfigurationUi, ConfigurationFlags } = require("./src/ui/config_ui.js");
+    /**
+     * @type {import("../shared/FloatButton/FloatButton.js")}
+     */
+    var FloatButton = requireShared("FloatButton/FloatButton.js");
 } catch (e) {
     toast("请不要单独下载/复制这个脚本，需要下载'楚留香音乐盒'中的所有文件!");
     toast("模块加载错误");
@@ -966,12 +970,12 @@ function main() {
      * @type {any}
      */
     let controlWindow = floaty.window(
-        <frame gravity="left|top" w="*" h="auto" margin="0dp">
+        <frame gravity="left|top" w="*" h="auto" margin="0dp" id="controlWindowFrame" visibility="gone">
             <vertical bg="#8fffffff" w="*" h="auto" margin="0dp">
                 <horizontal w="*" h="auto" margin="0dp">
                     <text id="musicTitleText" bg="#9ff0f0f4" text="(未选择乐曲...)" ellipsize="marquee" singleLine="true" layout_gravity="left" textSize="14sp" margin="0 0 3 0" layout_weight="1" />
                     <text id="timerText" bg="#9ffce38a" text="00:00/00:00" layout_gravity="right" textSize="14sp" margin="3 0 3 0" layout_weight="0" layout_width="78sp" layout_height="match_parent" />
-                    <button id="stopBtn" style="Widget.AppCompat.Button.Borderless" w="20dp" layout_height='20dp' text="❌" textSize="14sp" margin="0dp" padding="0dp" />
+                    <button id="hideBtn" style="Widget.AppCompat.Button.Borderless" w="20dp" layout_height='20dp' text="➖" textSize="14sp" margin="0dp" padding="0dp" />
                 </horizontal>
                 <horizontal w="*" h="auto" margin="0dp">
                     <seekbar id="progressBar" layout_gravity="center_vertical" layout_weight="1" w='0dp' h='auto' margin="3dp 0dp" padding="5dp" />
@@ -988,6 +992,20 @@ function main() {
             </vertical>
         </frame>
     );
+    let controlWindowVisible = false;
+    /**
+     * @param {boolean} visible
+     */
+    function controlWindowSetVisibility(visible) {
+        ui.run(() => {
+            if (visible) {
+                controlWindow.controlWindowFrame.setVisibility(android.view.View.VISIBLE);
+            } else {
+                controlWindow.controlWindowFrame.setVisibility(android.view.View.GONE);
+            }
+        });
+    }
+
     ui.run(() => {
         controlWindow.musicTitleText.setText(titleStr);
         controlWindow.musicTitleText.setSelected(true);
@@ -1023,8 +1041,8 @@ function main() {
         }
     });
     controlWindow.globalConfigBtn.click(() => { evt.emit("globalConfigBtnClick"); });
-    controlWindow.stopBtn.click(() => {
-        evt.emit("stopBtnClick");
+    controlWindow.hideBtn.click(() => {
+        evt.emit("hideBtnClick");
     });
     controlWindow.miscInfoBtn.click(() => { evt.emit("miscInfoBtnClick"); });
     controlWindow.pauseResumeBtn.setOnLongClickListener(() => {
@@ -1118,6 +1136,7 @@ function main() {
     function exitApp() {
         visualizerWindowClose();
         if(instructWindow != null) instructWindow.close();
+        controlWindow.close();
         threads.shutDownAll();
         exit();
     }
@@ -1304,9 +1323,10 @@ function main() {
                     player.exec(gestureList);
             };
         });
-        evt.on("stopBtnClick", () => {
+        evt.on("hideBtnClick", () => {
             stream.close();
-            exitApp();
+            controlWindowVisible = false;
+            controlWindowSetVisibility(false);
         });
     });
     evt.on("pauseResumeBtnLongClick", () => {
@@ -1326,7 +1346,11 @@ function main() {
                 player.resume();
         }, 8000);
     });
-    evt.on("stopBtnClick", () => {
+    evt.on("hideBtnClick", () => {
+        controlWindowVisible = false;
+        controlWindowSetVisibility(false);
+    });
+    evt.on("exitApp", () => {
         exitApp();
     });
     evt.on("fileLoaded", () => {
@@ -1444,6 +1468,32 @@ function main() {
         }
     }
     setInterval(controlWindowUpdateLoop, 200);
+
+    //悬浮按钮
+    let fb = new FloatButton();
+    fb.setIcon('@drawable/ic_library_music_black_48dp');
+    fb.setTint('#ffff00');
+    fb.setColor('#019581');
+    fb.addItem('隐藏/显示主悬浮窗')
+        .setIcon('@drawable/ic_visibility_black_48dp')
+        .setTint('#FFFFFF')
+        .setColor('#019581')
+        .onClick((view, name) => {
+            controlWindowSetVisibility(!controlWindowVisible);
+            controlWindowVisible = !controlWindowVisible;
+            //返回 true:保持菜单开启 false:关闭菜单
+            return false;
+        });
+    fb.addItem('退出脚本')
+        .setIcon('@drawable/ic_exit_to_app_black_48dp')
+        .setTint('#FFFFFF')
+        .setColor('#019581')
+        .onClick((view, name) => {
+            fb.close();
+            evt.emit("exitApp");
+            return false;
+        });
+    fb.show();
 }
 
 

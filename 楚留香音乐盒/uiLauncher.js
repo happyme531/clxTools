@@ -50,86 +50,6 @@ try {
     console.log(e);
 }
 
-function startFloatWindow(size) {
-    var path = "main.js";
-    if (!files.exists(path)) {
-        toastLog("脚本文件不存在: " + path);
-        exit();
-    }
-
-    const packageManager = context.getPackageManager();
-    const appName = packageManager.getApplicationLabel(context.getApplicationInfo()).toString();
-
-    const haveFloatyPermission = runtimes.getCurrentRuntime() === runtimes.Runtime.AUTOXJS ?
-        floaty.checkPermission() :
-        floaty.hasPermission();
-        
-    if (!haveFloatyPermission) {
-        // 没有悬浮窗权限，提示用户并跳转请求
-        toastLog(`请打开应用 "${appName}" 的悬浮窗权限!`);
-        floaty.requestPermission();
-        while (!floaty.checkPermission()) sleep(100);
-        toastLog('悬浮窗权限已开启');
-    }
-
-
-    var window = floaty.window(
-        <frame>
-            <img id="action" src="@drawable/ic_library_music_black_48dp" w={size} h={size} bg="#20000000" tint="#ffff00" />
-        </frame>
-    );
-
-    setInterval(() => {
-        
-    }, 1000);
-
-    var execution = null;
-
-    //记录按键被按下时的触摸坐标
-    var x = 0, y = 0;
-    //记录按键被按下时的悬浮窗位置
-    var windowX, windowY;
-    //记录按键被按下的时间以便判断长按等动作
-    var downTime;
-
-    window.action.setOnTouchListener(function (view, event) {
-        switch (event.getAction()) {
-            case event.ACTION_DOWN:
-                x = event.getRawX();
-                y = event.getRawY();
-                windowX = window.getX();
-                windowY = window.getY();
-                downTime = new Date().getTime();
-                return true;
-            case event.ACTION_MOVE:
-                //移动手指时调整悬浮窗位置
-                window.setPosition(windowX + (event.getRawX() - x),
-                    windowY + (event.getRawY() - y));
-                //如果按下的时间超过1秒判断为长按，退出脚本
-                if (new Date().getTime() - downTime > 1000) {
-                    toastLog("悬浮窗已退出");
-                    exit();
-                }
-                return true;
-            case event.ACTION_UP:
-                //手指弹起时如果偏移很小则判断为点击
-                if (Math.abs(event.getRawY() - y) < 5 && Math.abs(event.getRawX() - x) < 5) {
-                    onClick();
-                }
-                return true;
-        }
-        return true;
-    });
-
-    let execution = null;
-    function onClick() {
-        if (execution === null || (execution !== null && execution.getEngine().isDestroyed())) {
-            execution = engines.execScriptFile(path);
-        }
-    }
-
-}
-
 ui.layout(
     <frame bg={isDarkMode ? "#000000" : "#ffffff"}>
         <vertical>
@@ -176,7 +96,8 @@ ui.launchBtn.on("click", () => {
     if (!floatWindowStarted) {
         console.log("launch!");
         threads.start(() => {
-            startFloatWindow(floatWindowSize);
+            engines.execScriptFile("main.js");
+            exit();
         });
         floatWindowStarted = true;
     }
@@ -197,7 +118,7 @@ let canExit = false;
 let canExitTimeout = null;
 ui.emitter.on("back_pressed", (e) => {
     if (!canExit) {
-        toast("再按一次关闭悬浮窗并退出脚本");
+        toast("再按一次退出");
         canExit = true;
         canExitTimeout = setTimeout(() => {
             canExit = false;
