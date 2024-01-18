@@ -211,7 +211,11 @@ function setupMidiStream() {
     while (1) {
         devNames = midi.getMidiDeviceNames();
         if (devNames.length == 0) {
-            if (!dialogs.confirm("错误", "没有找到MIDI设备, 点击确定重试, 点击取消退出")) {
+            if (!dialogs.confirm(
+                "错误", 
+                "没有找到MIDI设备, 点击确定重试, 点击取消退出\n" + 
+                "提示: 如果想使用蓝牙MIDI设备, 请根据使用说明中相关教程安装插件进行连接" 
+                )) {
                 return null;
             }
         } else {
@@ -1242,7 +1246,7 @@ function main() {
             "其它功能...",
             [
                 "📃 查看使用帮助",
-                "📲 MIDI串流",
+                "📲 MIDI串流演奏",
                 "🎼 导出当前乐曲",
             ]
         );
