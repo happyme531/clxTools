@@ -243,6 +243,28 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
         view: view_runMode
     });
 
+    //乐谱可视化
+    let view_visualization = ui.inflate(
+        <vertical>
+            <text text="乐谱可视化:" />
+            <horizontal>
+                <text text="使用乐谱可视化:" />
+                <checkbox id="visualizationEnabledCheckbox" />
+            </horizontal>
+        </vertical>
+    );
+
+    let visualizationEnabled = configuration.readGlobalConfig("visualizationEnabled", true);
+    view_visualization.visualizationEnabledCheckbox.setChecked(visualizationEnabled);
+    view_visualization.visualizationEnabledCheckbox.setOnCheckedChangeListener(function (button, checked) {
+        anythingChanged = true;
+        configuration.setGlobalConfig("visualizationEnabled", checked);
+    });
+    this.fragments.push({
+        name: "visualization",
+        view: view_visualization
+    });
+
     //速度设置
     if (this.flags.includes(ConfigurationFlags.LEVEL_ADVANCED) ||
         this.flags.includes(ConfigurationFlags.LEVEL_EXPERT)) {
@@ -1054,6 +1076,39 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
         }
     }
 
+    //跳过空白
+    let view_skipBlank = ui.inflate(
+        <vertical>
+            <text text="跳过空白:" textColor="red" />
+            <horizontal w="*">
+                <text text="跳过前奏空白: " />
+                <checkbox id="skipInitEnabledCheckbox" />
+            </horizontal>
+            <horizontal w="*">
+                <text text="跳过中间空白: " />
+                <checkbox id="skipBlank5sEnabledCheckbox" />
+            </horizontal>
+        </vertical>
+    );
+    let skipInitEnabled = configuration.readGlobalConfig("skipInit", false);
+    view_skipBlank.skipInitEnabledCheckbox.setChecked(skipInitEnabled ? true : false); //不知道为什么这里可能会返回number
+    let skipBlank5sEnabled = configuration.readGlobalConfig("skipBlank5s", false);
+    view_skipBlank.skipBlank5sEnabledCheckbox.setChecked(skipBlank5sEnabled ? true : false);
+
+    view_skipBlank.skipInitEnabledCheckbox.setOnCheckedChangeListener(function (button, checked) {
+        anythingChanged = true;
+        configuration.setGlobalConfig("skipInit", checked);
+    });
+
+    view_skipBlank.skipBlank5sEnabledCheckbox.setOnCheckedChangeListener(function (button, checked) {
+        anythingChanged = true;
+        configuration.setGlobalConfig("skipBlank5s", checked);
+    });
+
+    this.fragments.push({
+        name: "skipBlank",
+        view: view_skipBlank
+    });
 
 
     /**
