@@ -1493,9 +1493,9 @@ function main() {
         .setTint('#FFFFFF')
         .setColor('#019581')
         .onClick((view, name) => {
-            fb.close();
+            //fb.close();
             evt.emit("exitApp");
-            return false;
+            return true;
         });
     fb.show();
 }
