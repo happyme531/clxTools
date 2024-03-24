@@ -1292,9 +1292,7 @@ function main() {
             let gestureList = new Array();
             for (let j = 0; j < keyList.length; j++) { //遍历这个数组
                 let key = keyList[j];
-                if (key != 0) {
-                    gestureList.push([0, 5, gameProfile.getKeyPosition(key)]);
-                };
+                gestureList.push([0, 5, gameProfile.getKeyPosition(key)]);
             };
             if (gestureList.length > 10) gestureList.splice(9, gestureList.length - 10); //手势最多同时只能执行10个
 
