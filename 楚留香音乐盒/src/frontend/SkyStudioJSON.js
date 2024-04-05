@@ -9,17 +9,17 @@ function SkyStudioJSONParser(){
     /**
      * @brief 解析一个文件
      * @param {string} filePath 文件路径
-     * @returns {import("./musicFormats").TracksData} 音乐数据
+     * @returns {import("../musicFormats").TracksData} 音乐数据
      */
     this.parseFile = function(filePath){
         console.log("parseFile:"+filePath);
         let jsonData;
 
         try {
-            try{
+            try {
                 jsonData = JSON.parse(files.read(filePath));
             } catch (e) {
-                jsonData = JSON.parse(files.read(filePath,"utf-16"));
+                jsonData = JSON.parse(files.read(filePath, "utf-16"));
                 console.log("文件编码为utf-16");
             }
         } catch (err) {
@@ -37,7 +37,7 @@ function SkyStudioJSONParser(){
         let bpm = jsonData.bpm;
         let metaDataText = "乐曲名称: " + name + "\n" + "作者: " + author + "\n" + "转谱人: " + transcribedBy + "\n" + "isComposed: " + isComposed + "\n" + "BPM: " + bpm;
         let notes = jsonData.songNotes;
-        /** @type {import("./musicFormats").Note[]} */
+        /** @type {import("../noteUtils").Note[]} */
         let ret =[];
         for(let i = 0; i < notes.length; i++){
             let n = notes[i];

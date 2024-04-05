@@ -57,10 +57,10 @@ const NoteDurationType = {
  * }} TracksData
  */
 
-const ToneJsJSONParser = require('./formatToneJsJSON.js');
-const MidiParser = require('./formatMidi.js');
-const DoMiSoTextParser = require('./formatDoMiSo_text.js');
-const SkyStudioJSONParser = require('./formatSkyStudioJSON.js');
+const ToneJsJSONParser = require('./frontend/ToneJsJSON');
+const MidiParser = require('./frontend/Midi');
+const DoMiSoTextParser = require('./frontend/DoMiSo_text');
+const SkyStudioJSONParser = require('./frontend/SkyStudioJSON');
 
 function MusicFormats() {
     /**

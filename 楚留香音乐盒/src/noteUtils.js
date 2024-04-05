@@ -28,8 +28,8 @@ Object.defineProperty(Array.prototype, 'subarray', {
 });
 
 /** 
- * @typedef {[pitch: number, startTime: number, attributes: Object.<string,Object>|undefined]} Note
- * @typedef {[keyIndex: number, startTime: number, attributes: Object.<string,Object>|undefined]} Key // 按键
+ * @typedef {[pitch: number, startTime: number, attributes: Object.<string,Object>]} Note
+ * @typedef {[keyIndex: number, startTime: number, attributes: Object.<string,Object>]} Key // 按键
  * @typedef {Note|Key} NoteLike
  * @typedef {[pitches: number[], startTime: number, attributes: Object.<string,Object>|undefined]} PackedNote
  * @typedef {[keyIndexes: number[], startTime: number, attributes: Object.<string,Object>|undefined]} PackedKey // 按键

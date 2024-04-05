@@ -3,12 +3,12 @@ function MidiParser() {
     /**
      * @brief 解析一个文件
      * @param {string} filePath 文件路径
-     * @returns {import("./musicFormats").TracksData} 音乐数据
+     * @returns {import("../musicFormats").TracksData} 音乐数据
      */
     this.parseFile = function (filePath) {
         // https://github.com/bhaeussermann/MidiReader
         // --MIT协议: https://mit-license.org/
-        let dexPath = files.cwd() + "/src/MidiReader.dex"
+        let dexPath = files.cwd() + "/src/frontend/MidiReader.dex"
         runtime.loadDex(dexPath);
 
         importPackage(Packages.midireader);

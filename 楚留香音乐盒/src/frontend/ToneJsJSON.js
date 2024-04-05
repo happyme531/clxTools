@@ -2,7 +2,7 @@ function ToneJsJSONParser() {
     /**
      * @brief 解析一个文件
      * @param {string} filePath 文件路径
-     * @returns {import("./musicFormats").TracksData} 音乐数据
+     * @returns {import("../musicFormats").TracksData} 音乐数据
      */
     this.parseFile = function (filePath) {
         let jsonData;
@@ -19,7 +19,7 @@ function ToneJsJSONParser() {
         // Tone.js会把同一个音轨, 不同Channel的音符分开
         for (let i = 0; i < trackCount; i++) {
             let track = jsonData.tracks[i];
-            /** @type {import("./musicFormats").Note[]} */
+            /** @type {import("../noteUtils").Note[]} */
             let notes = [];
             for (let j = 0; j < track.notes.length; j++) {
                 let note = track.notes[j];

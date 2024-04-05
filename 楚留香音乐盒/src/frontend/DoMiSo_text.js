@@ -1,5 +1,5 @@
 // 格式设计者为 nigh@github.com , 参见 https://github.com/Nigh/DoMiSo-genshin
-var MidiPitch = require('./midiPitch.js');
+var MidiPitch = require('../midiPitch.js');
 
 let basePitch = 60; //C5
 let defaultBPM = 80;
@@ -132,7 +132,7 @@ function DoMiSoTextParser(){
     /**
      * @brief 解析一个文件
      * @param {string} filePath 文件路径
-     * @returns {import("./musicFormats").TracksData} 音乐数据
+     * @returns {import("../musicFormats.js").TracksData} 音乐数据
      */
     this.parseFile = function(filePath,parserConfig){
         let f = open(filePath,"r");
