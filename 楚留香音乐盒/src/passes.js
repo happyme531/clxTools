@@ -787,6 +787,113 @@ function ChordNoteCountLimitPass(config) {
     }
 }
 
+/**
+ * @brief 将连续出现的同一音符合并为一个长音符
+ * @typedef {Object} FoldFrequentSameNotePassConfig
+ * @property {number} [maxInterval] - 最大间隔(毫秒), 默认为150
+ * @param {FoldFrequentSameNotePassConfig} config
+ */
+function FoldFrequentSameNotePass(config) {
+    this.name = "FoldFrequentSameNotePass";
+    this.description = "将连续出现的同一音符合并为一个长音符";
+
+    let maxInterval = 150; // 毫秒
+
+    if (config.maxInterval != null) {
+        maxInterval = config.maxInterval;
+    }
+
+    /**
+     * 运行此pass
+     * @param {noteUtils.NoteLike[]} noteData - 音乐数据
+     * @param {function(number):void} progressCallback - 迦度回调函数, 参数为进度(0-100)
+     * @returns {noteUtils.NoteLike[]} - 返回处理后的数据
+     */
+    this.run = function (noteData, progressCallback) {
+        let i = 0;
+        while (i < noteData.length - 1) {
+            let targetNoteIndexList = new Array();
+            targetNoteIndexList.push(i);
+            let lastNoteStartTime = noteData[i][1];
+            let j = i + 1;
+            while (j < noteData.length && noteData[j][1] - lastNoteStartTime < maxInterval) {
+                if (noteData[j][0] === noteData[i][0]) {
+                    targetNoteIndexList.push(j);
+                    lastNoteStartTime = noteData[j][1];
+                }
+                j++;
+            }
+            if (targetNoteIndexList.length > 1) {
+                let startTime = noteData[targetNoteIndexList[0]][1];
+                let endTime = noteData[targetNoteIndexList[targetNoteIndexList.length - 1]][1];
+                let key = noteData[targetNoteIndexList[0]][0];
+                let attrs0 = Object.assign({}, noteData[targetNoteIndexList[0]][2]);
+                for (let i of targetNoteIndexList) {
+                    noteUtils.softDeleteNoteAt(noteData, i);
+                }
+                let newNote = [key, startTime,attrs0];
+                newNote[2]["duration"] = endTime - startTime;
+                noteUtils.applyChanges(noteData);
+                //@ts-ignore
+                noteData.splice(targetNoteIndexList[0], 0, newNote);
+            }
+            i++;
+        }
+        return noteData;
+    }
+
+    this.getStatistics = function () {};
+}
+
+/**
+ * @brief 将长音符拆分为多个短音符
+ * @typedef {Object} SplitLongNotePassConfig
+ * @property {number} [minDuration] - 视为长音符的最小持续时间(毫秒), 默认为500
+ * @property {number} [splitDuration] - 拆分后音符的持续时间(毫秒), 默认为100 //即拆分为多个100ms的音符
+ * @param {SplitLongNotePassConfig} config
+ */
+function SplitLongNotePass(config) {
+    this.name = "SplitLongNotePass";
+    this.description = "将长音符拆分为多个短音符";
+
+    let minDuration = 500; // 毫秒
+    let splitDuration = 100; // 毫秒
+
+    if (config.minDuration != null) {
+        minDuration = config.minDuration;
+    }
+    if (config.splitDuration != null) {
+        splitDuration = config.splitDuration;
+    }
+
+    /**
+     * 运行此pass
+     * @param {noteUtils.NoteLike[]} noteData - 音乐数据
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @returns {noteUtils.NoteLike[]} - 返回处理后的数据
+     */
+    this.run = function (noteData, progressCallback) {
+        for (let i = 0; i < noteData.length; i++) {
+            let note = noteData[i];
+            if (note[2] != null && note[2]["duration"] != null && note[2]["duration"] >= minDuration) {
+                let startTime = note[1];
+                let endTime = startTime + note[2]["duration"];
+                let key = note[0];
+                for (let t = startTime + splitDuration; t < endTime; t += splitDuration) {
+                    let newNote = [key, t, {}];
+                    newNote[2]["duration"] = splitDuration;
+                    //@ts-ignore
+                    noteData.splice(i + 1, 0, newNote);
+                }
+                note[2]["duration"] = splitDuration;
+            }
+        }
+        noteData.sort((a, b) => a[1] - b[1]);
+        return noteData;
+    }
+}
+
+
 
 // /**
 //  * @brief 随机添加漏音/按错按键/不小心碰到别的按键的情况, 伪装手工输入
@@ -863,6 +970,8 @@ function Passes() {
     this.passes.push(NoteFrequencySoftLimitPass);
     this.passes.push(SpeedChangePass);
     this.passes.push(ChordNoteCountLimitPass);
+    this.passes.push(FoldFrequentSameNotePass);
+    this.passes.push(SplitLongNotePass);
 
     this.getPassByName = function (name) {
         for (let i = 0; i < this.passes.length; i++) {
