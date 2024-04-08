@@ -893,6 +893,51 @@ function SplitLongNotePass(config) {
     }
 }
 
+/**
+ * @brief 估计音符的持续时间, 目前是简单地取音符之间的间隔作为持续时间
+ * @typedef {Object} EstimateNoteDurationPassConfig
+ * @property {number} [multiplier] - 时间倍率, 默认为0.75, 即这个音符的持续时间为到下一个音符的时间间隔的0.75倍
+ * @param {EstimateNoteDurationPassConfig} config
+ */
+function EstimateNoteDurationPass(config) {
+    this.name = "EstimateNoteDurationPass";
+    this.description = "估计音符的持续时间";
+
+    let multiplier = 0.75;
+
+    if (config.multiplier != null) {
+        multiplier = config.multiplier;
+    }
+
+    /**
+     * 运行此pass
+     * @param {noteUtils.NoteLike[]} noteData
+     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @returns {noteUtils.NoteLike[]} - 返回处理后的数据
+     */
+    this.run = function (noteData, progressCallback) {
+        let i = 0;
+        while (true) {
+            let ni = noteUtils.nextChordStart(noteData, i);
+            if (ni == noteData.length) break;
+            //@ts-ignore
+            let chord = noteData.subarray(i, ni - 1);
+            let deltaTime = noteData[ni][1] - noteData[i][1];
+            for (let note of chord) {
+                if (note[2]["duration"] == undefined) {
+                    note[2]["duration"] = deltaTime * multiplier;
+                }
+            }
+            i = ni;
+        }
+        return noteData;
+    }
+
+    this.getStatistics = function () {
+        return {};
+    }
+}
+
 
 
 // /**
@@ -972,6 +1017,7 @@ function Passes() {
     this.passes.push(ChordNoteCountLimitPass);
     this.passes.push(FoldFrequentSameNotePass);
     this.passes.push(SplitLongNotePass);
+    this.passes.push(EstimateNoteDurationPass);
 
     this.getPassByName = function (name) {
         for (let i = 0; i < this.passes.length; i++) {
