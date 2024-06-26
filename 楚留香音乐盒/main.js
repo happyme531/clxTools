@@ -1096,6 +1096,16 @@ function main() {
         }
         let fileName = totalFiles[lastSelectedFileIndex];
         gameProfile.clearCurrentConfigCache();
+        //如果是第一次运行，显示设置向导
+        if (!haveFileConfig(musicFormats.getFileNameWithoutExtension(fileName))) {
+            let res = dialogs.confirm("设置向导", "检测到您是第一次演奏这首乐曲，是否要运行设置?");
+            if (res) {
+                runFileConfigSetup(fileName, (anythingChanged) => {
+                    evt.emit("fileSelect");
+                });
+                return null;
+            };
+        };
         let data = null;
         try {
             //选择播放器
@@ -1398,6 +1408,7 @@ function main() {
         for (let player of selectedPlayers) {
             player.start();
             player.pause();
+            currentGestureIndex = 0;
         }
     });
 
@@ -1506,19 +1517,6 @@ function loadMusicFile(fileName, loadType) {
         runClickPosSetup();
         return null;
     };
-
-    //如果是第一次运行，显示设置向导
-    if (!haveFileConfig(rawFileName)) {
-        let res = dialogs.confirm("设置向导", "检测到您是第一次演奏这首乐曲，是否要运行设置?");
-        if (res) {
-            progressDialog.dismiss();
-            runFileConfigSetup(fileName, (anythingChanged) => {
-                toast("设置已保存, 请重新选择乐曲...");
-            });
-        };
-        return null;
-    };
-
 
     let humanifyNoteAbsTimeStdDev = readGlobalConfig("humanifyNoteAbsTimeStdDev", 0)
     let majorPitchOffset = configuration.readFileConfigForTarget("majorPitchOffset", rawFileName, gameProfile, 0);
