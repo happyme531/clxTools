@@ -1390,8 +1390,8 @@ function main() {
         for (let player of selectedPlayers)
             player.setClickPositionDeviationPx(clickPositionDeviationPx);
         //是否显示可视化窗口
-        let visualizerEnabled = readGlobalConfig("visualizerEnabled", false);
-        if (visualizerEnabled && gameProfile.getKeyLayout().type === "grid") { //TODO: 其它类型的键位布局也可以显示可视化窗口
+        let visualizationEnabled = readGlobalConfig("visualizationEnabled", false);
+        if (visualizationEnabled && gameProfile.getKeyLayout().type === "grid") { //TODO: 其它类型的键位布局也可以显示可视化窗口
             visualizerWindow = createVisualizerWindow();
             toast("单击可视化窗口调整大小与位置, 双击重置");
         };
