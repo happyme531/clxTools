@@ -6,25 +6,14 @@ function SkyStudioJSONParser(){
         57, 59, 60, 62, 64,
         65, 67, 69, 71, 72,
     ];
-    /**
-     * @brief 解析一个文件
-     * @param {string} filePath 文件路径
-     * @returns {import("../musicFormats").TracksData} 音乐数据
-     */
-    this.parseFile = function(filePath){
-        console.log("parseFile:"+filePath);
-        let jsonData;
 
-        try {
-            try {
-                jsonData = JSON.parse(files.read(filePath));
-            } catch (e) {
-                jsonData = JSON.parse(files.read(filePath, "utf-16"));
-                console.log("文件编码为utf-16");
-            }
-        } catch (err) {
-            throw new Error("文件解析失败！请检查格式是否正确, " + err.message);
-        };
+    /**
+     * @brief 从字符串中解析音乐数据
+     * @param {string} musicData 音乐数据
+     * @returns {import("../musicFormats.js").TracksData}
+     */
+    this.parseFromString =  function(musicData){
+        let jsonData = JSON.parse(musicData);
         jsonData = jsonData[0];
         if(jsonData.isEncrypted){
             throw new Error("文件已加密，无法解析！");
@@ -66,6 +55,27 @@ function SkyStudioJSONParser(){
                 }
             ]
         }
+    }
+
+    /**
+     * @brief 解析一个文件
+     * @param {string} filePath 文件路径
+     * @returns {import("../musicFormats").TracksData} 音乐数据
+     */
+    this.parseFile = function (filePath) {
+        console.log("parseFile:" + filePath);
+        let jsonData;
+        try {
+            try {
+                return this.parseFromString(files.read(filePath));
+            } catch (e) {
+                return this.parseFromString(files.read(filePath, "utf-16"));
+                console.log("文件编码为utf-16");
+            }
+        } catch (err) {
+            throw new Error("文件解析失败！请检查格式是否正确, " + err.message);
+        };
+
     }
 }
 module.exports = SkyStudioJSONParser;

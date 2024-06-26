@@ -52,8 +52,8 @@ function parseCmd(cmdStr){
 
 function parseNote(noteStr){
     //split by the only number in it
-    let pitchStr = noteStr.split(/\d/)[0];
-    let timingStr = noteStr.split(/\d/)[1];
+    let pitchStr = noteStr.split(/\d/)[0].trim();
+    let timingStr = noteStr.split(/\d/)[1].trim();
 
 
     let pitch = basePitch;
@@ -130,14 +130,12 @@ function parseNote(noteStr){
 
 function DoMiSoTextParser(){
     /**
-     * @brief 解析一个文件
-     * @param {string} filePath 文件路径
-     * @returns {import("../musicFormats.js").TracksData} 音乐数据
+     * @brief 从字符串中解析音乐数据
+     * @param {string} musicData 音乐数据
+     * @returns {import("../musicFormats.js").TracksData}
      */
-    this.parseFile = function(filePath,parserConfig){
-        let f = open(filePath,"r");
-        let lines = f.readlines();
-        f.close();
+    this.parseFromString =  function(musicData){
+        let lines = musicData.split('\n');
         //查找是否有注释分割线(两个连续等号)
         let commentLine = -1;
         for(let i = 0; i < lines.length; i++){
@@ -154,6 +152,7 @@ function DoMiSoTextParser(){
                 comment += line;
                 comment += '\n';
             });
+            comment = comment.trim();
             lines = lines.slice(commentLine + 1);
         }
 
@@ -237,6 +236,19 @@ function DoMiSoTextParser(){
                 "value": comment
             }]
         }
+    }
+
+    /**
+     * @brief 解析一个文件
+     * @param {string} filePath 文件路径
+     * @returns {import("../musicFormats.js").TracksData} 音乐数据
+     */
+    this.parseFile = function(filePath,parserConfig){
+        try {
+            return this.parseFromString(files.read(filePath));
+        } catch (err) {
+            throw new Error("文件解析失败！请检查格式是否正确, " + err.message);
+        };
     }
 }
 

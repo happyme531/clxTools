@@ -164,6 +164,25 @@ function MusicFormats() {
                 throw new Error("不支持的文件格式");
         }
     }
+
+    /**
+     * @brief 从字符串中解析音乐数据
+     * @param {string} musicData 音乐数据
+     * @param {string} formatName 音乐格式名称
+     * @returns {TracksData} 音乐数据
+     */
+    this.parseFromString = function(musicData, formatName) {
+        switch (formatName) {
+            case "tonejsjson":
+                return new ToneJsJSONParser().parseFromString(musicData);
+            case "domiso":
+                return new DoMiSoTextParser().parseFromString(musicData);
+            case "skystudiojson":
+                return new SkyStudioJSONParser().parseFromString(musicData);
+            default:
+                throw new Error("不支持的文件格式");
+        }
+    }
 }
 
 module.exports = MusicFormats;
