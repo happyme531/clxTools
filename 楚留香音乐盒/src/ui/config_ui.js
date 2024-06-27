@@ -212,6 +212,7 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
             <radiogroup id="playerSelection" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
                 <radio id="playerSelection_AutoJsGesturePlayer" text="自动弹奏" textSize="12sp" margin="0dp" />
                 <radio id="playerSelection_SimpleInstructPlayer" text="跟弹模式(简易)" textSize="12sp" margin="0dp" />
+                <radio id="playerSelection_SkyCotlLikeInstructPlayer" text="跟弹模式(类光遇)" textSize="12sp" margin="0dp" />
             </radiogroup>
         </vertical>
     )
@@ -226,6 +227,11 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
         this.flags.push(ConfigurationFlags.WORKMODE_INSTRUCT);
     }
 
+    if (playerSelection.includes("SkyCotlLikeInstructPlayer")) {
+        view_runMode.playerSelection_SkyCotlLikeInstructPlayer.setChecked(true);
+        this.flags.push(ConfigurationFlags.WORKMODE_INSTRUCT);
+    }
+
     view_runMode.playerSelection.setOnCheckedChangeListener(function (group, checkedId) {
         anythingChanged = true;
         let playerSelection = [];
@@ -234,6 +240,9 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
         }
         if (checkedId == view_runMode.playerSelection_SimpleInstructPlayer.getId()) {
             playerSelection.push("SimpleInstructPlayer");
+        }
+        if (checkedId == view_runMode.playerSelection_SkyCotlLikeInstructPlayer.getId()) {
+            playerSelection.push("SkyCotlLikeInstructPlayer");
         }
         configuration.setGlobalConfig("playerSelection", playerSelection);
     });

@@ -16,7 +16,7 @@ try {
     var GameProfile = require("./src/gameProfile.js");
     var Visualizer = require("./src/visualizer.js");
     var FileChooser = require("./src/fileChooser.js");
-    var { PlayerType, AutoJsGesturePlayer, SimpleInstructPlayer } = require("./src/players.js");
+    var { PlayerType, AutoJsGesturePlayer, SimpleInstructPlayer, SkyCotlLikeInstructPlayer } = require("./src/players.js");
     var configuration = require("./src/configuration.js");
     var PassManager = require("./src/passManager.js");
     var midiPitch = require("./src/midiPitch.js");
@@ -1116,6 +1116,7 @@ function main() {
                     data = loadMusicFile(fileName, MusicLoaderDataType.GestureSequence);
                     break;
                 case PlayerType.SimpleInstructPlayer:
+                case PlayerType.SkyCotlLikeInstructPlayer:
                     data = loadMusicFile(fileName, MusicLoaderDataType.KeySequence);
                     break;
                 default:
@@ -1354,7 +1355,14 @@ function main() {
                 console.log("new AutoJsGesturePlayer");
                 break;
             case PlayerType.SimpleInstructPlayer:
-                selectedPlayers.push(new SimpleInstructPlayer());
+            case PlayerType.SkyCotlLikeInstructPlayer:
+                if (selectedPlayerTypes[0] == PlayerType.SkyCotlLikeInstructPlayer) {
+                    selectedPlayers.push(new SkyCotlLikeInstructPlayer());
+                    console.log("new SkyCotlLikeInstructPlayer");
+                }else if (selectedPlayerTypes[0] == PlayerType.SimpleInstructPlayer) {
+                    selectedPlayers.push(new SimpleInstructPlayer());
+                    console.log("new SimpleInstructPlayer");
+                }
                 let impl = /** @type {import("./src/instruct.js").SimpleInstructPlayerImpl} */ ((selectedPlayers[0].getImplementationInstance())) ;
                 impl.setKeyPositions(gameProfile.getAllKeyPositions());
                 impl.setKeyRadius(gameProfile.getPhysicalMinKeyDistance() * 0.3 * configuration.readGlobalConfig("SimpleInstructPlayer_MarkSize", 1));
@@ -1367,7 +1375,6 @@ function main() {
                 instructWindow.canv.on("draw", function (canvas) {
                     impl.draw(canvas);
                 });
-                console.log("new SimpleInstructPlayer");
                 break;
             default:
                 throw new Error("未知的播放器类型: " + selectedPlayerTypes);

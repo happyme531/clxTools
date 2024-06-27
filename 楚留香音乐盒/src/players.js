@@ -1,7 +1,7 @@
 //@ts-check
 //players.js -- 实现播放/演奏功能
 
-var { SimpleInstructPlayerImpl } = require("./instruct.js");
+var { SimpleInstructPlayerImpl, SkyCotlLikeInstructPlayerImpl } = require("./instruct.js");
 
 function NormalDistributionRandomizer(mean, stddev) {
     this.mean = mean;
@@ -25,6 +25,7 @@ var PlayerType = {
     None: "None",
     AutoJsGesturePlayer: "AutoJsGesturePlayer",
     SimpleInstructPlayer: "SimpleInstructPlayer",
+    SkyCotlLikeInstructPlayer: "SkyCotlLikeInstructPlayer"
 }
 
 /**
@@ -393,5 +394,6 @@ module.exports = {
     "PlayerType": PlayerType,
     "AutoJsGesturePlayer": Player.bind(null, new AutoJsGesturePlayerImpl()),
     "SimpleInstructPlayer": Player.bind(null, new SimpleInstructPlayerImpl()),
+    "SkyCotlLikeInstructPlayer":  Player.bind(null, new SkyCotlLikeInstructPlayerImpl()),
 }
     
