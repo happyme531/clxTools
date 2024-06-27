@@ -1,6 +1,6 @@
 const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
-let Passes = require("../../src/passes");
+let {FoldFrequentSameNotePass} = require("../../src/passes");
 
 
 describe('FoldFrequentSameNotePass', () => {
@@ -13,8 +13,7 @@ describe('FoldFrequentSameNotePass', () => {
         let expected = [
             [60, 0, {"duration": 180}],
         ]
-        let pass = new Passes().getPassByName("FoldFrequentSameNotePass");
-        let actual = new pass({}).run(notes);
+        let actual = new FoldFrequentSameNotePass({}).run(notes);
         assert.deepEqual(actual, expected);
     });
 
@@ -32,8 +31,7 @@ describe('FoldFrequentSameNotePass', () => {
             [61, 70, {"duration": 70}],
             [62, 110, {}],
         ]
-        let pass = new Passes().getPassByName("FoldFrequentSameNotePass");
-        let actual = new pass({}).run(notes);
+        let actual = new FoldFrequentSameNotePass({}).run(notes);
         assert.deepEqual(actual, expected);
     });
 });

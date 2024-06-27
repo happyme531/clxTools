@@ -511,7 +511,7 @@ function evalFileConfig(noteData, targetMajorPitchOffset, targetMinorPitchOffset
     passManager.addPass("NoteToKeyPass", {
         majorPitchOffset: targetMajorPitchOffset,
         minorPitchOffset: targetMinorPitchOffset,
-        treatHalfAsCeiling: false,
+        semiToneRoundingMode: 0,
         currentGameProfile: gameProfile,
     }, (progress) => { }, (data, statistics, elapsedTime) => {
         console.log("生成按键耗时" + elapsedTime / 1000 + "秒");
@@ -1521,7 +1521,7 @@ function loadMusicFile(fileName, loadType) {
     let humanifyNoteAbsTimeStdDev = readGlobalConfig("humanifyNoteAbsTimeStdDev", 0)
     let majorPitchOffset = configuration.readFileConfigForTarget("majorPitchOffset", rawFileName, gameProfile, 0);
     let minorPitchOffset = configuration.readFileConfigForTarget("minorPitchOffset", rawFileName, gameProfile, 0);
-    let treatHalfAsCeiling = readFileConfig("halfCeiling", rawFileName, false);
+    let semiToneRoundingMode = readFileConfig("semiToneRoundingMode", rawFileName, 0);
     let limitClickSpeedHz = readFileConfig("limitClickSpeedHz", rawFileName, 0);
     let speedMultiplier = readFileConfig("speedMultiplier", rawFileName, 1);
     let noteDurationOutputMode = configuration.readFileConfigForTarget("noteDurationOutputMode", rawFileName, gameProfile, "none");
@@ -1540,7 +1540,7 @@ function loadMusicFile(fileName, loadType) {
     console.log("配置信息:");
     console.log("majorPitchOffset:" + majorPitchOffset);
     console.log("minorPitchOffset:" + minorPitchOffset);
-    console.log("treatHalfAsCeiling:" + treatHalfAsCeiling);
+    console.log("semiToneRoundingMode:" + semiToneRoundingMode);
 
     const passManager = new PassManager();
 
@@ -1607,7 +1607,7 @@ function loadMusicFile(fileName, loadType) {
     passManager.addPass("NoteToKeyPass", {
         majorPitchOffset: majorPitchOffset,
         minorPitchOffset: minorPitchOffset,
-        treatHalfAsCeiling: treatHalfAsCeiling,
+        semiToneRoundingMode: semiToneRoundingMode,
         currentGameProfile: gameProfile,
     }, (progress) => {
         progressDialog.setProgress(progress);

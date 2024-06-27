@@ -568,12 +568,14 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
         <vertical>
             <text text="音域优化:" textColor="red" />
             {/* <ImageView w="*" h="1dp" bg="#a0a0a0" /> */}
-            <horizontal id="halfCeilingSettingContainer">
+            <horizontal id="semiToneRoundingModeSettingContainer">
                 {/* 默认向下取整 */}
-                <text text="半音处理方法:" layout_gravity="center_vertical" />
-                <radiogroup id="halfCeilingSetting" orientation="horizontal" padding="0dp" margin="0dp" layout_height="wrap_content">
-                    <radio id="halfCeilingSetting_roundDown" text="向下取整" textSize="12sp" margin="0dp" />
-                    <radio id="halfCeilingSetting_roundUp" text="向上取整" textSize="12sp" margin="0dp" />
+                <text text="半音取整方法:" layout_gravity="center_vertical" />
+                <radiogroup id="semiToneRoundingModeSetting" orientation="vertical" padding="0dp" margin="0dp" layout_height="wrap_content">
+                    <radio id="semiToneRoundingModeSetting_roundDown" text="向下取整" textSize="12sp" margin="0dp" />
+                    <radio id="semiToneRoundingModeSetting_roundUp" text="向上取整" textSize="12sp" margin="0dp" />
+                    <radio id="semiToneRoundingModeSetting_drop" text="丢弃半音" textSize="12sp" margin="0dp" />
+                    <radio id="semiToneRoundingModeSetting_both" text="同时上下取整" textSize="12sp" margin="0dp" />
                 </radiogroup>
             </horizontal>
             <vertical id="trackDisableThresholdSettingContainer">
@@ -611,13 +613,13 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
 
     //在简单模式下隐藏菜单
     if (this.flags.includes(ConfigurationFlags.LEVEL_SIMPLE)) {
-        view_range.halfCeilingSettingContainer.setVisibility(View.GONE);
+        view_range.semiToneRoundingModeSettingContainer.setVisibility(View.GONE);
         view_range.trackDisableThresholdSettingContainer.setVisibility(View.GONE);
         view_range.minorPitchOffsetSettingContainer.setVisibility(View.GONE);
     }
     //如果游戏有所有半音, 隐藏移调设置
     if (this.flags.includes(ConfigurationFlags.GAME_HAS_ALL_SEMITONES)) {
-        view_range.halfCeilingSettingContainer.setVisibility(View.GONE);
+        view_range.semiToneRoundingModeSettingContainer.setVisibility(View.GONE);
         view_range.autoTuneButton.setVisibility(View.GONE);
         view_range.minorPitchOffsetSettingContainer.setVisibility(View.GONE);
     }
@@ -628,13 +630,19 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
     }
 
 
-    let halfCeiling = configuration.readFileConfig("halfCeiling", rawFileName, false);
-    switch (halfCeiling) {
-        case true:
-            view_range.halfCeilingSetting_roundUp.setChecked(true);
+    let semiToneRoundingMode = configuration.readFileConfig("semiToneRoundingMode", rawFileName, 0);
+    switch (semiToneRoundingMode) {
+        case 0:
+            view_range.semiToneRoundingModeSetting_roundDown.setChecked(true);
             break;
-        case false:
-            view_range.halfCeilingSetting_roundDown.setChecked(true);
+        case 1:
+            view_range.semiToneRoundingModeSetting_roundUp.setChecked(true);
+            break;
+        case 2:
+            view_range.semiToneRoundingModeSetting_drop.setChecked(true);
+            break;
+        case 3:
+            view_range.semiToneRoundingModeSetting_both.setChecked(true);
             break;
     }
     let trackDisableThreshold = 0.5; //不会保存
@@ -647,18 +655,24 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
     view_range.minorPitchOffsetValueText.setText(`${minorPitchOffset.toFixed(0)} (${midiPitch.getTranspositionEstimatedKey(minorPitchOffset)})`);
     view_range.minorPitchOffsetSeekbar.setProgress(minorPitchOffset + 4);
 
-    view_range.halfCeilingSetting.setOnCheckedChangeListener(function (group, checkedId) {
+    view_range.semiToneRoundingModeSetting.setOnCheckedChangeListener(function (group, checkedId) {
         anythingChanged = true;
-        let halfCeiling = false;
+        let semiToneRoundingMode = 0;
         switch (checkedId) {
-            case view_range.halfCeilingSetting_roundDown.getId():
-                halfCeiling = false;
+            case view_range.semiToneRoundingModeSetting_roundDown.getId():
+                semiToneRoundingMode = 0;
                 break;
-            case view_range.halfCeilingSetting_roundUp.getId():
-                halfCeiling = true;
+            case view_range.semiToneRoundingModeSetting_roundUp.getId():
+                semiToneRoundingMode = 1;
+                break;
+            case view_range.semiToneRoundingModeSetting_drop.getId():
+                semiToneRoundingMode = 2;
+                break;
+            case view_range.semiToneRoundingModeSetting_both.getId():
+                semiToneRoundingMode = 3;
                 break;
         }
-        configuration.setFileConfig("halfCeiling", halfCeiling, rawFileName);
+        configuration.setFileConfig("semiToneRoundingMode", semiToneRoundingMode, rawFileName);
     });
     view_range.trackDisableThresholdSeekbar.setOnSeekBarChangeListener({
         onProgressChanged: function (seekbar, progress, fromUser) {

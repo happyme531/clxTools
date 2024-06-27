@@ -1,7 +1,7 @@
 //@ts-check
 // passManager.js 
 
-const Passes = require("./passes.js");
+const {Passes} = require("./passes.js");
 
 function PassManager() {
     this.passConfigs = [];

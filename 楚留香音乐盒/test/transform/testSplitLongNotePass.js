@@ -1,6 +1,6 @@
 const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
-let Passes = require("../../src/passes");
+let {SplitLongNotePass} = require("../../src/passes");
 
 
 describe('SplitLongNotePass', () => {
@@ -16,8 +16,7 @@ describe('SplitLongNotePass', () => {
             [60, 400, {"duration": 100}],
             [60, 500, {"duration": 100}],
         ]
-        let pass = new Passes().getPassByName("SplitLongNotePass");
-        let actual = new pass({}).run(notes);
+        let actual = new SplitLongNotePass({}).run(notes);
         assert.deepEqual(actual, expected);
     });
 
@@ -35,8 +34,7 @@ describe('SplitLongNotePass', () => {
             [60, 400, {"duration": 100}],
             [60, 500, {"duration": 100}],
         ]
-        let pass = new Passes().getPassByName("SplitLongNotePass");
-        let actual = new pass({}).run(notes);
+        let actual = new SplitLongNotePass({}).run(notes);
         assert.deepEqual(actual, expected);
     });
 

@@ -19,7 +19,7 @@ function NopPass(config) {
      * 运行此pass
      * @template T
      * @param {T} input - 输入数据
-     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @param {function(number):void} [progressCallback] - 进度回调函数, 参数为进度(0-100)
      * @returns {T} - 返回原样的输入数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
@@ -43,7 +43,7 @@ function ParseSourceFilePass(config) {
     /**
      * 运行此pass
      * @param {string} sourceFilePath - 源文件路径
-     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @param {function(number):void} [progressCallback] - 进度回调函数, 参数为进度(0-100)
      * @returns {MusicFormats.TracksData} - 返回解析后的数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
@@ -79,7 +79,7 @@ function MergeTracksPass(config) {
     /**
      * 运行此pass
      * @param {MusicFormats.TracksData} tracksData - 音乐数据
-     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @param {function(number):void} [progressCallback] - 进度回调函数, 参数为进度(0-100)
      * @returns {noteUtils.Note[]} - 返回解析后的数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
@@ -135,11 +135,26 @@ function HumanifyPass(config) {
 }
 
 /**
+ * @enum {number}
+ * @constant
+ */
+var SemiToneRoundingMode = {
+    //取较低的音符
+    floor: 0,
+    //取较高的音符
+    ceil: 1,
+    //删除音符
+    drop: 2,
+    //同时取较低和较高的音符
+    both: 3
+}
+
+/**
  * @brief 将音符数组转换为对应游戏的按键数组
  * @typedef {Object} NoteToKeyPassConfig
  * @property {number} majorPitchOffset - 音符的八度偏移量
  * @property {number} minorPitchOffset - 音符的半音偏移量
- * @property {boolean} treatHalfAsCeiling - 是否将半音视为最接近的全音中更高的那个, 如果为false则视为更低的那个
+ * @property {SemiToneRoundingMode} semiToneRoundingMode - 半音处理方式
  * @property {GameProfile} currentGameProfile - 当前游戏配置
  * @param {NoteToKeyPassConfig} config
  */
@@ -149,7 +164,7 @@ function NoteToKeyPass(config) {
 
     let majorPitchOffset = 0;
     let minorPitchOffset = 0;
-    let treatHalfAsCeiling = false;
+    let semiToneRoundingMode = SemiToneRoundingMode.floor;
     let currentGameProfile = null;
 
     let underFlowedNoteCnt = 0;
@@ -164,47 +179,62 @@ function NoteToKeyPass(config) {
     if (config.minorPitchOffset == null) {
         throw new Error("minorPitchOffset is null");
     }
-    if (config.treatHalfAsCeiling == null) {
-        throw new Error("treatHalfAsCeiling is null");
+    if (config.semiToneRoundingMode == null) {
+        throw new Error("semiToneRoundingMode is null");
     }
     if (config.currentGameProfile == null) {
         throw new Error("currentGameProfile is null");
     }
     majorPitchOffset = config.majorPitchOffset;
     minorPitchOffset = config.minorPitchOffset;
-    treatHalfAsCeiling = config.treatHalfAsCeiling;
+    semiToneRoundingMode = config.semiToneRoundingMode;
     currentGameProfile = config.currentGameProfile;
 
     /**
      * @param {Number} midiPitch
      * @abstract 将midi音高转换为按键编号(从1开始)
-     * @return {Number} 按键序号(从1开始)或-1
+     * @return {[Number, Number]} 按键序号(从1开始)或-1
      */
     function midiPitch2key(midiPitch) {
         midiPitch += majorPitchOffset * 12;
         midiPitch += minorPitchOffset;
         let key = currentGameProfile.getKeyByPitch(midiPitch);
+        let key2 = -1;
         if (key == -1) {
             let noteRange = currentGameProfile.getNoteRange();
             if (midiPitch < noteRange[0]) {
                 underFlowedNoteCnt++;
-                return -1;
+                return [-1, -1];
             }
             if (midiPitch > noteRange[1]) {
                 overFlowedNoteCnt++;
-                return -1;
+                return [-1, -1];
             }
-            if (treatHalfAsCeiling) {
-                key = currentGameProfile.getKeyByPitch(midiPitch + 1);
-            } else {
-                key = currentGameProfile.getKeyByPitch(midiPitch - 1);
+            switch (semiToneRoundingMode) {
+                case SemiToneRoundingMode.ceil:
+                    key = currentGameProfile.getKeyByPitch(midiPitch + 1);
+                    break;
+                case SemiToneRoundingMode.floor:
+                    key = currentGameProfile.getKeyByPitch(midiPitch - 1);
+                    break;
+                case SemiToneRoundingMode.drop:
+                default:
+                    key = -1;
+                    break;
+                case SemiToneRoundingMode.both:
+                    key = currentGameProfile.getKeyByPitch(midiPitch - 1);
+                    if(key == -1) //保证第一个按键不为空
+                        key = currentGameProfile.getKeyByPitch(midiPitch + 1);
+                    else
+                        key2 = currentGameProfile.getKeyByPitch(midiPitch + 1);
+                    break;
             }
             if (key == -1) {
-                return -1;
+                return [-1, -1];
             }
             roundedNoteCnt++;
         }
-        return key;
+        return [key, key2];
     };
 
     /**
@@ -217,11 +247,15 @@ function NoteToKeyPass(config) {
     this.run = function (noteList, progressCallback) {
         let keyList = [];
         for (let i = 0; i < noteList.length; i++) {
-            let key = midiPitch2key(noteList[i][0]);
+            let [key, optionalKey] = midiPitch2key(noteList[i][0]);
             if (key == -1) {
                 continue;
             }
-            keyList.push([key, noteList[i][1],noteList[i][2]]);
+            keyList.push([key, noteList[i][1], noteList[i][2]]);
+            if (optionalKey != -1) {
+                //TODO: 复制了一份属性，未来可能会有问题
+                keyList.push([optionalKey, noteList[i][1], noteList[i][2]]);
+            }
             if (progressCallback != null && i % 10 == 0) {
                 progressCallback(100 * i / noteList.length);
             }
@@ -743,7 +777,7 @@ function ChordNoteCountLimitPass(config) {
     /**
      * 运行此pass
      * @param {noteUtils.NoteLike[]} noteData - 音乐数据
-     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @param {function(number):void} [progressCallback] - 进度回调函数, 参数为进度(0-100)
      * @returns {noteUtils.NoteLike[]} - 返回处理后的数据
      */
     this.run = function (noteData, progressCallback) {
@@ -912,7 +946,7 @@ function EstimateNoteDurationPass(config) {
     /**
      * 运行此pass
      * @param {noteUtils.NoteLike[]} noteData
-     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @param {function(number):void} [progressCallback] - 进度回调函数, 参数为进度(0-100)
      * @returns {noteUtils.NoteLike[]} - 返回处理后的数据
      */
     this.run = function (noteData, progressCallback) {
@@ -1029,5 +1063,26 @@ function Passes() {
     }
 }
 
-module.exports = Passes;
+module.exports = {
+    NopPass,
+    ParseSourceFilePass,
+    MergeTracksPass,
+    HumanifyPass,
+    NoteToKeyPass,
+    SingleKeyFrequencyLimitPass,
+    MergeKeyPass,
+    KeyToGesturePass,
+    LimitBlankDurationPass,
+    SkipIntroPass,
+    NoteFrequencySoftLimitPass,
+    SpeedChangePass,
+    ChordNoteCountLimitPass,
+    FoldFrequentSameNotePass,
+    SplitLongNotePass,
+    EstimateNoteDurationPass,
+
+    SemiToneRoundingMode,
+    
+    Passes
+}
 

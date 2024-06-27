@@ -17,7 +17,7 @@ function Configuration() {
         let cfg = {};
         cfg.majorPitchOffset = 0;
         cfg.minorPitchOffset = 0;
-        cfg.treatHalfAsCeiling = false;
+        cfg.semiToneRoundingMode = 0;
         files.write(filepath, JSON.stringify(cfg));
     };
 
@@ -108,6 +108,19 @@ function Configuration() {
         };
         let tmp = files.read(filepath);
         tmp = JSON.parse(tmp);
+
+        //迁移: halfCeiling -> semiToneRoundingMode
+        if (key == "semiToneRoundingMode") {
+            if (tmp["halfCeiling"] != null) {
+                this.setFileConfig(
+                    "semiToneRoundingMode",
+                    tmp["halfCeiling"] ? 1 : 0,
+                    filename
+                );
+                return tmp["halfCeiling"] ? 1 : 0;
+            }
+        }
+
         if (tmp[key] == null) {
             console.verbose(`返回默认值:${key} = ${JSON.stringify(defaultValue)}`);
             return defaultValue;

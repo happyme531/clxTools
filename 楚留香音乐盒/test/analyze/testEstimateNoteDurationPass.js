@@ -1,6 +1,6 @@
 const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
-let Passes = require("../../src/passes");
+let {EstimateNoteDurationPass} = require("../../src/passes");
 
 
 describe('EstimateNoteDurationPass', () => {
@@ -21,8 +21,7 @@ describe('EstimateNoteDurationPass', () => {
             [60, 400, {"duration": 75}],
             [60, 500, {}],
         ]
-        let pass = new Passes().getPassByName("EstimateNoteDurationPass");
-        let actual = new pass({}).run(notes);
+        let actual = new EstimateNoteDurationPass({}).run(notes);
         assert.deepEqual(actual, expected);
     });
 
@@ -43,8 +42,7 @@ describe('EstimateNoteDurationPass', () => {
             [60, 400, {"duration": 75}],
             [60, 500,{}],
         ]
-        let pass = new Passes().getPassByName("EstimateNoteDurationPass");
-        let actual = new pass({}).run(notes);
+        let actual = new EstimateNoteDurationPass({}).run(notes);
         assert.deepEqual(actual, expected);
     });
 });
