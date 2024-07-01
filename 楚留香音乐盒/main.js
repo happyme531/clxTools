@@ -661,23 +661,41 @@ function runClickPosSetup() {
 }
 
 /**
- * @param {string} fullFileName
+ * @param {string | null} fullFileName
  * @param {(isAnythingChanged:boolean)=>void} onFinish
+ * @param {Array<ConfigurationFlags>} [extFlags]
  */
-function runFileConfigSetup(fullFileName, onFinish) {
-    let fileName = fullFileName;
-    let rawFileName = musicFormats.getFileNameWithoutExtension(fileName);
-    let format = musicFormats.getFileFormat(fileName);
+function runFileConfigSetup(fullFileName, onFinish, extFlags){
     /**
      * @type {Dialogs.JsDialog?}
      */
     let dialog = null;
     let flags = [];
-    if (format.haveDurationInfo) {
-        flags.push(ConfigurationFlags.MUSIC_HAS_DURATION_INFO);
+    if (extFlags != null) {
+        flags = flags.concat(extFlags);
     }
-    if (format.haveTracks) {
-        flags.push(ConfigurationFlags.MUSIC_HAS_TRACKS);
+    let fileName = null,rawFileName = null;
+    if (fullFileName != null) {
+        fileName = fullFileName;
+        rawFileName = musicFormats.getFileNameWithoutExtension(fileName);
+        let format = musicFormats.getFileFormat(fileName);
+
+        if (format.haveDurationInfo) {
+            flags.push(ConfigurationFlags.MUSIC_HAS_DURATION_INFO);
+        }
+        if (format.haveTracks) {
+            flags.push(ConfigurationFlags.MUSIC_HAS_TRACKS);
+        }
+    }
+
+    if (!flags.includes(ConfigurationFlags.WORKMODE_MIDI_INPUT_STREAMING)) {
+        let playerSelection = configuration.readGlobalConfig("playerSelection", ["AutoJsGesturePlayer"]);
+        if (playerSelection.includes("AutoJsGesturePlayer")) {
+            flags.push(ConfigurationFlags.WORKMODE_GESTURE_PLAYER);
+        }
+        if (playerSelection.includes("SimpleInstructPlayer") || playerSelection.includes("SkyCotlLikeInstructPlayer")) {
+            flags.push(ConfigurationFlags.WORKMODE_INSTRUCT);
+        }
     }
 
     function showConfigDialog() {
@@ -890,6 +908,8 @@ function main() {
     let operationMode = ScriptOperationMode.NotRunning;
     let midiInputStreamingNoteCount = 0;
     let selectedPlayerTypes = [PlayerType.SimpleInstructPlayer];
+    let midiInputStreamReloadSettings = false;
+
     /**
      * @type {Array<import("./src/players").PlayerBase>}
      */
@@ -1110,7 +1130,7 @@ function main() {
         try {
             //选择播放器
             selectedPlayerTypes = readGlobalConfig("playerSelection", ["AutoJsGesturePlayer"]);
-            
+
             switch (selectedPlayerTypes[0]) { //FIXME: 目前只支持单一播放器
                 case PlayerType.AutoJsGesturePlayer:
                     data = loadMusicFile(fileName, MusicLoaderDataType.GestureSequence);
@@ -1144,18 +1164,28 @@ function main() {
         evt.emit("fileLoaded");
     });
     evt.on("currentFileConfigBtnClick", () => {
-        if (lastSelectedFileIndex == null){
-            toast("请先选择乐曲");
+        if (lastSelectedFileIndex == null && operationMode != ScriptOperationMode.MIDIInputStreaming) {
+            toast("请先选择乐曲或开始MIDI串流");
             return;
         }
         for (let player of selectedPlayers)
             player.pause();
-        let fileName = totalFiles[lastSelectedFileIndex];
-        runFileConfigSetup(fileName, (res) => {
-            if (res) { //设置改变了
-                evt.emit("fileSelect");
-            }
-        });
+
+        if (operationMode == ScriptOperationMode.MIDIInputStreaming) {
+            runFileConfigSetup(null, (res) => {
+                if (res) {
+                    midiInputStreamReloadSettings = true;
+                }
+            }, [ConfigurationFlags.WORKMODE_MIDI_INPUT_STREAMING]);
+            return;
+        } else {
+            let fileName = totalFiles[lastSelectedFileIndex];
+            runFileConfigSetup(fileName, (res) => {
+                if (res) { //设置改变了
+                    evt.emit("fileSelect");
+                }
+            });
+        }
     });
     evt.on("globalConfigBtnClick", () => {
         for (let player of selectedPlayers)
@@ -1274,28 +1304,40 @@ function main() {
         });
     });
     evt.on("midiStreamStart", () => {
+        if(!checkEnableAccessbility()) return;
         const stream = setupMidiStream();
         if (stream == null) {
             toast("MIDI串流启动失败");
             return;
         }
         toast("MIDI串流已启动");
+        selectedPlayers = [];
+        selectedPlayers.push(new AutoJsGesturePlayer());
         operationMode = ScriptOperationMode.MIDIInputStreaming;
         ui.run(() => {
             controlWindow.musicTitleText.setText("MIDI串流中...");
         });
         midiInputStreamingNoteCount = 0;
+        midiInputStreamReloadSettings = true;
+        let octaveOffset = 0;
+        let semiToneOffset = 0;
         stream.onDataReceived(function (datas) {
             const STATUS_COMMAND_MASK = 0xF0;
             const STATUS_CHANNEL_MASK = 0x0F;
             const STATUS_NOTE_OFF = 0x80;
             const STATUS_NOTE_ON = 0x90;
+
+            if(midiInputStreamReloadSettings){
+                midiInputStreamReloadSettings = false;
+                octaveOffset = configuration.readGlobalConfig("MIDIInputStreaming_majorPitchOffset", 0);
+                semiToneOffset = configuration.readGlobalConfig("MIDIInputStreaming_minorPitchOffset", 0);
+            }
+
             let keyList = new Array();
             for (let data of datas) {
                 let cmd = data[0] & STATUS_COMMAND_MASK;
-                //console.log("cmd: " + cmd);
                 if (cmd == STATUS_NOTE_ON && data[2] != 0) { // velocity != 0
-                    let key = gameProfile.getKeyByPitch(data[1]);
+                    let key = gameProfile.getKeyByPitch(data[1] + semiToneOffset + octaveOffset * 12);
                     if (key != -1 && keyList.indexOf(key) === -1) keyList.push(key);
                     midiInputStreamingNoteCount++;
                 }
