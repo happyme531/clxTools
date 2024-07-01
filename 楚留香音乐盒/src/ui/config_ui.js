@@ -1025,9 +1025,28 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
                         <text text="default%" id="SimpleInstructPlayer_MarkSizeValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
                     </horizontal>
                     <seekbar id="SimpleInstructPlayer_MarkSizeSeekbar" w="*" max="1000" layout_gravity="center" />
+                    <vertical id="SkyCotlLikeInstructPlayerSettingContainer" visibility="gone">
+                        <horizontal>
+                            <text text="为每一个音符画出引导线: " />
+                            <checkbox id="SkyCotlLikeInstructPlayer_DrawLineToEachNextKeysCheckbox" />
+                        </horizontal>
+                        <horizontal>
+                            <text text="为下下一个音符画出引导线: " />
+                            <checkbox id="SkyCotlLikeInstructPlayer_DrawLineToNextNextKeyCheckbox" />
+                        </horizontal>
+                    </vertical>
                     {/*TODO: 取色器(Android居然没有这个组件?)*/}
                 </vertical>
             );
+            let selectedPlayerTypes = configuration.readGlobalConfig("playerSelection", ["AutoJsGesturePlayer"]);
+            if (selectedPlayerTypes.includes("SkyCotlLikeInstructPlayer")) {
+                view_instructMode.SkyCotlLikeInstructPlayerSettingContainer.setVisibility(View.VISIBLE);
+                let SkyCotlLikeInstructPlayer_DrawLineToEachNextKeys = configuration.readGlobalConfig("SkyCotlLikeInstructPlayer_DrawLineToEachNextKeys", false);
+                view_instructMode.SkyCotlLikeInstructPlayer_DrawLineToEachNextKeysCheckbox.setChecked(SkyCotlLikeInstructPlayer_DrawLineToEachNextKeys);
+                let SkyCotlLikeInstructPlayer_DrawLineToNextNextKey = configuration.readGlobalConfig("SkyCotlLikeInstructPlayer_DrawLineToNextNextKey", true);
+                view_instructMode.SkyCotlLikeInstructPlayer_DrawLineToNextNextKeyCheckbox.setChecked(SkyCotlLikeInstructPlayer_DrawLineToNextNextKey);
+            }
+
             let SimpleInstructPlayer_MarkSize = configuration.readGlobalConfig("SimpleInstructPlayer_MarkSize", 1);
             view_instructMode.SimpleInstructPlayer_MarkSizeValueText.setText((SimpleInstructPlayer_MarkSize * 100).toFixed(2) + "%");
             view_instructMode.SimpleInstructPlayer_MarkSizeSeekbar.setProgress(numberMapLog(SimpleInstructPlayer_MarkSize, 0.3, 3));
@@ -1045,6 +1064,16 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
                     let value = numberRevMapLog(seekbar.getProgress(), 0.3, 3);
                     configuration.setGlobalConfig("SimpleInstructPlayer_MarkSize", value);
                 }
+            });
+
+            view_instructMode.SkyCotlLikeInstructPlayer_DrawLineToEachNextKeysCheckbox.setOnCheckedChangeListener(function (button, checked) {
+                anythingChanged = true;
+                configuration.setGlobalConfig("SkyCotlLikeInstructPlayer_DrawLineToEachNextKeys", checked);
+            });
+
+            view_instructMode.SkyCotlLikeInstructPlayer_DrawLineToNextNextKeyCheckbox.setOnCheckedChangeListener(function (button, checked) {
+                anythingChanged = true;
+                configuration.setGlobalConfig("SkyCotlLikeInstructPlayer_DrawLineToNextNextKey", checked);
             });
 
             this.fragments.push({

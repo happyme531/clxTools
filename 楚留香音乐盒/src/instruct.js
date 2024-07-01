@@ -145,9 +145,7 @@ function SkyCotlLikeInstructPlayerImpl() {
 
     let internalState = PlayerStates.UNINITIALIZED;
     let paint = new Paint();
-    paint.setARGB(255, 255, 255, 0);
     let lookAheadTime = 1000;  // ms
-    let maxLookAheadKeyGroup = 5;
 
     this.getType = function () {
         return "SkyCotlLikeInstructPlayer";
@@ -197,11 +195,36 @@ function SkyCotlLikeInstructPlayerImpl() {
      * @type {number}
      */
     let keyRadius = 20;
+
     /**
      * @param {number} radius 
      */
     this.setKeyRadius = function (radius) {
         keyRadius = radius;
+    }
+
+    /**
+     * 如果下一组按键有多个，是否要对每一个按键画曲线(而不是只画最高音)
+     * @type {boolean}
+     */
+    let drawLineToEachNextKeys = true;
+    /**
+     * @param {boolean} value 
+     */
+    this.setDrawLineToEachNextKeys = function (value) {
+        drawLineToEachNextKeys = value;
+    }
+
+    /**
+     * 是否要对下一组按键的下一组按键画较为浅的曲线
+     * @type {boolean}
+     */
+    let drawLineToNextNextKey = true;
+    /**
+     * @param {boolean} value 
+     */
+    this.setDrawLineToNextNextKey = function (value) {
+        drawLineToNextNextKey = value;
     }
 
     /**
@@ -224,7 +247,7 @@ function SkyCotlLikeInstructPlayerImpl() {
         const rightY = y + radius * Math.cos(Math.PI / 3);
 
         // 创建路径
-        const path = new android.graphics.Path();
+        const path = new Path();
 
         // 移动到顶点
         path.moveTo(topX, topY);
@@ -239,6 +262,7 @@ function SkyCotlLikeInstructPlayerImpl() {
         // 绘制填充的三角形
         canvas.drawPath(path, paint);
     }
+
     /**
      * @brief 画一条上凸的平滑曲线连接两个点
      * @param {android.graphics.Canvas} canvas
@@ -275,6 +299,54 @@ function SkyCotlLikeInstructPlayerImpl() {
 
         // 在画布上绘制路径
         canvas.drawPath(path, paint);
+    }
+
+    /**
+     * @brief 画一条上凸的平滑曲线连接两个点
+     * @param {android.graphics.Canvas} canvas
+     * @param {Paint} paint
+     * @param {[number, number]} start
+     * @param {[number, number]} end
+     * @param {number} factor 控制曲线的弯曲程度(0-1)
+     * @param {number} t 控制曲线的完成程度(0-1)
+     */
+    function drawPartialCurveLine(canvas, paint, start, end, factor, t) {
+        // 确保factor和t在0-1之间
+        factor = Math.max(0, Math.min(1, factor));
+        t = Math.max(0, Math.min(1, t));
+
+        // 计算起点和终点的中点
+        const midX = (start[0] + end[0]) / 2;
+        const midY = (start[1] + end[1]) / 2;
+
+        // 计算垂直于起点终点连线的单位向量
+        const dx = end[0] - start[0];
+        const dy = end[1] - start[1];
+        const length = Math.sqrt(dx * dx + dy * dy);
+        const unitPerpX = -dy / length;
+        const unitPerpY = dx / length;
+
+        // 计算控制点
+        // 使用factor和线段长度来决定控制点距离中点的距离
+        const controlDistance = length * factor * 0.5;
+        const controlX = midX + unitPerpX * controlDistance;
+        const controlY = midY + unitPerpY * controlDistance;
+
+        // 创建路径
+        const path = new android.graphics.Path();
+        path.moveTo(start[0], start[1]);
+        path.quadTo(controlX, controlY, end[0], end[1]);
+
+        // 使用PathMeasure测量路径
+        const pathMeasure = new android.graphics.PathMeasure(path, false);
+        const pathLength = pathMeasure.getLength();
+
+        // 创建一个新的路径来存储部分路径
+        const partialPath = new android.graphics.Path();
+        pathMeasure.getSegment(0, pathLength * t, partialPath, true);
+
+        // 在画布上绘制部分路径
+        canvas.drawPath(partialPath, paint);
     }
 
     /**
@@ -315,6 +387,14 @@ function SkyCotlLikeInstructPlayerImpl() {
 
         return [x, y];
     }
+
+    /**
+     * @param {number} x 
+     */
+    function easeInOutSine(x) {
+        return -(Math.cos(Math.PI * x) - 1) / 2;
+    }
+
     /**
      * @type {import('./noteUtils').PackedKey}
      */
@@ -325,12 +405,13 @@ function SkyCotlLikeInstructPlayerImpl() {
      * @param {android.graphics.Canvas} canvas 
      */
     this.draw = function (canvas) {
-        if (internalState != PlayerStates.PLAYING) return; // FIXME: 偷懒的办法, 造成闪烁
+        //清空
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
         if (keyPositions == null) {
             return;
         }
-        //清空
-        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+        if (internalState != PlayerStates.PLAYING) return; // FIXME: 正确实现暂停功能
+
         let now = new Date().getTime();
 
         //1. 确定要处理的按键
@@ -351,9 +432,14 @@ function SkyCotlLikeInstructPlayerImpl() {
             paint.setARGB(48, 0, 0, 0);
             paint.setStyle(Paint.Style.FILL);
             canvas.drawCircle(pos[0], pos[1], keyRadius, paint);
+            //+ 外侧画一个白色的圆环
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(4);
+            paint.setARGB(255, 255, 255, 255);
+            canvas.drawCircle(pos[0], pos[1], keyRadius, paint);
         }
 
-        //3. 给要处理的按键画空心圆. 下一组按键用白色，其他用灰色
+        //3. 给要处理的按键画空心圆. 下一组按键用黄色，其他用灰色
         for (let i = 0; i < activeKeys.length; i++) {
             let keys = activeKeys[i];
             let deltaTime = keys[1] - lastKeys[1];
@@ -363,12 +449,12 @@ function SkyCotlLikeInstructPlayerImpl() {
             for (let j = 0; j < keys[0].length; j++) {
                 let pos = keyPositions[keys[0][j]];
                 if (i == 0) {
-                    paint.setARGB(255, 255, 255, 255);
+                    paint.setARGB(255, 255, 255, 64);
                 } else {
-                    paint.setARGB(255, 220, 220, 220);
+                    paint.setARGB(220, 255, 255, 255);
                 }
                 paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(4);
+                paint.setStrokeWidth(5);
                 canvas.drawCircle(pos[0], pos[1], keyRadius * radiusFactor, paint);
             }
         }
@@ -376,19 +462,51 @@ function SkyCotlLikeInstructPlayerImpl() {
         //4. 给之前和之后这两组按键之间画曲线
         let fromKey = lastKeys[0].reduce((a, b) => Math.max(a, b));
         if (activeKeys.length > 0 && fromKey != -1) {
-            let toKey = activeKeys[0][0].reduce((a, b) => Math.max(a, b));
-            if (toKey != -1) {
+            let toKeys = []
+            if (drawLineToEachNextKeys) {
+                toKeys = activeKeys[0][0];
+            } else {
+                toKeys = [activeKeys[0][0].reduce((a, b) => Math.max(a, b))];
+            }
+            let deltaTime = activeKeys[0][1] - lastKeys[1];
+            let progress = (now - lastKeysTime) / deltaTime;
+            if (progress > 1) progress = 1;
+            if (progress < 0) progress = 0;
+            progress = easeInOutSine(progress);
+            const haveSameKey = toKeys.includes(fromKey);
+            for (let toKey of toKeys) {
+                if (toKey != -1) {
+                    let fromPos = keyPositions[fromKey];
+                    let toPos = keyPositions[toKey];
+                    paint.setARGB(255, 255, 255, 255);
+                    paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeWidth(4);
+                    drawCurveLine(canvas, paint, fromPos, toPos, 0.5);
+                    // 如果两组按键包含相同的按键, 则不要画移动的三角形（造成混淆）
+                    if (!haveSameKey) {
+                        let starPos = getPointOnCurve(fromPos, toPos, progress, 0.5);
+                        paint.setStyle(Paint.Style.FILL);
+                        drawFilledTriangle(canvas, paint, starPos, keyRadius / 3);
+                    }
+                }
+            }
+        }
+
+        // 5. 给下一组按键的下一组按键画浅色曲线
+        if (drawLineToNextNextKey && activeKeys.length > 1) {
+            let fromKey = activeKeys[0][0].reduce((a, b) => Math.max(a, b));
+            let toKey = activeKeys[1][0].reduce((a, b) => Math.max(a, b));
+            if (fromKey != -1 && toKey != -1) {
                 let fromPos = keyPositions[fromKey];
                 let toPos = keyPositions[toKey];
-                paint.setARGB(255, 255, 255, 255);
-                drawCurveLine(canvas, paint, fromPos, toPos, 0.5);
                 let deltaTime = activeKeys[0][1] - lastKeys[1];
                 let progress = (now - lastKeysTime) / deltaTime;
                 if (progress > 1) progress = 1;
                 if (progress < 0) progress = 0;
-                let starPos = getPointOnCurve(fromPos, toPos, progress, 0.5);
-                paint.setStyle(Paint.Style.FILL);
-                drawFilledTriangle(canvas, paint, starPos, keyRadius / 4);
+                paint.setARGB(128, 255, 255, 255);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(4);
+                drawPartialCurveLine(canvas, paint, fromPos, toPos, 0.5, progress);
             }
         }
     }

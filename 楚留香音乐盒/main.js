@@ -1356,14 +1356,25 @@ function main() {
                 break;
             case PlayerType.SimpleInstructPlayer:
             case PlayerType.SkyCotlLikeInstructPlayer:
+                let impl = null;
                 if (selectedPlayerTypes[0] == PlayerType.SkyCotlLikeInstructPlayer) {
                     selectedPlayers.push(new SkyCotlLikeInstructPlayer());
+                    //@ts-ignore
+                    impl = /** @type {import("./src/instruct.js").SkyCotlLikeInstructPlayerImpl} */ (selectedPlayers[0].getImplementationInstance());
+                    impl.setDrawLineToEachNextKeys(
+                        configuration.readGlobalConfig("SkyCotlLikeInstructPlayer_DrawLineToEachNextKeys", false)
+                    );
+                    impl.setDrawLineToNextNextKey(
+                        configuration.readGlobalConfig("SkyCotlLikeInstructPlayer_DrawLineToNextNextKey", true)
+                    );
                     console.log("new SkyCotlLikeInstructPlayer");
                 }else if (selectedPlayerTypes[0] == PlayerType.SimpleInstructPlayer) {
                     selectedPlayers.push(new SimpleInstructPlayer());
+                    impl = /** @type {import("./src/instruct.js").SimpleInstructPlayerImpl} */ (selectedPlayers[0].getImplementationInstance());
                     console.log("new SimpleInstructPlayer");
+                }else{
+                    throw new Error("未知的播放器类型: " + selectedPlayerTypes);
                 }
-                let impl = /** @type {import("./src/instruct.js").SimpleInstructPlayerImpl} */ ((selectedPlayers[0].getImplementationInstance())) ;
                 impl.setKeyPositions(gameProfile.getAllKeyPositions());
                 impl.setKeyRadius(gameProfile.getPhysicalMinKeyDistance() * 0.3 * configuration.readGlobalConfig("SimpleInstructPlayer_MarkSize", 1));
                 //创建全屏悬浮窗. 也许不需要全屏?
