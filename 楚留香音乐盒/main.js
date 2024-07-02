@@ -270,23 +270,6 @@ function setupMidiStream() {
     }
 }
 
-/**
- * @brief 移除空的音轨
- * @param {MusicFormats.TracksData} tracksData 
- * @return {MusicFormats.TracksData} 移除空的音轨后的音轨数据
- */
-function removeEmptyTracks(tracksData) {
-    if (!tracksData.haveMultipleTrack) return tracksData;
-    for (let i = tracksData.tracks.length - 1; i >= 0; i--) {
-        if (tracksData.tracks[i].noteCount == 0) {
-            tracksData.tracks.splice(i, 1);
-        }
-    }
-    tracksData.trackCount = tracksData.tracks.length;
-    if (tracksData.trackCount == 1) tracksData.haveMultipleTrack = false;
-    return tracksData;
-}
-
 function checkEnableAccessbility() {
     //启动无障碍服务
     console.verbose("等待无障碍服务..");
@@ -527,70 +510,43 @@ function evalFileConfig(noteData, targetMajorPitchOffset, targetMinorPitchOffset
  * @returns 
  */
 function autoTuneFileConfig(fileName, trackDisableThreshold) {
-    const betterResultThreshold = 0.05; //如果新的结果比旧的结果好超过这个阈值，就认为新的结果更好
-    const possibleMajorPitchOffset = [0, -1, 1, -2, 2];
-    const possibleMinorPitchOffset = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, 6, 7];
-    let bestMajorPitchOffset = 0;
-    let bestMinorPitchOffset = 0;
-    let bestResult = { "outRangedNoteWeight": 10000000, "roundedNoteCnt": 10000000 };
-    let bestOverFlowedNoteCnt = 0;
-    let bestUnderFlowedNoteCnt = 0;
 
     //悬浮窗提示
     let dial = dialogs.build({
         title: "调整中...",
         content: "正在调整音高偏移量，请稍候...",
         progress: {
-            max: possibleMajorPitchOffset.length + possibleMinorPitchOffset.length,
+            max: 100,
             showMinMax: true
         },
     });
     dial.show();
 
-    let tracksData = /** @type {MusicFormats.TracksData} */ (new passes.ParseSourceFilePass({}).run(musicDir + fileName));
-    let noteData = new Array();
+    const tracksData = new passes.SequentialPass({
+        passes: [
+            new passes.ParseSourceFilePass({}),
+            new passes.RemoveEmptyTracksPass({}),
+        ]
+    }).run(musicDir + fileName);
+    
+    const noteData = new passes.MergeTracksPass({}).run(tracksData);
+    const inferBestPitchOffsetPass = new passes.InferBestPitchOffsetPass({
+        gameProfile: gameProfile
+    });
+    inferBestPitchOffsetPass.run(noteData, (progress) => dial.setProgress(progress));
+    const stats = inferBestPitchOffsetPass.getStatistics();
 
-    //合并所有音轨. 
-    for (let i = 0; i < tracksData.trackCount; i++) {
-        let track = tracksData.tracks[i];
-        noteData = noteData.concat(track.notes);
-    }
-
-    for (let i = 0; i < possibleMajorPitchOffset.length; i++) {
-        dial.setProgress(i);
-        //只考虑超范围的音符
-        let result = evalFileConfig(noteData, possibleMajorPitchOffset[i], 0);
-        console.log("Pass " + i + " 结果: " + JSON.stringify(result));
-        if (bestResult.outRangedNoteWeight - result.outRangedNoteWeight > result.outRangedNoteWeight * betterResultThreshold) {
-            bestMajorPitchOffset = possibleMajorPitchOffset[i];
-            bestResult.outRangedNoteWeight = result.outRangedNoteWeight;
-        }
-    }
-    for (let i = 0; i < possibleMinorPitchOffset.length; i++) {
-        dial.setProgress(possibleMajorPitchOffset.length + i);
-        //只考虑被四舍五入的音符
-        let result = evalFileConfig(noteData, bestMajorPitchOffset, possibleMinorPitchOffset[i]);
-        console.log("Pass " + i + " 结果: " + JSON.stringify(result));
-        if (bestResult.roundedNoteCnt - result.roundedNoteCnt > result.roundedNoteCnt * betterResultThreshold) {
-            bestMinorPitchOffset = possibleMinorPitchOffset[i];
-            bestOverFlowedNoteCnt = result.overFlowedNoteCnt;
-            bestUnderFlowedNoteCnt = result.underFlowedNoteCnt;
-            bestResult = result;
-        }
-    }
-    console.info("最佳结果: " + JSON.stringify(bestResult));
-    console.info("最佳八度偏移: " + bestMajorPitchOffset);
-    console.info("最佳半音偏移: " + bestMinorPitchOffset);
+    console.info("最佳八度偏移: " + stats.bestOctaveOffset);
+    console.info("最佳半音偏移: " + stats.bestSemiToneOffset);
 
     //禁用无效音符过多的音轨
-    tracksData = removeEmptyTracks(tracksData);
     let selectedTracksNonEmpty = new Array();
     if (tracksData.haveMultipleTrack) {
         let trackPlayableNoteRatio = new Array();
         for (let i = 0; i < tracksData.trackCount; i++) {
             let track = tracksData.tracks[i];
             let playableNoteCnt = 0;
-            let result = evalFileConfig(track.notes, bestMajorPitchOffset, bestMinorPitchOffset);
+            let result = evalFileConfig(track.notes, stats.bestOctaveOffset, stats.bestSemiToneOffset);
             playableNoteCnt = track.notes.length - result.overFlowedNoteCnt - result.underFlowedNoteCnt;
             trackPlayableNoteRatio.push([i, playableNoteCnt / track.notes.length]);
         }
@@ -610,7 +566,7 @@ function autoTuneFileConfig(fileName, trackDisableThreshold) {
         console.info("选择的音轨: " + JSON.stringify(selectedTracksNonEmpty));
     }
     dial.dismiss();
-    let realBestOutRangedNoteCnt = bestOverFlowedNoteCnt + bestUnderFlowedNoteCnt;
+    let realBestOutRangedNoteCnt = stats.bestOverFlowedNoteCnt + stats.bestUnderFlowedNoteCnt;
     let totalNoteCnt = noteData.length;
     /**
      * example: 
@@ -621,19 +577,19 @@ function autoTuneFileConfig(fileName, trackDisableThreshold) {
      * 最佳半音偏移: 0
      */
     let percentStr1 = (realBestOutRangedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%";
-    let percentStr2 = (bestResult.roundedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%";
+    let percentStr2 = (stats.bestRoundedNoteCnt / totalNoteCnt * 100).toFixed(2) + "%";
     let resultStr = "最佳结果: \n" +
-        "超出范围被丢弃的音符数: " + realBestOutRangedNoteCnt + " (+" + bestOverFlowedNoteCnt + ", -" + bestUnderFlowedNoteCnt + ")(" + percentStr1 + ")\n" +
-        "被取整的音符数: " + bestResult.roundedNoteCnt + " (" + percentStr2 + ")\n" +
-        "最佳八度偏移: " + bestMajorPitchOffset + "\n" +
-        "最佳半音偏移: " + bestMinorPitchOffset;
+        "超出范围被丢弃的音符数: " + realBestOutRangedNoteCnt + " (+" + stats.bestOverFlowedNoteCnt + ", -" + stats.bestUnderFlowedNoteCnt + ")(" + percentStr1 + ")\n" +
+        "被取整的音符数: " + stats.bestRoundedNoteCnt + " (" + percentStr2 + ")\n" +
+        "最佳八度偏移: " + stats.bestOctaveOffset + "\n" +
+        "最佳半音偏移: " + stats.bestSemiToneOffset;
     if (tracksData.haveMultipleTrack)
         resultStr += "\n选择的音轨: " + JSON.stringify(selectedTracksNonEmpty);
 
     dialogs.alert("调整结果", resultStr);
 
-    configuration.setFileConfigForTarget("majorPitchOffset", bestMajorPitchOffset, fileName, gameProfile);
-    configuration.setFileConfigForTarget("minorPitchOffset", bestMinorPitchOffset, fileName, gameProfile);
+    configuration.setFileConfigForTarget("majorPitchOffset", stats.bestOctaveOffset, fileName, gameProfile);
+    configuration.setFileConfigForTarget("minorPitchOffset", stats.bestSemiToneOffset, fileName, gameProfile);
     configuration.setFileConfigForTarget("lastSelectedTracksNonEmpty", selectedTracksNonEmpty, fileName, gameProfile);
     toast("自动调整完成");
     return 0;
@@ -1601,9 +1557,9 @@ function loadMusicFile(fileName, loadType) {
     // console.log("解析文件耗时" + elapsedTime / 1000 + "秒");
     pipeline.push(new passes.ParseSourceFilePass({}));
     //选择音轨
+    pipeline.push(new passes.RemoveEmptyTracksPass({}));
     pipeline.push(new passes.MergeTracksPass({
         selectedTracks: lastSelectedTracksNonEmpty,
-        nonEmpty: true,
         skipPercussion: true,
     }));
     //伪装手弹

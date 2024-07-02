@@ -67,7 +67,6 @@ function ParseSourceFilePass(config) {
  * @brief 合并指定的音轨中所有音符到一个音符数组中
  * @typedef {Object} MergeTracksPassConfig
  * @property {number[]} [selectedTracks] - 要合并的音轨序号数组, 为空则合并所有音轨
- * @property {boolean} [nonEmpty] - 是否只考虑非空音轨, 默认为false
  * @property {boolean} [skipPercussion] - 是否跳过打击乐器通道(通道10), 默认为true
  * @param {MergeTracksPassConfig} config
  */
@@ -77,31 +76,9 @@ function MergeTracksPass(config) {
 
     let selectedTracks = config.selectedTracks;
 
-    let nonEmpty = false
-    if (config.nonEmpty != null) {
-        nonEmpty = config.nonEmpty;
-    }
-
     let skipPercussion = true;
     if (config.skipPercussion != null) {
         skipPercussion = config.skipPercussion;
-    }
-
-    /**
-     * @brief 移除空的音轨
-     * @param {MusicFormats.TracksData} tracksData 
-     * @return {MusicFormats.TracksData} 移除空的音轨后的音轨数据
-     */
-    function removeEmptyTracks(tracksData) {
-        if (!tracksData.haveMultipleTrack) return tracksData;
-        for (let i = tracksData.tracks.length - 1; i >= 0; i--) {
-            if (tracksData.tracks[i].noteCount == 0) {
-                tracksData.tracks.splice(i, 1);
-            }
-        }
-        tracksData.trackCount = tracksData.tracks.length;
-        if (tracksData.trackCount == 1) tracksData.haveMultipleTrack = false;
-        return tracksData;
     }
 
     /**
@@ -113,9 +90,6 @@ function MergeTracksPass(config) {
      */
     this.run = function (tracksData, progressCallback) {
         if (!tracksData.haveMultipleTrack) return tracksData.tracks[0].notes;
-        if (nonEmpty) {
-            tracksData = removeEmptyTracks(tracksData);
-        }
 
         if (selectedTracks == null || selectedTracks.length == 0) {
             selectedTracks = [];
@@ -1026,6 +1000,152 @@ function EstimateNoteDurationPass(config) {
 }
 
 /**
+ * @brief 删除空的音轨
+ * @typedef {Object} RemoveEmptyTracksPassConfig
+ * @param {RemoveEmptyTracksPassConfig} config
+ */
+function RemoveEmptyTracksPass(config) {
+    this.name = "RemoveEmptyTracksPass";
+    this.description = "删除空的音轨";
+    /**
+     * 运行此pass
+     * @param {MusicFormats.TracksData} tracksData - 音乐数据
+     * @param {function(number):void} [progressCallback] - 进度回调函数, 参数为进度(0-100)
+     * @returns {MusicFormats.TracksData} - 返回解析后的数据
+     * @throws {Error} - 如果解析失败则抛出异常
+     */
+    this.run = function (tracksData, progressCallback) {
+        if (!tracksData.haveMultipleTrack) return tracksData;
+        for (let i = tracksData.tracks.length - 1; i >= 0; i--) {
+            if (tracksData.tracks[i].noteCount == 0) {
+                tracksData.tracks.splice(i, 1);
+            }
+        }
+        tracksData.trackCount = tracksData.tracks.length;
+        if (tracksData.trackCount == 1) tracksData.haveMultipleTrack = false;
+        return tracksData;
+    }
+    this.getStatistics = function () {
+        return {};
+    }
+}
+
+
+/**
+ * @brief 推断最佳的音高偏移量
+ * @typedef {Object} InferPitchOffsetPassConfig
+ * @property {GameProfile} gameProfile - 游戏配置
+ * @property {number} [overFlowedNoteWeight] - 高音超出范围的音符的权重, 默认为5
+ * @param {InferPitchOffsetPassConfig} config
+ */
+function InferBestPitchOffsetPass(config) {
+    this.name = "InferPitchOffsetPass";
+    this.description = "推断最佳的音高偏移量";
+
+    const betterResultThreshold = 0.05;
+    const possibleMajorPitchOffset = [0, -1, 1, -2, 2];
+    const possibleMinorPitchOffset = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, 6, 7];
+
+    if (config.gameProfile == null) {
+        throw new Error("gameProfile is null");
+    }
+    let gameProfile = config.gameProfile;
+
+    //丢弃音调高的音符的代价要高于丢弃音调低的音符的代价, 因此权重要高
+    let overFlowedNoteWeight = 5;
+    if (config.overFlowedNoteWeight != null) {
+        overFlowedNoteWeight = config.overFlowedNoteWeight;
+    }
+
+    let bestOctaveOffset = 0;
+    let bestSemiToneOffset = 0;
+    let bestOverFlowedNoteCnt = 0;
+    let bestUnderFlowedNoteCnt = 0;
+    let bestRoundedNoteCnt = 0;
+
+    /**
+     * @param {noteUtils.Note[]} noteData
+     * @param {number} targetMajorPitchOffset
+     * @param {number} targetMinorPitchOffset
+     * @param {GameProfile} gameProfile
+     * @brief 测试配置效果 
+     * @return {{
+    * "outRangedNoteWeight": number,
+    * "overFlowedNoteCnt": number,
+    * "underFlowedNoteCnt": number,
+    * "roundedNoteCnt": number,
+    * "totalNoteCnt": number,
+    * }}
+    */
+    function evalFileConfig(noteData, targetMajorPitchOffset, targetMinorPitchOffset, gameProfile) {
+        const pass = new NoteToKeyPass({
+            majorPitchOffset: targetMajorPitchOffset,
+            minorPitchOffset: targetMinorPitchOffset,
+            semiToneRoundingMode: SemiToneRoundingMode.floor,
+            currentGameProfile: gameProfile,
+        });
+        pass.run(noteData, (progress) => { });
+        const stats = pass.getStatistics();
+
+        return {
+            "outRangedNoteWeight": stats.overFlowedNoteCnt * overFlowedNoteWeight + stats.underFlowedNoteCnt,
+            "overFlowedNoteCnt": stats.overFlowedNoteCnt,
+            "underFlowedNoteCnt": stats.underFlowedNoteCnt,
+            "roundedNoteCnt": stats.roundedNoteCnt,
+            "totalNoteCnt": noteData.length,
+        };
+    }
+
+    /**
+     * 运行此pass
+     * @param {noteUtils.NoteLike[]} noteData - 音乐数据
+     * @param {function(number):void} [progressCallback] - 进度回调函数, 参数为进度(0-100)
+     * @returns {noteUtils.NoteLike[]}
+     */
+    this.run = function (noteData, progressCallback) {
+        const totalTrialCount = possibleMajorPitchOffset.length + possibleMinorPitchOffset.length;
+        let bestResult = { "outRangedNoteWeight": 10000000, "roundedNoteCnt": 10000000 };
+
+        for (let i = 0; i < possibleMajorPitchOffset.length; i++) {
+            if (progressCallback != null)
+                progressCallback(i / totalTrialCount * 100);
+            //只考虑超范围的音符
+            let result = evalFileConfig(noteData, possibleMajorPitchOffset[i], 0, gameProfile);
+            console.log("Pass " + i + " 结果: " + JSON.stringify(result));
+            if (bestResult.outRangedNoteWeight - result.outRangedNoteWeight > result.outRangedNoteWeight * betterResultThreshold) {
+                bestOctaveOffset = possibleMajorPitchOffset[i];
+                bestResult.outRangedNoteWeight = result.outRangedNoteWeight;
+            }
+        }
+
+        for (let i = 0; i < possibleMinorPitchOffset.length; i++) {
+            if (progressCallback != null)
+                progressCallback((possibleMajorPitchOffset.length + i) / totalTrialCount * 100);
+            //只考虑被四舍五入的音符
+            let result = evalFileConfig(noteData, bestOctaveOffset, possibleMinorPitchOffset[i], gameProfile);
+            console.log("Pass " + i + " 结果: " + JSON.stringify(result));
+            if (bestResult.roundedNoteCnt - result.roundedNoteCnt > result.roundedNoteCnt * betterResultThreshold) {
+                bestSemiToneOffset = possibleMinorPitchOffset[i];
+                bestOverFlowedNoteCnt = result.overFlowedNoteCnt;
+                bestUnderFlowedNoteCnt = result.underFlowedNoteCnt;
+                bestResult = result;
+            }
+        }
+        return noteData;
+    }
+
+    this.getStatistics = function () {
+        return {
+            "bestOctaveOffset": bestOctaveOffset,
+            "bestSemiToneOffset": bestSemiToneOffset,
+            "bestOverFlowedNoteCnt": bestOverFlowedNoteCnt,
+            "bestUnderFlowedNoteCnt": bestUnderFlowedNoteCnt,
+            "bestRoundedNoteCnt": bestRoundedNoteCnt
+        };
+    }
+}
+
+/**
  * @typedef {Object} Pass
  * @property {string} name - pass名称
  * @property {string} description - pass描述
@@ -1153,6 +1273,8 @@ module.exports = {
     FoldFrequentSameNotePass,
     SplitLongNotePass,
     EstimateNoteDurationPass,
+    InferBestPitchOffsetPass,
+    RemoveEmptyTracksPass,
     SequentialPass,
 
     SemiToneRoundingMode
