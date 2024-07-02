@@ -1582,6 +1582,7 @@ function loadMusicFile(fileName, loadType) {
     let noteCountLimitSplitDelay = readFileConfig("noteCountLimitSplitDelay", rawFileName, 75);
     let chordSelectMode = readFileConfig("chordSelectMode", rawFileName, "high");
     let mergeThreshold = (loadType == MusicLoaderDataType.KeySequenceHumanFriendly ? scoreExportMergeThreshold : autoPlayMergeThreshold);
+    let lastSelectedTracksNonEmpty = configuration.readFileConfigForTarget("lastSelectedTracksNonEmpty", rawFileName, gameProfile);
     let keyRange = gameProfile.getKeyRange();
 
     console.log("当前乐曲:" + fileName);
@@ -1590,58 +1591,21 @@ function loadMusicFile(fileName, loadType) {
     console.log("minorPitchOffset:" + minorPitchOffset);
     console.log("semiToneRoundingMode:" + semiToneRoundingMode);
 
-    /////////////解析文件
-    progressDialog.setContent("正在解析文件...");
-    // console.log("解析文件耗时" + elapsedTime / 1000 + "秒");
-    let tracksData = new passes.ParseSourceFilePass({}).run(musicDir + fileName);
-    if (debugDumpPass.indexOf("parse") != -1) debugDump(tracksData, "parse");
-
-    /////////////选择音轨
-    progressDialog.setContent("正在解析音轨...");
-    let noteData = [];
-    if (tracksData.haveMultipleTrack) {
-        //删除没有音符的音轨
-        tracksData = removeEmptyTracks(tracksData);
-        let nonEmptyTrackCount = tracksData.tracks.length;
-
-        //上次选择的音轨(包括空音轨)
-        let lastSelectedTracksNonEmpty = configuration.readFileConfigForTarget("lastSelectedTracksNonEmpty", rawFileName, gameProfile);
-        if (typeof (lastSelectedTracksNonEmpty) == "undefined" || lastSelectedTracksNonEmpty.length == 0) {
-            console.log("音轨选择未设置，使用默认值");
-            lastSelectedTracksNonEmpty = [];
-            for (let i = 0; i < nonEmptyTrackCount; i++) {
-                lastSelectedTracksNonEmpty.push(i); //默认选择所有音轨
-            }
-            configuration.setFileConfigForTarget("lastSelectedTracksNonEmpty", lastSelectedTracksNonEmpty, rawFileName, gameProfile);
-        }
-        let selectedTracksNonEmpty = lastSelectedTracksNonEmpty;
-        console.log("选择的音轨:" + JSON.stringify(selectedTracksNonEmpty));
-        //合并
-        for (let i = 0; i < selectedTracksNonEmpty.length; i++) {
-            if (selectedTracksNonEmpty[i] >= nonEmptyTrackCount) continue;
-            let track = tracksData.tracks[selectedTracksNonEmpty[i]];
-            //通道10(打击乐) 永远不会被合并
-            if (track.channel === 9) continue;
-            noteData = noteData.concat(track.notes);
-        }
-        //按时间排序
-        noteData.sort(function (a, b) {
-            return a[1] - b[1];
-        });
-
-    } else {
-        noteData = tracksData.tracks[0].notes;
-    }
-
-    //一些统计信息
-    let inputNoteCnt = noteData.length;
-
     /**
      * @type {Array<passes.Pass>}
      */
     let pipeline = [];
 
-    progressDialog.setContent("正在伪装手弹...");
+    //解析文件
+    progressDialog.setContent("解析文件...");
+    // console.log("解析文件耗时" + elapsedTime / 1000 + "秒");
+    pipeline.push(new passes.ParseSourceFilePass({}));
+    //选择音轨
+    pipeline.push(new passes.MergeTracksPass({
+        selectedTracks: lastSelectedTracksNonEmpty,
+        nonEmpty: true,
+        skipPercussion: true,
+    }));
     //伪装手弹
     if (humanifyNoteAbsTimeStdDev > 0) {
         pipeline.push(new passes.HumanifyPass({
@@ -1699,7 +1663,7 @@ function loadMusicFile(fileName, loadType) {
         passes: pipeline
     });
 
-    const data = sequential.run(noteData, (progress, desc) => {
+    const data = sequential.run(musicDir + fileName, (progress, desc) => {
         progressDialog.setProgress(progress);
         progressDialog.setContent(desc + "...");
     });
@@ -1733,6 +1697,7 @@ function loadMusicFile(fileName, loadType) {
     progressDialog.dismiss();
 
     //数据汇总
+    const inputNoteCnt = stats.ParseSourceFilePass.totalNoteCnt;
     const overFlowedNoteCnt = stats.NoteToKeyPass.overFlowedNoteCnt;
     const underFlowedNoteCnt = stats.NoteToKeyPass.underFlowedNoteCnt;
     const roundedNoteCnt = stats.NoteToKeyPass.roundedNoteCnt;

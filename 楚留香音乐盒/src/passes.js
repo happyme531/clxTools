@@ -40,6 +40,7 @@ function ParseSourceFilePass(config) {
     this.name = "ParseSourceFilePass";
     this.description = "解析源文件";
 
+    let totalNoteCnt = 0;
     /**
      * 运行此pass
      * @param {string} sourceFilePath - 源文件路径
@@ -50,11 +51,14 @@ function ParseSourceFilePass(config) {
     this.run = function (sourceFilePath, progressCallback) {
         let musicFormats = new MusicFormats();
         let tracksData = musicFormats.parseFile(sourceFilePath);
+        totalNoteCnt = tracksData.tracks.reduce((acc, track) => acc + track.noteCount, 0);
         return tracksData;
     }
 
     this.getStatistics = function () {
-        return {};
+        return {
+            totalNoteCnt: totalNoteCnt
+        };
     }
 
 }
@@ -62,19 +66,43 @@ function ParseSourceFilePass(config) {
 /**
  * @brief 合并指定的音轨中所有音符到一个音符数组中
  * @typedef {Object} MergeTracksPassConfig
- * @property {number[]} selectedTracks - 要合并的音轨序号数组
+ * @property {number[]} [selectedTracks] - 要合并的音轨序号数组, 为空则合并所有音轨
+ * @property {boolean} [nonEmpty] - 是否只考虑非空音轨, 默认为false
+ * @property {boolean} [skipPercussion] - 是否跳过打击乐器通道(通道10), 默认为true
  * @param {MergeTracksPassConfig} config
  */
 function MergeTracksPass(config) {
     this.name = "MergeTracksPass";
     this.description = "合并音轨";
 
-    let selectedTracks = [];
+    let selectedTracks = config.selectedTracks;
 
-    if (config.selectedTracks == null) {
-        throw new Error("selectedTracks is null");
+    let nonEmpty = false
+    if (config.nonEmpty != null) {
+        nonEmpty = config.nonEmpty;
     }
-    selectedTracks = config.selectedTracks;
+
+    let skipPercussion = true;
+    if (config.skipPercussion != null) {
+        skipPercussion = config.skipPercussion;
+    }
+
+    /**
+     * @brief 移除空的音轨
+     * @param {MusicFormats.TracksData} tracksData 
+     * @return {MusicFormats.TracksData} 移除空的音轨后的音轨数据
+     */
+    function removeEmptyTracks(tracksData) {
+        if (!tracksData.haveMultipleTrack) return tracksData;
+        for (let i = tracksData.tracks.length - 1; i >= 0; i--) {
+            if (tracksData.tracks[i].noteCount == 0) {
+                tracksData.tracks.splice(i, 1);
+            }
+        }
+        tracksData.trackCount = tracksData.tracks.length;
+        if (tracksData.trackCount == 1) tracksData.haveMultipleTrack = false;
+        return tracksData;
+    }
 
     /**
      * 运行此pass
@@ -84,10 +112,23 @@ function MergeTracksPass(config) {
      * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (tracksData, progressCallback) {
+        if (!tracksData.haveMultipleTrack) return tracksData.tracks[0].notes;
+        if (nonEmpty) {
+            tracksData = removeEmptyTracks(tracksData);
+        }
+
+        if (selectedTracks == null || selectedTracks.length == 0) {
+            selectedTracks = [];
+            for (let i = 0; i < tracksData.tracks.length; i++) {
+                selectedTracks.push(i); //默认选择所有音轨
+            }
+        }
+
         let noteData = [];
         for (let i = 0; i < selectedTracks.length; i++) {
-            let sel = selectedTracks[i];
-            let track = tracksData[sel];
+            if (selectedTracks[i] >= tracksData.tracks.length) continue;
+            let track = tracksData.tracks[selectedTracks[i]];
+            if (track.channel === 9 && skipPercussion) continue;
             noteData = noteData.concat(track.notes);
         }
         noteData.sort(function (a, b) {
