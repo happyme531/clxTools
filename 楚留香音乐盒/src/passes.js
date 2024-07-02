@@ -146,7 +146,9 @@ var SemiToneRoundingMode = {
     //删除音符
     drop: 2,
     //同时取较低和较高的音符
-    both: 3
+    both: 3,
+    //
+    alternating: 4
 }
 
 /**
@@ -171,6 +173,7 @@ function NoteToKeyPass(config) {
     let overFlowedNoteCnt = 0;
     let roundedNoteCnt = 0;
     let middleFailedNoteCnt = 0;
+    let lastIsFloor = false;
 
 
     if (config.majorPitchOffset == null) {
@@ -221,13 +224,22 @@ function NoteToKeyPass(config) {
                 default:
                     key = -1;
                     break;
+                // case SemiToneRoundingMode.both:
+                //     key = currentGameProfile.getKeyByPitch(midiPitch - 1);
+                //     if(key == -1) //保证第一个按键不为空
+                //         key = currentGameProfile.getKeyByPitch(midiPitch + 1);
+                //     else
+                //         key2 = currentGameProfile.getKeyByPitch(midiPitch + 1);
+                //     break;
                 case SemiToneRoundingMode.both:
-                    key = currentGameProfile.getKeyByPitch(midiPitch - 1);
-                    if(key == -1) //保证第一个按键不为空
+                    if(lastIsFloor){
                         key = currentGameProfile.getKeyByPitch(midiPitch + 1);
-                    else
-                        key2 = currentGameProfile.getKeyByPitch(midiPitch + 1);
-                    break;
+                        lastIsFloor = false;
+                    }else{
+                        key = currentGameProfile.getKeyByPitch(midiPitch - 1);
+                        lastIsFloor = true;
+                    
+                    }
             }
             if (key == -1) {
                 return [-1, -1];
@@ -443,7 +455,7 @@ function KeyToGesturePass(config) {
     /**
      * 运行此pass
      * @param {noteUtils.Key[]} noteData - 音乐数据
-     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @param {function(number):void} [progressCallback] - 进度回调函数, 参数为进度(0-100)
      * @returns {import("./players.js").Gestures} - 返回解析后的数据
      */
     this.run = function (noteData, progressCallback) {
@@ -972,7 +984,59 @@ function EstimateNoteDurationPass(config) {
     }
 }
 
+/**
+ * @typedef {Object} Pass
+ * @property {string} name - pass名称
+ * @property {string} description - pass描述
+ * @property {function} run - 运行此pass
+ * @property {function():Object} getStatistics - 获取统计数据
+ */
 
+/**
+ * @brief 按顺序执行一系列pass
+ * @typedef {Object} SequentialPassConfig
+ * @property {Array<Pass>} passes - pass列表
+ * @param {SequentialPassConfig} config
+ */
+function SequentialPass(config) {
+    this.name = "SequentialPass";
+    this.description = "按顺序执行一系列pass";
+
+    let passes = new Array();
+
+    /**
+     * @type {Object.<string, any>}
+     */
+    let statistics = {};
+
+    if (config.passes == null) {
+        throw new Error("passes is null");
+    }
+    passes = config.passes;
+
+    /**
+     * 运行此pass
+     * @param {any} data
+     * @param {function(number, string):void} [progressCallback] - 进度回调函数, 参数为进度(0-100)和当前pass描述
+     * @returns {any} - 返回处理后的数据
+     */
+    this.run = function (data, progressCallback) {
+        let currentData = data;
+        for (let i = 0; i < passes.length; i++) {
+            if(progressCallback != null)
+                progressCallback(i / passes.length * 100, passes[i].description);
+            currentData = passes[i].run(currentData, (progress)=>{});
+            statistics[passes[i].name] = passes[i].getStatistics();
+        }
+        return currentData;
+    }
+
+    this.getStatistics = function () {
+        return statistics;
+    }
+}
+
+// function EstimateSemiTone
 
 // /**
 //  * @brief 随机添加漏音/按错按键/不小心碰到别的按键的情况, 伪装手工输入
@@ -1031,38 +1095,6 @@ function EstimateNoteDurationPass(config) {
 //     }
 // }
 
-
-
-
-function Passes() {
-    this.passes = new Array();
-    this.passes.push(NopPass);
-    this.passes.push(ParseSourceFilePass);
-    this.passes.push(MergeTracksPass);
-    this.passes.push(HumanifyPass);
-    this.passes.push(NoteToKeyPass);
-    this.passes.push(SingleKeyFrequencyLimitPass);
-    this.passes.push(MergeKeyPass);
-    this.passes.push(KeyToGesturePass);
-    this.passes.push(LimitBlankDurationPass);
-    this.passes.push(SkipIntroPass);
-    this.passes.push(NoteFrequencySoftLimitPass);
-    this.passes.push(SpeedChangePass);
-    this.passes.push(ChordNoteCountLimitPass);
-    this.passes.push(FoldFrequentSameNotePass);
-    this.passes.push(SplitLongNotePass);
-    this.passes.push(EstimateNoteDurationPass);
-
-    this.getPassByName = function (name) {
-        for (let i = 0; i < this.passes.length; i++) {
-            if (this.passes[i].name === name) {
-                return this.passes[i];
-            }
-        }
-        return null;
-    }
-}
-
 module.exports = {
     NopPass,
     ParseSourceFilePass,
@@ -1080,9 +1112,8 @@ module.exports = {
     FoldFrequentSameNotePass,
     SplitLongNotePass,
     EstimateNoteDurationPass,
+    SequentialPass,
 
-    SemiToneRoundingMode,
-    
-    Passes
+    SemiToneRoundingMode
 }
 

@@ -18,7 +18,7 @@ try {
     var FileChooser = require("./src/fileChooser.js");
     var { PlayerType, AutoJsGesturePlayer, SimpleInstructPlayer, SkyCotlLikeInstructPlayer } = require("./src/players.js");
     var configuration = require("./src/configuration.js");
-    var PassManager = require("./src/passManager.js");
+    var passes = require("./src/passes.js");
     var midiPitch = require("./src/midiPitch.js");
     var noteUtils = require("./src/noteUtils.js");
     var { ConfigurationUi, ConfigurationFlags } = require("./src/ui/config_ui.js");
@@ -501,31 +501,21 @@ function selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty) {
 function evalFileConfig(noteData, targetMajorPitchOffset, targetMinorPitchOffset) {
     //丢弃音调高的音符的代价要高于丢弃音调低的音符的代价, 因此权重要高
     const overFlowedNoteWeight = 5;
-    const passManager = new PassManager();
-    let overFlowedNoteCnt = 0;
-    let underFlowedNoteCnt = 0;
-    let outRangedNoteWeight = 0;
-    let roundedNoteCnt = 0;
 
-    passManager.reset();
-    passManager.addPass("NoteToKeyPass", {
+    const pass = new passes.NoteToKeyPass({
         majorPitchOffset: targetMajorPitchOffset,
         minorPitchOffset: targetMinorPitchOffset,
         semiToneRoundingMode: 0,
         currentGameProfile: gameProfile,
-    }, (progress) => { }, (data, statistics, elapsedTime) => {
-        console.log("生成按键耗时" + elapsedTime / 1000 + "秒");
-        overFlowedNoteCnt = statistics.overFlowedNoteCnt;
-        underFlowedNoteCnt = statistics.underFlowedNoteCnt;
-        outRangedNoteWeight = overFlowedNoteCnt * overFlowedNoteWeight + underFlowedNoteCnt;
-        roundedNoteCnt = statistics.roundedNoteCnt;
-    }).run(noteData);
+    });
+    pass.run(noteData, (progress) => { });
+    const stats = pass.getStatistics();
 
     return {
-        "outRangedNoteWeight": outRangedNoteWeight,
-        "overFlowedNoteCnt": overFlowedNoteCnt,
-        "underFlowedNoteCnt": underFlowedNoteCnt,
-        "roundedNoteCnt": roundedNoteCnt,
+        "outRangedNoteWeight": stats.overFlowedNoteCnt * overFlowedNoteWeight + stats.underFlowedNoteCnt,
+        "overFlowedNoteCnt": stats.overFlowedNoteCnt,
+        "underFlowedNoteCnt":  stats.underFlowedNoteCnt,
+        "roundedNoteCnt": stats.roundedNoteCnt,
         "totalNoteCnt": noteData.length,
     };
 }
@@ -557,8 +547,7 @@ function autoTuneFileConfig(fileName, trackDisableThreshold) {
     });
     dial.show();
 
-    const passManager = new PassManager();
-    let tracksData = /** @type {MusicFormats.TracksData} */ (passManager.addPass("ParseSourceFilePass").run(musicDir + fileName));
+    let tracksData = /** @type {MusicFormats.TracksData} */ (new passes.ParseSourceFilePass({}).run(musicDir + fileName));
     let noteData = new Array();
 
     //合并所有音轨. 
@@ -718,12 +707,11 @@ function runFileConfigSetup(fullFileName, onFinish, extFlags){
                     break;
                 case "selectTracks":
                     //这是主线程, 可以阻塞
-                    const passManager = new PassManager();
                     let dialog = dialogs.build({
                         title: "加载中...",
                         content: "正在加载数据...",
                     }).show();
-                    let tracksData = passManager.addPass("ParseSourceFilePass").run(musicDir + fileName);
+                    let tracksData = new passes.ParseSourceFilePass({}).run(musicDir + fileName);
                     dialog.dismiss();
                     let lastSelectedTracksNonEmpty = configuration.readFileConfigForTarget("lastSelectedTracksNonEmpty", rawFileName, gameProfile);
                     let result = selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty);
@@ -1602,16 +1590,11 @@ function loadMusicFile(fileName, loadType) {
     console.log("minorPitchOffset:" + minorPitchOffset);
     console.log("semiToneRoundingMode:" + semiToneRoundingMode);
 
-    const passManager = new PassManager();
-
     /////////////解析文件
     progressDialog.setContent("正在解析文件...");
-    let tracksData = passManager.addPass("ParseSourceFilePass", null, null, (data, statistics, elapsedTime) => {
-        console.log("解析文件耗时" + elapsedTime / 1000 + "秒");
-        if (debugDumpPass.indexOf("parse") != -1) debugDump(data, "parse");
-    }).run(musicDir + fileName);
-    passManager.reset();
-
+    // console.log("解析文件耗时" + elapsedTime / 1000 + "秒");
+    let tracksData = new passes.ParseSourceFilePass({}).run(musicDir + fileName);
+    if (debugDumpPass.indexOf("parse") != -1) debugDump(tracksData, "parse");
 
     /////////////选择音轨
     progressDialog.setContent("正在解析音轨...");
@@ -1651,114 +1634,110 @@ function loadMusicFile(fileName, loadType) {
     }
 
     //一些统计信息
-    let finalNoteCnt = 0, inputNoteCnt = 0, overFlowedNoteCnt = 0, underFlowedNoteCnt = 0, roundedNoteCnt = 0, droppedNoteCnt = 0;
-    inputNoteCnt = noteData.length;
+    let inputNoteCnt = noteData.length;
+
+    /**
+     * @type {Array<passes.Pass>}
+     */
+    let pipeline = [];
 
     progressDialog.setContent("正在伪装手弹...");
     //伪装手弹
     if (humanifyNoteAbsTimeStdDev > 0) {
-        passManager.addPass("HumanifyPass", {
+        pipeline.push(new passes.HumanifyPass({
             noteAbsTimeStdDev: humanifyNoteAbsTimeStdDev
-        }, null, () => {
-            progressDialog.setContent("正在生成按键...");
-        });
+        }));
     }
     //生成按键
-    passManager.addPass("NoteToKeyPass", {
+    pipeline.push(new passes.NoteToKeyPass({
         majorPitchOffset: majorPitchOffset,
         minorPitchOffset: minorPitchOffset,
         semiToneRoundingMode: semiToneRoundingMode,
         currentGameProfile: gameProfile,
-    }, (progress) => {
-        progressDialog.setProgress(progress);
-    }, (data, statistics, elapsedTime) => {
-        console.log("生成按键耗时" + elapsedTime / 1000 + "秒");
-        overFlowedNoteCnt = statistics.overFlowedNoteCnt;
-        underFlowedNoteCnt = statistics.underFlowedNoteCnt;
-        roundedNoteCnt = statistics.roundedNoteCnt;
-        progressDialog.setContent("正在优化按键...");
-    });
+    }));
+
     //单个按键频率限制
-    passManager.addPass("SingleKeyFrequencyLimitPass", {
+    pipeline.push(new passes.SingleKeyFrequencyLimitPass({
         minInterval: gameProfile.getSameKeyMinInterval()
-    }, null, (data, statistics, elapsedTime) => {
-        console.log("单键频率限制耗时" + elapsedTime / 1000 + "秒");
-        finalNoteCnt = data.length;
-        droppedNoteCnt = statistics.droppedNoteCnt;
-        progressDialog.setContent("正在合并按键...");
-    });
+    }));
+
     //跳过前奏
     if (readGlobalConfig("skipInit", true)) {
-        passManager.addPass("SkipIntroPass");
+        pipeline.push(new passes.SkipIntroPass({}));
     }
     //跳过中间的空白
     if (readGlobalConfig("skipBlank5s", true)) {
-        passManager.addPass("LimitBlankDurationPass"); //默认5秒
+        pipeline.push(new passes.LimitBlankDurationPass({})); //默认5秒
     }
     //变速
     if (speedMultiplier != 1) {
-        passManager.addPass("SpeedChangePass", {
+        pipeline.push(new passes.SpeedChangePass({
             speed: speedMultiplier
-        });
+        }));
     }
     //合并按键
-    passManager.addPass("MergeKeyPass", {
+    pipeline.push(new passes.MergeKeyPass({
         maxInterval: mergeThreshold * 1000,
-    }, null, (data, statistics, elapsedTime) => {
-        console.log("合并按键耗时" + elapsedTime / 1000 + "秒");
-        progressDialog.setContent("正在生成手势...");
-    });
+    }));
     //限制按键频率
     if (limitClickSpeedHz != 0) {
-        passManager.addPass("NoteFrequencySoftLimitPass", {
+        pipeline.push(new passes.NoteFrequencySoftLimitPass({
             minInterval: 1000 / limitClickSpeedHz
-        });
+        }));
     }
     //限制同时按键个数
     if (chordLimitEnabled) {
-        passManager.addPass("ChordNoteCountLimitPass", {
+        pipeline.push(new passes.ChordNoteCountLimitPass({
             maxNoteCount: maxSimultaneousNoteCount,
             limitMode: noteCountLimitMode,
             splitDelay: noteCountLimitSplitDelay,
             selectMode: chordSelectMode,
-        }, null, (data, statistics, elapsedTime) => {
-            console.log("限制同时按键个数: 耗时" + elapsedTime / 1000 + "秒");
-            progressDialog.setContent("正在生成手势...");
-        });
+        }));
     }
+
+    const sequential = new passes.SequentialPass({
+        passes: pipeline
+    });
+
+    const data = sequential.run(noteData, (progress, desc) => {
+        progressDialog.setProgress(progress);
+        progressDialog.setContent(desc + "...");
+    });
+
+    const stats = sequential.getStatistics();
+    console.log(JSON.stringify(stats));
 
     if (loadType != MusicLoaderDataType.GestureSequence) {
         //如果是导出乐谱,则不需要生成手势
-        let data = passManager.run(noteData);
         progressDialog.dismiss();
         return noteUtils.packNotes(data);
     }
 
     //加载可视化窗口
-    passManager.addPass("NopPass", null, null, (data, statistics, elapsedTime) => {
-        let layout = gameProfile.getKeyLayout()
-        if(layout.row == null || layout.column == null) return;
-        visualizer.setKeyLayout(layout.row, layout.column);
-        visualizer.loadNoteData(noteUtils.packNotes(data));
-        visualizer.goto(-1);
-    });
+    const layout = gameProfile.getKeyLayout()
+    if(layout.row == null || layout.column == null) return;
+    visualizer.setKeyLayout(layout.row, layout.column);
+    visualizer.loadNoteData(noteUtils.packNotes(data));
+    visualizer.goto(-1);
 
+    const finalNoteCnt = data.length;
     //生成手势
-    passManager.addPass("KeyToGesturePass", {
+    progressDialog.setContent("生成手势...");
+    const gestureTimeList = new passes.KeyToGesturePass({
         currentGameProfile: gameProfile,
         durationMode: noteDurationOutputMode,
         maxGestureDuration: maxGestureDuration,
         marginDuration: marginDuration,
         pressDuration: defaultClickDuration,
-    }, null, (data, statistics, elapsedTime) => {
-        console.log("生成手势耗时" + elapsedTime / 1000 + "秒");
-        progressDialog.dismiss();
-    });
-
-    let gestureTimeList = passManager.run(noteData);
+    }).run(data);
+    progressDialog.dismiss();
 
     //数据汇总
-    let outRangedNoteCnt = overFlowedNoteCnt + underFlowedNoteCnt;
+    const overFlowedNoteCnt = stats.NoteToKeyPass.overFlowedNoteCnt;
+    const underFlowedNoteCnt = stats.NoteToKeyPass.underFlowedNoteCnt;
+    const roundedNoteCnt = stats.NoteToKeyPass.roundedNoteCnt;
+    const droppedNoteCnt = stats.SingleKeyFrequencyLimitPass.droppedNoteCnt;
+    const outRangedNoteCnt = overFlowedNoteCnt + underFlowedNoteCnt;
 
     const statString = "音符总数:" + inputNoteCnt + " -> " + finalNoteCnt +
         "\n超出范围被丢弃的音符数:" + outRangedNoteCnt + "" + " (+" + overFlowedNoteCnt + ", -" + underFlowedNoteCnt + ")(" + (outRangedNoteCnt / inputNoteCnt * 100).toFixed(2) + "%)" +
