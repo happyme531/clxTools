@@ -459,7 +459,19 @@ function selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty) {
             avgPitch += track.notes[j][0];
         }
         avgPitch /= track.notes.length;
-        trackInfoStrs.push(track.name + " (" + track.noteCount + "个音符, 平均音高" + avgPitch.toFixed(1) + ")");
+        let str = track.name + " (" + track.noteCount + "个音符, 平均音高" + avgPitch.toFixed(1);
+        if (track.notes[i][2].velocity != null) {
+            let avgVelocity = 0;
+            for (let j = 0; j < track.notes.length; j++) {
+                avgVelocity += track.notes[j][2].velocity;
+            }
+            avgVelocity /= track.notes.length;
+            avgVelocity *= 100;
+            str += ", 力度" + avgVelocity.toFixed(0) + "%";
+        }
+        str += ")";
+        trackInfoStrs.push(str);
+
     }
     let selectedTracksNonEmpty = /** @type {Number[]} */ (dialogs.multiChoice("选择音轨", trackInfoStrs, lastSelectedTracksNonEmpty));
     if (selectedTracksNonEmpty.length == 0) { //取消选择, 保持原样

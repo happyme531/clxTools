@@ -120,7 +120,8 @@ function MidiParser() {
                 let time = noteOn.getTotalTime() * usperTick / 1000;
                 let duration = noteOff.getTotalTime() * usperTick / 1000 - time;
                 tracksData[i].notes.push([key, time, {
-                    "duration": duration
+                    "duration": duration,
+                    "velocity": noteOn.getVelocity() / 127
                 }]);
                 tracksData[i].noteCount++;
             }

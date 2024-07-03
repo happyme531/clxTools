@@ -14,7 +14,8 @@ function ToneJsJSONParser() {
             for (let j = 0; j < track.notes.length; j++) {
                 let note = track.notes[j];
                 notes.push([note.midi, note.time * 1000, {
-                    "duration": note.duration * 1000
+                    "duration": note.duration * 1000,
+                    "velocity": note.velocity
                 }]);
             }
             tracksData.push({
