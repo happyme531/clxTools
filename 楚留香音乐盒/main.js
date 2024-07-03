@@ -472,33 +472,40 @@ function selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty) {
  * @param {noteUtils.Note[]} noteData
  * @param {number} targetMajorPitchOffset
  * @param {number} targetMinorPitchOffset
+ * @param {GameProfile} gameProfile
  * @brief 测试配置效果 
  * @return {{
- * "outRangedNoteWeight": number,
- * "overFlowedNoteCnt": number,
- * "underFlowedNoteCnt": number,
- * "roundedNoteCnt": number,
- * "totalNoteCnt": number,
- * }}
- */
-function evalFileConfig(noteData, targetMajorPitchOffset, targetMinorPitchOffset) {
+* "outRangedNoteWeight": number,
+* "overFlowedNoteCnt": number,
+* "underFlowedNoteCnt": number,
+* "roundedNoteCnt": number,
+* "totalNoteCnt": number,
+* }}
+*/
+function evalFileConfig(noteData, targetMajorPitchOffset, targetMinorPitchOffset, gameProfile) {
     //丢弃音调高的音符的代价要高于丢弃音调低的音符的代价, 因此权重要高
     const overFlowedNoteWeight = 5;
 
-    const pass = new passes.NoteToKeyPass({
-        majorPitchOffset: targetMajorPitchOffset,
-        minorPitchOffset: targetMinorPitchOffset,
-        semiToneRoundingMode: 0,
-        currentGameProfile: gameProfile,
+    const pass = new passes.SequentialPass({
+        passes: [
+            new passes.PitchOffsetPass({
+                offset: targetMajorPitchOffset * 12 + targetMinorPitchOffset
+            }),
+            new passes.LegalizeTargetNoteRangePass({
+                currentGameProfile: gameProfile,
+                semiToneRoundingMode: passes.SemiToneRoundingMode.floor
+            })
+        ]
     });
-    pass.run(noteData, (progress) => { });
+    let data = JSON.parse(JSON.stringify(noteData));
+    pass.run(data, (progress) => {});
     const stats = pass.getStatistics();
 
     return {
-        "outRangedNoteWeight": stats.overFlowedNoteCnt * overFlowedNoteWeight + stats.underFlowedNoteCnt,
-        "overFlowedNoteCnt": stats.overFlowedNoteCnt,
-        "underFlowedNoteCnt":  stats.underFlowedNoteCnt,
-        "roundedNoteCnt": stats.roundedNoteCnt,
+        "outRangedNoteWeight": stats.LegalizeTargetNoteRangePass.overFlowedNoteCnt * overFlowedNoteWeight + stats.LegalizeTargetNoteRangePass.underFlowedNoteCnt,
+        "overFlowedNoteCnt": stats.LegalizeTargetNoteRangePass.overFlowedNoteCnt,
+        "underFlowedNoteCnt": stats.LegalizeTargetNoteRangePass.underFlowedNoteCnt,
+        "roundedNoteCnt": stats.LegalizeTargetNoteRangePass.roundedNoteCnt,
         "totalNoteCnt": noteData.length,
     };
 }
@@ -510,7 +517,6 @@ function evalFileConfig(noteData, targetMajorPitchOffset, targetMinorPitchOffset
  * @returns 
  */
 function autoTuneFileConfig(fileName, trackDisableThreshold) {
-
     //悬浮窗提示
     let dial = dialogs.build({
         title: "调整中...",
@@ -546,7 +552,7 @@ function autoTuneFileConfig(fileName, trackDisableThreshold) {
         for (let i = 0; i < tracksData.trackCount; i++) {
             let track = tracksData.tracks[i];
             let playableNoteCnt = 0;
-            let result = evalFileConfig(track.notes, stats.bestOctaveOffset, stats.bestSemiToneOffset);
+            let result = evalFileConfig(track.notes, stats.bestOctaveOffset, stats.bestSemiToneOffset, gameProfile);
             playableNoteCnt = track.notes.length - result.overFlowedNoteCnt - result.underFlowedNoteCnt;
             trackPlayableNoteRatio.push([i, playableNoteCnt / track.notes.length]);
         }
@@ -1568,14 +1574,14 @@ function loadMusicFile(fileName, loadType) {
             noteAbsTimeStdDev: humanifyNoteAbsTimeStdDev
         }));
     }
-    //生成按键
-    pipeline.push(new passes.NoteToKeyPass({
-        majorPitchOffset: majorPitchOffset,
-        minorPitchOffset: minorPitchOffset,
+    //转换成目标游戏的音域
+    pipeline.push(new passes.PitchOffsetPass({
+        offset: majorPitchOffset * 12 + minorPitchOffset
+    }));
+    pipeline.push(new passes.LegalizeTargetNoteRangePass({
         semiToneRoundingMode: semiToneRoundingMode,
         currentGameProfile: gameProfile,
     }));
-
     //单个按键频率限制
     pipeline.push(new passes.SingleKeyFrequencyLimitPass({
         minInterval: gameProfile.getSameKeyMinInterval()
@@ -1614,6 +1620,10 @@ function loadMusicFile(fileName, loadType) {
             selectMode: chordSelectMode,
         }));
     }
+    //转换为按键
+    pipeline.push(new passes.NoteToKeyPass({
+        currentGameProfile: gameProfile
+    }));
 
     const sequential = new passes.SequentialPass({
         passes: pipeline
@@ -1654,9 +1664,9 @@ function loadMusicFile(fileName, loadType) {
 
     //数据汇总
     const inputNoteCnt = stats.ParseSourceFilePass.totalNoteCnt;
-    const overFlowedNoteCnt = stats.NoteToKeyPass.overFlowedNoteCnt;
-    const underFlowedNoteCnt = stats.NoteToKeyPass.underFlowedNoteCnt;
-    const roundedNoteCnt = stats.NoteToKeyPass.roundedNoteCnt;
+    const overFlowedNoteCnt = stats.LegalizeTargetNoteRangePass.overFlowedNoteCnt;
+    const underFlowedNoteCnt = stats.LegalizeTargetNoteRangePass.underFlowedNoteCnt;
+    const roundedNoteCnt = stats.LegalizeTargetNoteRangePass.roundedNoteCnt;
     const droppedNoteCnt = stats.SingleKeyFrequencyLimitPass.droppedNoteCnt;
     const outRangedNoteCnt = overFlowedNoteCnt + underFlowedNoteCnt;
 
