@@ -1283,6 +1283,31 @@ function main() {
         midiInputStreamReloadSettings = true;
         let octaveOffset = 0;
         let semiToneOffset = 0;
+        //"伪延音", 用于在串流时模拟延音效果
+        let fakeSustainInterval = 0;
+        let pressedKeysList = new java.util.concurrent.CopyOnWriteArrayList(); //线程安全
+        const keyCount = gameProfile.getAllKeyPositions().length;
+        for (let i = 0; i < keyCount; i++) {
+            pressedKeysList.add(false);
+        }
+        const fakeSustainThread = threads.start(function () {
+            while (true) {
+                while(fakeSustainInterval == 0) sleep(500);
+                let gestureList = new Array();
+                for (let j = 0; j < keyCount; j++) { 
+                    if(pressedKeysList.get(j).booleanValue()){  //坑哦, Java那边的Boolean没办法直接用
+                        gestureList.push([0, 5, gameProfile.getKeyPosition(j)]);
+                    }
+                };
+                if (gestureList.length > 10) gestureList.splice(9, gestureList.length - 10); //手势最多同时只能执行10个
+                if (gestureList.length != 0) {
+                    for (let player of selectedPlayers)
+                        player.exec(gestureList);
+                };
+                sleep(fakeSustainInterval * 0.8 + Math.random() * fakeSustainInterval * 0.4); //改成正态分布?
+            }
+        });
+
         stream.onDataReceived(function (datas) {
             const STATUS_COMMAND_MASK = 0xF0;
             const STATUS_CHANNEL_MASK = 0x0F;
@@ -1293,6 +1318,7 @@ function main() {
                 midiInputStreamReloadSettings = false;
                 octaveOffset = configuration.readGlobalConfig("MIDIInputStreaming_majorPitchOffset", 0);
                 semiToneOffset = configuration.readGlobalConfig("MIDIInputStreaming_minorPitchOffset", 0);
+                fakeSustainInterval = configuration.readGlobalConfig("MIDIInputStreaming_fakeSustainInterval", 0);
             }
 
             let keyList = new Array();
@@ -1300,8 +1326,18 @@ function main() {
                 let cmd = data[0] & STATUS_COMMAND_MASK;
                 if (cmd == STATUS_NOTE_ON && data[2] != 0) { // velocity != 0
                     let key = gameProfile.getKeyByPitch(data[1] + semiToneOffset + octaveOffset * 12);
-                    if (key != -1 && keyList.indexOf(key) === -1) keyList.push(key);
+                    if (key != -1 && keyList.indexOf(key) === -1){
+                        keyList.push(key);
+                        pressedKeysList.set(key, true);
+                        console.verbose("start key:" + key);
+                    }
                     midiInputStreamingNoteCount++;
+                }else if (cmd == STATUS_NOTE_OFF || data[2] == 0) {
+                    let key = gameProfile.getKeyByPitch(data[1] + semiToneOffset + octaveOffset * 12);
+                    if (key != -1){
+                        pressedKeysList.set(key, false);
+                        console.verbose("end key:" + key);
+                    }
                 }
             }
             let gestureList = new Array();
@@ -1315,11 +1351,13 @@ function main() {
                 for (let player of selectedPlayers)
                     player.exec(gestureList);
             };
+
         });
         evt.on("hideBtnClick", () => {
             stream.close();
             controlWindowVisible = false;
             controlWindowSetVisibility(false);
+            fakeSustainThread.interrupt();
         });
     });
     evt.on("pauseResumeBtnLongClick", () => {
@@ -1505,6 +1543,8 @@ function main() {
             return true;
         });
     fb.show();
+    
+    // controlWindowSetVisibility(true)  //方便调试
 }
 
 

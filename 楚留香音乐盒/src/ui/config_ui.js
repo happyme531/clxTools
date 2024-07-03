@@ -1272,6 +1272,56 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
             name: "range",
             view: view_range
         });
+
+        let view_fakeSustain = ui.inflate(<vertical>
+            <text text="伪装长音:" textColor="red" />
+            <horizontal w="*">
+                <text text="使用连续点击伪装长音: " />
+                <checkbox id="fakeSustainEnabledCheckbox" />
+            </horizontal>
+            <vertical id="fakeSustainSettingContainer">
+                <horizontal w="*">
+                    <text text="连续点击速度: " />
+                    <text text="default次/秒" id="fakeSustainIntervalValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                </horizontal>
+                <seekbar id="fakeSustainIntervalSeekbar" w="*" max="1000" layout_gravity="center" />
+            </vertical>
+        </vertical>
+        );
+
+        let fakeSustainInterval = configuration.readGlobalConfig("MIDIInputStreaming_fakeSustainInterval", 0);
+        view_fakeSustain.fakeSustainEnabledCheckbox.setChecked(fakeSustainInterval != 0);
+        view_fakeSustain.fakeSustainSettingContainer.setVisibility(fakeSustainInterval != 0 ? View.VISIBLE : View.GONE);
+        view_fakeSustain.fakeSustainIntervalValueText.setText((1000 / fakeSustainInterval).toFixed(2) + "次/秒");
+        view_fakeSustain.fakeSustainIntervalSeekbar.setProgress(numberMap(1000 / fakeSustainInterval, 1, 20));
+
+        view_fakeSustain.fakeSustainEnabledCheckbox.setOnCheckedChangeListener(function (button, checked) {
+            anythingChanged = true;
+            view_fakeSustain.fakeSustainSettingContainer.setVisibility(checked ? View.VISIBLE : View.GONE);
+            let progress = view_fakeSustain.fakeSustainIntervalSeekbar.getProgress();
+            let value = numberRevMap(progress, 1, 20);
+            configuration.setGlobalConfig("MIDIInputStreaming_fakeSustainInterval", checked ? value : 0);
+        });
+        view_fakeSustain.fakeSustainIntervalSeekbar.setOnSeekBarChangeListener({
+            onProgressChanged: function (seekbar, progress, fromUser) {
+                if (progress == undefined) return;
+                let value = numberRevMap(progress, 1, 20);
+                view_fakeSustain.fakeSustainIntervalValueText.setText(value.toFixed(2) + "次/秒");
+                return true;
+            },
+            onStartTrackingTouch: function (seekbar) { },
+            onStopTrackingTouch: function (seekbar) {
+                if (!view_fakeSustain.fakeSustainEnabledCheckbox.isChecked()) return;
+                anythingChanged = true;
+                let value = 1000 / numberRevMap(seekbar.getProgress(), 1, 20);
+                configuration.setGlobalConfig("MIDIInputStreaming_fakeSustainInterval", value);
+            }
+        });
+
+        this.fragments.push({
+            name: "fakeSustain",
+            view: view_fakeSustain
+        });
     }
 
 
