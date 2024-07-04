@@ -805,6 +805,55 @@ function getTargetTriple() {
     return configName + " " + variantName + " " + keyTypeName;
 }
 
+/**
+ * @brief 校准全屏画布的偏移量
+ * @param {string} [prompt] 提示文本, 默认: "点击任意位置继续..."
+ * @returns {[number, number]} 返回偏移量
+ */
+function calibrateFullScreenCanvasOffset(prompt){
+    let promptText = "点击任意位置继续...";
+    if (prompt != null) {
+        promptText = prompt;
+    }
+    let finish = false;
+    let offset = [0,0];
+    const fullScreenWindow = floaty.rawWindow(<canvas id="canv" w="*" h="*" />);
+    fullScreenWindow.setTouchable(true);
+    fullScreenWindow.setSize(-1, -1);
+    fullScreenWindow.canv.setOnTouchListener(function (v, evt) {
+        if (evt.getAction() == evt.ACTION_DOWN) {
+            finish = true;
+            const screenPos = [parseInt(evt.getRawX().toFixed(0)), parseInt(evt.getRawY().toFixed(0))];
+            const windowPos = [parseInt(evt.getX().toFixed(0)), parseInt(evt.getY().toFixed(0))];
+            offset = [screenPos[0] - windowPos[0], screenPos[1] - windowPos[1]];
+        }
+        return true;
+    });
+    fullScreenWindow.canv.on("draw", function (canvas) {
+        while(finish) sleep(50);
+        const Color = android.graphics.Color;
+        const PorterDuff = android.graphics.PorterDuff;
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+        //绘制灰色背景
+        canvas.drawARGB(80, 0, 0, 0);
+        //在正中央绘制提示
+        const paint = new Paint();
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setARGB(255, 255, 255, 255);
+        paint.setTextSize(50);
+        canvas.drawText(promptText, canvas.getWidth() / 2, canvas.getHeight() / 2, paint);
+    });
+    while (!finish) {
+        sleep(100);
+    }
+    sleep(100);
+    fullScreenWindow.close();
+    console.log("偏移量: " + offset);
+    //@ts-ignore
+    return offset;
+}
+
+
 
 /////////
 //主程序//
@@ -1329,14 +1378,12 @@ function main() {
                     if (key != -1 && keyList.indexOf(key) === -1){
                         keyList.push(key);
                         pressedKeysList.set(key, true);
-                        console.verbose("start key:" + key);
                     }
                     midiInputStreamingNoteCount++;
                 }else if (cmd == STATUS_NOTE_OFF || data[2] == 0) {
                     let key = gameProfile.getKeyByPitch(data[1] + semiToneOffset + octaveOffset * 12);
                     if (key != -1){
                         pressedKeysList.set(key, false);
-                        console.verbose("end key:" + key);
                     }
                 }
             }
@@ -1391,6 +1438,7 @@ function main() {
             instructWindow = null;
         }
         selectedPlayers = [];
+        let autoStartPlaying = false;
         switch (selectedPlayerTypes[0]) { //FIXME:
             case PlayerType.AutoJsGesturePlayer:
                 selectedPlayers.push(new AutoJsGesturePlayer());
@@ -1417,7 +1465,14 @@ function main() {
                 }else{
                     throw new Error("未知的播放器类型: " + selectedPlayerTypes);
                 }
-                impl.setKeyPositions(gameProfile.getAllKeyPositions());
+                autoStartPlaying = true;
+                const offset = calibrateFullScreenCanvasOffset();
+                let keyPositions = JSON.parse(JSON.stringify(gameProfile.getAllKeyPositions()));
+                for (let keyPos of keyPositions) {
+                    keyPos[0] -= offset[0];
+                    keyPos[1] -= offset[1];
+                }
+                impl.setKeyPositions(keyPositions);
                 impl.setKeyRadius(gameProfile.getPhysicalMinKeyDistance() * 0.3 * configuration.readGlobalConfig("SimpleInstructPlayer_MarkSize", 1));
                 //创建全屏悬浮窗. 也许不需要全屏?
                 instructWindow = floaty.rawWindow(<canvas id="canv" w="*" h="*" />);
@@ -1468,6 +1523,8 @@ function main() {
         for (let player of selectedPlayers) {
             player.start();
             player.pause();
+            if(autoStartPlaying)
+                player.resume();
             currentGestureIndex = 0;
         }
     });
