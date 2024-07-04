@@ -1,7 +1,9 @@
 function getPosInteractive(promptText) {
     let gotPos = false;
     //pos[0] 宽, pos[1] 高
-    let pos = [];
+    let pos = [0, 0];
+    //悬浮窗内部坐标
+    let windowPos = [0, 0];
     let fingerReleased = false;
     let confirmed = false;
     let fullScreenWindowRequestClose = false;
@@ -30,6 +32,7 @@ function getPosInteractive(promptText) {
         if (evt.getAction() == evt.ACTION_DOWN || evt.getAction() == evt.ACTION_MOVE) {
             gotPos = true;
             pos = [parseInt(evt.getRawX().toFixed(0)), parseInt(evt.getRawY().toFixed(0))];
+            windowPos = [parseInt(evt.getX().toFixed(0)), parseInt(evt.getY().toFixed(0))];
         }
         if (evt.getAction() == evt.ACTION_UP) {
             fingerReleased = true;
@@ -42,8 +45,6 @@ function getPosInteractive(promptText) {
         const PorterDuff = android.graphics.PorterDuff;
         const w = canvas.getWidth();
         const h = canvas.getHeight();
-        const woffset = deviceWidth - w; //长边的偏移量
-        const hoffset = deviceHeight - h; //短边的偏移量
         const centerCircleRadius = 10;
         let paint = new Paint();
         if (canvasDebugCounter != -1 && canvasDebugCounter < 60) {
@@ -51,7 +52,6 @@ function getPosInteractive(promptText) {
         } else if (canvasDebugCounter == 60) {
             console.log("canvas [长,短] = [" + w + "," + h + "]");
             console.log("device [长,短] = [" + deviceWidth + "," + deviceHeight + "]");
-            console.log("offset [长,短] = [" + woffset + "," + hoffset + "]");
             canvasDebugCounter = -1;
         }
 
@@ -62,12 +62,12 @@ function getPosInteractive(promptText) {
             paint.setStrokeWidth(2);
             paint.setARGB(255, 255, 255, 255);
             paint.setStyle(Paint.Style.STROKE);
-            canvas.drawLine(0, pos[1] - hoffset, w, pos[1] - hoffset, paint);
-            canvas.drawLine(pos[0] - woffset, 0, pos[0] - woffset, h, paint);
+            canvas.drawLine(0, windowPos[1], w, windowPos[1], paint);
+            canvas.drawLine(windowPos[0], 0, windowPos[0], h, paint);
 
             //中心画一个空心圆
             paint.setStyle(Paint.Style.STROKE);
-            canvas.drawCircle(pos[0] - woffset, pos[1] - hoffset, centerCircleRadius, paint);
+            canvas.drawCircle(windowPos[0], windowPos[1], centerCircleRadius, paint);
         }
         if (fullScreenWindowRequestClose)
             sleep(1000);
@@ -98,7 +98,7 @@ function getPosInteractive(promptText) {
             } else if (!fingerReleased) {
                 confirmWindow.promptText.setText("当前坐标:" + pos.toString());
             } else {
-                confirmWindow.promptText.setText("当前坐标:" + pos.toString() + ", 点击'确定'结束, 点击'取消'重新获取(坐标不准? 把手机转180度再试)");  //TODO: 修这个bug
+                confirmWindow.promptText.setText("当前坐标:" + pos.toString() + ", 点击'确定'结束, 点击'取消'重新获取");
             }
         });
     }
