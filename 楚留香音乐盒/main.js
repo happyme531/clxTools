@@ -1545,7 +1545,7 @@ function main() {
                     progressChanged = false;
                     let targetTimeSec = totalTimeSec * progress / 100;
                     for (let j = 0; j < musicFileData.length; j++) {
-                        if (musicFileData[j][1] > targetTimeSec) {
+                        if (musicFileData[j][1] > targetTimeSec * 1000) {
                             currentGestureIndex = j - 1;
                             break;
                         }
