@@ -932,26 +932,28 @@ function main() {
      * @type {any}
      */
     let controlWindow = floaty.window(
-        <frame gravity="left|top" w="*" h="auto" margin="0dp" id="controlWindowFrame" visibility="gone">
-            <vertical bg="#8fffffff" w="*" h="auto" margin="0dp">
-                <horizontal w="*" h="auto" margin="0dp">
-                    <text id="musicTitleText" bg="#9ff0f0f4" text="(未选择乐曲...)" ellipsize="marquee" singleLine="true" layout_gravity="left" textSize="14sp" margin="0 0 3 0" layout_weight="1" />
-                    <text id="timerText" bg="#9ffce38a" text="00:00/00:00" layout_gravity="right" textSize="14sp" margin="3 0 3 0" layout_weight="0" layout_width="78sp" layout_height="match_parent" />
-                    <button id="hideBtn" style="Widget.AppCompat.Button.Borderless" w="20dp" layout_height='20dp' text="➖" textSize="14sp" margin="0dp" padding="0dp" />
-                </horizontal>
-                <horizontal w="*" h="auto" margin="0dp">
-                    <seekbar id="progressBar" layout_gravity="center_vertical" layout_weight="1" w='0dp' h='auto' margin="3dp 0dp" padding="5dp" />
-                </horizontal>
-                <horizontal bg="#fce38a" w="*" h="auto" margin="0dp" gravity="center">
-                    <button id="fileSelectionMenuBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="📁" textSize="20sp" margin="0dp" padding="0dp" />
-                    <button id="currentFileConfigBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="🎹" textSize="20sp" margin="0dp" padding="0dp" />
-                    <button id="prevBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="⏮" textSize="20sp" margin="0dp" padding="0dp" />
-                    <button id="pauseResumeBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="▶️" textSize="20sp" margin="0dp" padding="0dp" />
-                    <button id="nextBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="⏭" textSize="20sp" margin="0dp" padding="0dp" />
-                    <button id="globalConfigBtn" style="Widget.AppCompat.Button.Borderless" w="30dp" h='30dp' text="⚙" textSize="20sp" margin="0dp" padding="0dp" />
-                </horizontal>
-            </vertical>
-        </frame>
+        <card elevation="0dp" cornerRadius="12dp" margin="4dp" cardBackgroundColor="#CCFFFFFF" id="controlWindowFrame" visibility="gone">
+            <frame background="#00FFFFFF" w="*" h="*">
+                <vertical padding="8dp">
+                    <horizontal marginBottom="4dp">
+                        <text id="musicTitleText" text="未选择乐曲..." textColor="#333333" textSize="14sp" maxLines="1" ellipsize="end" layout_weight="1" />
+                        <text id="timerText" text="00:00/00:00" textColor="#666666" textSize="12sp" marginLeft="4dp" />
+                        <button id="hideBtn" style="Widget.AppCompat.Button.Borderless" w="20dp" h='20dp' text="—" textSize="14sp" margin="0dp" padding="0dp" />
+                    </horizontal>
+                    
+                    <seekbar id="progressBar" style="@style/Widget.AppCompat.SeekBar" layout_width="match_parent" layout_height="wrap_content" progressTint="#4CAF50" thumbTint="#4CAF50" />
+                    
+                    <horizontal gravity="center" marginTop="4dp">
+                        <button id="fileSelectionMenuBtn" style="Widget.AppCompat.Button.Borderless" w="28dp" h='28dp' text="📁" textSize="18sp" margin="0dp" padding="0dp" />
+                        <button id="currentFileConfigBtn" style="Widget.AppCompat.Button.Borderless" w="28dp" h='28dp' text="🎹" textSize="18sp" margin="0dp" padding="0dp" />
+                        <button id="prevBtn" style="Widget.AppCompat.Button.Borderless" w="28dp" h='28dp' text="⏮" textSize="18sp" margin="0dp" padding="0dp" />
+                        <button id="pauseResumeBtn" style="Widget.AppCompat.Button.Borderless" w="28dp" h='28dp' text="▶️" textSize="18sp" margin="0dp" padding="0dp" />
+                        <button id="nextBtn" style="Widget.AppCompat.Button.Borderless" w="28dp" h='28dp' text="⏭" textSize="18sp" margin="0dp" padding="0dp" />
+                        <button id="globalConfigBtn" style="Widget.AppCompat.Button.Borderless" w="28dp" h='28dp' text="⚙" textSize="18sp" margin="0dp" padding="0dp" />
+                    </horizontal>
+                </vertical>
+            </frame>
+        </card>
     );
     let controlWindowVisible = false;
     /**
@@ -1601,7 +1603,7 @@ function main() {
         });
     fb.show();
     
-    // controlWindowSetVisibility(true)  //方便调试
+    controlWindowSetVisibility(true)  //方便调试
 }
 
 
