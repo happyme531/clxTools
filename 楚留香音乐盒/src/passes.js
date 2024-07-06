@@ -324,6 +324,34 @@ function LegalizeTargetNoteRangePass(config) {
 }
 
 /**
+ * @brief 将每个音符的当前时间(ms)存储在属性中
+ * @typedef {Object} StoreCurrentNoteTimePassConfig
+ * @param {StoreCurrentNoteTimePassConfig} [config]
+ */
+function StoreCurrentNoteTimePass(config) {
+    this.name = "StoreCurrentNoteTimePass";
+    this.description = "将音符当前时间存储在属性中";
+
+    const attributeName = "originalTime";
+
+    /**
+     * 运行此pass
+     * @param {noteUtils.NoteLike[]} noteData - 音乐数据
+     * @param {function(number):void} [progressCallback] - 进度回调函数，参数为进度(0-100)
+     * @returns {noteUtils.NoteLike[]} - 返回处理后的数据
+     */
+    this.run = function (noteData, progressCallback) {
+        noteData.forEach((note, index) => {
+            note[2][attributeName] = note[1];
+        });
+        return noteData;
+    };
+
+    this.getStatistics = function () {
+    };
+}
+
+/**
  * @brief 将音符数组转换为对应游戏的按键数组
  * @typedef {Object} NoteToKeyPassConfig
  * @property {GameProfile} currentGameProfile - 当前游戏配置
@@ -1095,7 +1123,67 @@ function RemoveEmptyTracksPass(config) {
     }
 }
 
+/**
+ * @brief 将歌词绑定到最近的音符上
+ * @typedef {Object} BindLyricsPassConfig
+ * @property {import('./frontend/lrc').LyricLine[]} lyrics - 歌词数组
+ * @property {boolean} [useStoredOriginalTime] - 是否使用音符的原始时间, 默认为false
+ * @param {BindLyricsPassConfig} config
+ */
+function BindLyricsPass(config) {
+    this.name = "BindLyricsPass";
+    this.description = "将歌词绑定到最近的音符上";
 
+    let lyrics = config.lyrics;
+
+    if (!lyrics || !Array.isArray(lyrics)) {
+        throw new Error("lyrics is null or not an array");
+    }
+
+    let useStoredOriginalTime = false;
+    if (config.useStoredOriginalTime != null) {
+        useStoredOriginalTime = config.useStoredOriginalTime;
+    }
+
+    let totalErrorMs = 0;
+
+    /**
+     * 运行此pass
+     * @param {noteUtils.NoteLike[]} noteData - 音乐数据
+     * @param {function(number):void} [progressCallback] - 进度回调函数，参数为进度(0-100)
+     * @returns {noteUtils.NoteLike[]} - 返回处理后的数据
+     */
+    this.run = function (noteData, progressCallback) {
+        let noteDataCopy = [];
+        if (useStoredOriginalTime) {
+            for (let note of noteData) {
+                noteDataCopy.push([note[0], note[2].originalTime, note[2]]);
+            }
+        } else {
+            noteDataCopy = noteData;
+        }
+        for (let i = 0; i < lyrics.length; i++) {
+            let lyric = lyrics[i];
+            //@ts-ignore
+            let noteIndex = noteUtils.findChordStartAtTime(noteDataCopy, lyric.time);
+            let existingLyric = noteData[noteIndex][2]["lyric"];
+            if (existingLyric == null || existingLyric == "") {
+                noteData[noteIndex][2]["lyric"] = lyric.text;
+            }else{
+                noteData[noteIndex][2]["lyric"] = existingLyric + "\n" + lyric.text;
+            }
+            totalErrorMs += Math.abs(noteDataCopy[noteIndex][1] - lyric.time);
+        }
+        return noteData;
+    };
+
+    this.getStatistics = function () {
+        return {
+            "totalError": totalErrorMs
+        };
+    };
+}
+  
 /**
  * @brief 推断最佳的音高偏移量
  * @typedef {Object} InferPitchOffsetPassConfig
@@ -1343,6 +1431,8 @@ module.exports = {
     ChordNoteCountLimitPass,
     FoldFrequentSameNotePass,
     SplitLongNotePass,
+    StoreCurrentNoteTimePass,
+    BindLyricsPass,
     EstimateNoteDurationPass,
     InferBestPitchOffsetPass,
     RemoveEmptyTracksPass,

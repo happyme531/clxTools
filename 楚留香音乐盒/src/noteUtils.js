@@ -85,7 +85,7 @@ function NoteUtils() {
      * @returns {Array<NoteLike>} - 返回删除后的音符数据
      */
     this.softDeleteNoteAt = function (noteData, index) {
-        if(noteData[index][2] == undefined){
+        if (noteData[index][2] == undefined) {
             noteData[index][2] = {};
         }
         //@ts-ignore
@@ -113,7 +113,7 @@ function NoteUtils() {
      * @returns {Array<NoteLike>} - 返回更改后的音符数据
      */
     this.softChangeNoteTimeAt = function (noteData, index, time) {
-        if(noteData[index][2] == undefined){
+        if (noteData[index][2] == undefined) {
             noteData[index][2] = {};
         }
         //@ts-ignore
@@ -205,11 +205,89 @@ function NoteUtils() {
             keys.forEach((key) => {
                 keyArray.push(key[0]);
                 attributes.push(key[2]);
+                if(key[2].lyric != undefined) {
+                    attributes[0].lyric = key[2].lyric;
+                    // console.verbose("lyric: " + JSON.stringify(attributes));
+                    // key[2].lyric = undefined;
+                }
             });
             packedNoteData.push([keyArray, time, attributes]);
         }
         //@ts-ignore
         return packedNoteData;
+    }
+
+    /**
+     * @brief 查找给定时间最接近的一组音符的起始索引
+     * @param {Array<NoteLike>} noteData - 音乐数据
+     * @param {number} timems - 目标时间（毫秒）
+     * @returns {number} - 返回最接近的一组音符的起始索引
+     */
+    this.findChordStartAtTime = function (noteData, timems) {
+        const eps = 1; // 1ms 阈值
+
+        // 二分查找
+        let left = 0;
+        let right = noteData.length - 1;
+
+        while (left <= right) {
+            let mid = Math.floor((left + right) / 2);
+            if (noteData[mid][1] === timems) {
+                // 找到精确匹配，现在向前查找该组的第一个音符
+                while (mid > 0 && Math.abs(noteData[mid][1] - noteData[mid - 1][1]) <= eps) {
+                    mid--;
+                }
+                return mid;
+            } else if (noteData[mid][1] < timems) {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+
+        // 没有找到精确匹配，left 是插入点
+        if (left >= noteData.length) {
+            // 如果 timems 大于所有音符的时间，返回最后一组音符的起始索引
+            let lastIndex = noteData.length - 1;
+            while (lastIndex > 0 && Math.abs(noteData[lastIndex][1] - noteData[lastIndex - 1][1]) <= eps) {
+                lastIndex--;
+            }
+            return lastIndex;
+        }
+
+        if (left === 0) {
+            // 如果 timems 小于所有音符的时间，返回第一个音符的索引
+            return 0;
+        }
+
+        // 检查 left-1 和 left 哪个更接近 timems
+        if (Math.abs(noteData[left - 1][1] - timems) <= Math.abs(noteData[left][1] - timems)) {
+            // left-1 更接近
+           left--;
+        }
+
+        while (left > 0 && Math.abs(noteData[left][1] - noteData[left - 1][1]) <= eps) {
+            left--;
+        }
+        return left;
+    }
+
+    /**
+     * @brief 获取"可转移"的属性, 如果原音符被删除, 这些属性应该被转移到新音符上。
+     * @param {NoteLike} note - 音符
+     * @returns {Object.<string,Object>?} - 返回"可转移"的属性, 如果没有则返回null
+     */
+    this.getTransferableAttributes = function (note) {
+        let transferableAttributes = {};
+        for (let key in note[2]) {
+            if (key == "lyric") {
+                transferableAttributes[key] = note[2][key];
+            }
+        }
+        if (Object.keys(transferableAttributes).length === 0) {
+            return null;
+        }
+        return transferableAttributes;
     }
 }
 

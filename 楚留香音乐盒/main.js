@@ -21,6 +21,7 @@ try {
     var passes = require("./src/passes.js");
     var midiPitch = require("./src/midiPitch.js");
     var noteUtils = require("./src/noteUtils.js");
+    var LrcParser = require("./src/frontend/lrc.js")
     var { ConfigurationUi, ConfigurationFlags } = require("./src/ui/config_ui.js");
     /**
      * @type {import("../shared/FloatButton/FloatButton.js")}
@@ -908,6 +909,8 @@ function main() {
 
     let titleStr = "当前配置: " + getTargetTriple();
     console.info(titleStr);
+
+    //输入给播放器的音乐数据。可能是按键列表，也可能是手势列表
     let musicFileData = null;
     let lastSelectedFileIndex = null;
     let progress = 0;
@@ -920,7 +923,15 @@ function main() {
     let midiInputStreamingNoteCount = 0;
     let selectedPlayerTypes = [PlayerType.SimpleInstructPlayer];
     let midiInputStreamReloadSettings = false;
-
+    /**
+     * 按键列表
+     * @type {import("./src/noteUtils.js").PackedKey[]?}
+     */
+    let packedKeyListData = null;
+    /**
+     * @type {string?}
+     */
+    let currentLyricLine = null;
     /**
      * @type {Array<import("./src/players").PlayerBase>}
      */
@@ -935,7 +946,7 @@ function main() {
         <card elevation="0dp" cornerRadius="12dp" margin="4dp" cardBackgroundColor="#CCFFFFFF" id="controlWindowFrame" visibility="gone">
             <frame background="#00FFFFFF" w="*" h="*">
                 <vertical padding="8dp">
-                    <horizontal marginBottom="4dp">
+                    <horizontal marginBottom="4dp">                        
                         <text id="musicTitleText" text="未选择乐曲..." textColor="#333333" textSize="14sp" maxLines="1" ellipsize="end" layout_weight="1" />
                         <text id="timerText" text="00:00/00:00" textColor="#666666" textSize="12sp" marginLeft="4dp" />
                         <button id="hideBtn" style="Widget.AppCompat.Button.Borderless" w="20dp" h='20dp' text="—" textSize="14sp" margin="0dp" padding="0dp" />
@@ -1010,6 +1021,9 @@ function main() {
     controlWindow.pauseResumeBtn.setOnLongClickListener(() => {
         evt.emit("pauseResumeBtnLongClick");
         return true;
+    });
+    controlWindow.musicTitleText.click(() => {
+        evt.emit("musicTitleTextClick");
     });
 
     toast("点击时间可调整悬浮窗位置");
@@ -1168,9 +1182,17 @@ function main() {
             console.error("加载乐曲文件失败, data == null");
             return;
         }
-        totalTimeSec = data[data.length - 1][1] / 1000;
+        //加载可视化窗口
+        const layout = gameProfile.getKeyLayout()
+        if(layout.row == null || layout.column == null) return;
+        visualizer.setKeyLayout(layout.row, layout.column);
+        visualizer.loadNoteData(data.packedKeyList);
+        visualizer.goto(-1);
+
+        musicFileData = data.gestureList != null ? data.gestureList : data.packedKeyList;
+        packedKeyListData = data.packedKeyList;
+        totalTimeSec = musicFileData[musicFileData.length - 1][1] / 1000;
         totalTimeStr = sec2timeStr(totalTimeSec);
-        musicFileData = data;
         progress = 0;
         progressChanged = true;
         currentGestureIndex = null;
@@ -1300,7 +1322,7 @@ function main() {
                 if (data == null) {
                     break;
                 }
-                exportNoteDataInteractive(data, exportType);
+                exportNoteDataInteractive(data.packedKeyList, exportType);
         };
         titleStr = "当前配置: " + getTargetTriple();
         ui.run(() => {
@@ -1500,7 +1522,11 @@ function main() {
         });
         selectedPlayers[0].setOnPlayNote(function (note) {
             currentGestureIndex = note;
-            visualizer.goto(Math.max(0, note - 1));
+            note = Math.max(0, note - 1)
+            visualizer.goto(note);
+            if (packedKeyListData[note][2][0].lyric != null) {
+                currentLyricLine = packedKeyListData[note][2][0].lyric;
+            }
         });
         ui.run(() => {
             controlWindow.musicTitleText.setText(
@@ -1528,6 +1554,33 @@ function main() {
             if(autoStartPlaying)
                 player.resume();
             currentGestureIndex = 0;
+        }
+    });
+
+    evt.on("musicTitleTextClick", () => {
+        if (packedKeyListData == null) return;
+        let lyricLines = new Array();
+        let indexes = new Array();
+        for (let i = 0; i < packedKeyListData.length; i++) {
+            //@ts-ignore
+            let lyric = packedKeyListData[i][2][0].lyric;
+            if (lyric != null) {
+                lyricLines.push(lyric);
+                indexes.push(i);
+            }
+        }
+        if (lyricLines.length == 0) {
+            toast("没有找到歌词");
+            return;
+        }
+        for (let player of selectedPlayers)
+            player.pause();
+        let sel = dialogs.select("跳转到歌词...", lyricLines);
+        if (sel == -1) return;
+        currentGestureIndex = indexes[sel];
+        for (let player of selectedPlayers){
+            player.seekTo(currentGestureIndex);
+            player.resume();
         }
     });
 
@@ -1565,6 +1618,10 @@ function main() {
                 ui.run(() => {
                     controlWindow.progressBar.setProgress(curTimeSec / totalTimeSec * 100);
                     controlWindow.timerText.setText(timeStr);
+                    if(currentLyricLine != null){
+                        controlWindow.musicTitleText.setText(currentLyricLine);
+                        currentLyricLine = null;
+                    }
                 });
             }
                 break;
@@ -1603,7 +1660,7 @@ function main() {
         });
     fb.show();
     
-    controlWindowSetVisibility(true)  //方便调试
+    // controlWindowSetVisibility(true)  //方便调试
 }
 
 
@@ -1611,6 +1668,12 @@ function main() {
  * @brief 解析并加载乐曲文件, 使用文件设置
  * @param {string} fileName
  * @param {MusicLoaderDataType} loadType
+ * 
+ * @typedef {Object} loadedMusicData
+ * @property {import("./src/noteUtils.js").PackedNoteLike[]} packedKeyList
+ * @property {import("./src/players.js").Gestures} [gestureList]
+ * @property {string} summary
+ * @returns {loadedMusicData?}
  */
 function loadMusicFile(fileName, loadType) {
     //////////////显示加载进度条
@@ -1679,6 +1742,8 @@ function loadMusicFile(fileName, loadType) {
         selectedTracks: lastSelectedTracksNonEmpty,
         skipPercussion: true,
     }));
+    pipeline.push(new passes.StoreCurrentNoteTimePass());
+
     //伪装手弹
     if (humanifyNoteAbsTimeStdDev > 0) {
         pipeline.push(new passes.HumanifyPass({
@@ -1731,6 +1796,17 @@ function loadMusicFile(fileName, loadType) {
             selectMode: chordSelectMode,
         }));
     }
+    //添加歌词
+    const lrcPath = musicDir + rawFileName + ".lrc";
+    if (files.exists(lrcPath)) {
+        const lrcStr = files.read(lrcPath);
+        const lrc = new LrcParser().parseFromString(lrcStr);
+        console.log("加载了" + lrc.length + "行歌词");
+        pipeline.push(new passes.BindLyricsPass({
+            lyrics: lrc,
+            useStoredOriginalTime: true
+        }));
+    }
     //转换为按键
     pipeline.push(new passes.NoteToKeyPass({
         currentGameProfile: gameProfile
@@ -1747,19 +1823,17 @@ function loadMusicFile(fileName, loadType) {
 
     const stats = sequential.getStatistics();
     console.log(JSON.stringify(stats));
+    const packedKeyList = noteUtils.packNotes(data)
+    debugDump(packedKeyList)
 
     if (loadType != MusicLoaderDataType.GestureSequence) {
         //如果是导出乐谱,则不需要生成手势
         progressDialog.dismiss();
-        return noteUtils.packNotes(data);
+        return {
+            packedKeyList: packedKeyList,
+            summary: ""
+        }
     }
-
-    //加载可视化窗口
-    const layout = gameProfile.getKeyLayout()
-    if(layout.row == null || layout.column == null) return;
-    visualizer.setKeyLayout(layout.row, layout.column);
-    visualizer.loadNoteData(noteUtils.packNotes(data));
-    visualizer.goto(-1);
 
     const finalNoteCnt = data.length;
     //生成手势
@@ -1790,8 +1864,11 @@ function loadMusicFile(fileName, loadType) {
     const hintString = `估计乐曲调号: ${estimatedKey}\n` + gameProfile.getGameSpecificHintByEstimatedKey(estimatedKey);
 
     dialogs.alert("乐曲信息", statString + "\n\n" + hintString);
-
-    return gestureTimeList;
+    return {
+        packedKeyList: packedKeyList,
+        gestureList: gestureTimeList,
+        summary: statString
+    }
 }
 
 function start() {
