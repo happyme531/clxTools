@@ -668,6 +668,7 @@ function runFileConfigSetup(fullFileName, onFinish, extFlags){
                 dialog.dismiss();
                 dialog = null;
             }
+            onFinish(configUi.isAnythingChanged());
             showConfigDialog();
         }
         let configUi = new ConfigurationUi(rawFileName, gameProfile, flags, (cmd, arg) => {
@@ -1481,6 +1482,14 @@ function main() {
                     impl.setDrawLineToNextNextKey(
                         configuration.readGlobalConfig("SkyCotlLikeInstructPlayer_DrawLineToNextNextKey", true)
                     );
+                    let keyRange = gameProfile.getKeyRange();
+                    keyRange = [keyRange[0] - 1, keyRange[1] - 1]; //从0开始
+                    let keyOrderMap = new Map();
+                    for (let i = keyRange[0]; i <= keyRange[1]; i++) {
+                        keyOrderMap.set(i, gameProfile.getPitchByKey(i));
+                    }
+                    impl.setKeyOrder(keyOrderMap);
+
                     console.log("new SkyCotlLikeInstructPlayer");
                 }else if (selectedPlayerTypes[0] == PlayerType.SimpleInstructPlayer) {
                     selectedPlayers.push(new SimpleInstructPlayer());
@@ -1824,7 +1833,6 @@ function loadMusicFile(fileName, loadType) {
     const stats = sequential.getStatistics();
     console.log(JSON.stringify(stats));
     const packedKeyList = noteUtils.packNotes(data)
-    debugDump(packedKeyList)
 
     if (loadType != MusicLoaderDataType.GestureSequence) {
         //如果是导出乐谱,则不需要生成手势

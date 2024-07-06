@@ -1623,6 +1623,25 @@ function GameProfile() {
     }
 
     /**
+     * 根据按键序号获取对应的 MIDI 音高值。
+     * @param {number} key - 按键序号，从0开始。
+     * @returns {number} 按键序号对应的 MIDI 音高值，如果没有对应的 MIDI 音高值则返回-1。
+     */
+    this.getPitchByKey = function (key) {
+        if (cachedPitchKeyMap == null) {
+            cachedPitchKeyMap = this.generatePitchKeyMap();
+        }
+        // Iterate through the map to find the pitch for the given key
+        for (let [pitch, mappedKey] of cachedPitchKeyMap) {
+            if (mappedKey - 1 === key) {
+                return pitch;
+            }
+        }
+        // If no matching pitch is found, return -1
+        return -1;
+    }
+    
+    /**
      * 获取按键范围。
      * @returns {[number,number]} 按键范围，第一个元素为最小按键序号，第二个元素为最大按键序号。从1开始。
      */

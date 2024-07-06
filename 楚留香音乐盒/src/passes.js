@@ -1286,6 +1286,7 @@ function InferBestPitchOffsetPass(config) {
                 bestSemiToneOffset = possibleMinorPitchOffset[i];
                 bestOverFlowedNoteCnt = result.overFlowedNoteCnt;
                 bestUnderFlowedNoteCnt = result.underFlowedNoteCnt;
+                bestRoundedNoteCnt = result.roundedNoteCnt;
                 bestResult = result;
             }
         }

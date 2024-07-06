@@ -191,11 +191,23 @@ function SkyCotlLikeInstructPlayerImpl() {
     }
 
     /**
+     * @type {Map<number, number>}
+     */
+    let keyOrder = new Map();
+    /**
+     * @brief 设置按键的顺序, 音高越高, 数值越大
+     * @note 按键序号越大不一定音高越高, 所以需要额外的映射
+     */
+    this.setKeyOrder = function (order) {
+        keyOrder = order;
+    }
+
+
+    /**
      * 按键大小(半径,像素)
      * @type {number}
      */
     let keyRadius = 20;
-
     /**
      * @param {number} radius 
      */
@@ -460,13 +472,13 @@ function SkyCotlLikeInstructPlayerImpl() {
         }
 
         //4. 给之前和之后这两组按键之间画曲线
-        let fromKey = lastKeys[0].reduce((a, b) => Math.max(a, b));
+        let fromKey = lastKeys[0].reduce((a, b) => keyOrder.get(a) > keyOrder.get(b) ? a : b);
         if (activeKeys.length > 0 && fromKey != -1) {
             let toKeys = []
             if (drawLineToEachNextKeys) {
                 toKeys = activeKeys[0][0];
             } else {
-                toKeys = [activeKeys[0][0].reduce((a, b) => Math.max(a, b))];
+                toKeys = [activeKeys[0][0].reduce((a, b) => keyOrder.get(a) > keyOrder.get(b) ? a : b)];
             }
             let deltaTime = activeKeys[0][1] - lastKeys[1];
             let progress = (now - lastKeysTime) / deltaTime;
@@ -488,14 +500,20 @@ function SkyCotlLikeInstructPlayerImpl() {
                         paint.setStyle(Paint.Style.FILL);
                         drawFilledTriangle(canvas, paint, starPos, keyRadius / 3);
                     }
+                    //如果前后两组按键相同, 则在按键内画一个五角星(三角形)
+                    if (toKey == fromKey) {
+                        let starPos = keyPositions[fromKey];
+                        paint.setStyle(Paint.Style.FILL);
+                        drawFilledTriangle(canvas, paint, starPos, keyRadius / 3);
+                    }
                 }
             }
         }
 
         // 5. 给下一组按键的下一组按键画浅色曲线
         if (drawLineToNextNextKey && activeKeys.length > 1) {
-            let fromKey = activeKeys[0][0].reduce((a, b) => Math.max(a, b));
-            let toKey = activeKeys[1][0].reduce((a, b) => Math.max(a, b));
+            let fromKey = activeKeys[0][0].reduce((a, b) => keyOrder.get(a) > keyOrder.get(b) ? a : b);
+            let toKey = activeKeys[1][0].reduce((a, b) => keyOrder.get(a) > keyOrder.get(b) ? a : b);
             if (fromKey != -1 && toKey != -1) {
                 let fromPos = keyPositions[fromKey];
                 let toPos = keyPositions[toKey];
