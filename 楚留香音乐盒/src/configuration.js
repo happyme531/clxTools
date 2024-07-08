@@ -5,7 +5,22 @@ let MusicFormats = require("./musicFormats");
 function Configuration() {
     const globalConfig = storages.create("hallo1_clxmidiplayer_config");
     const musicDir = "/sdcard/楚留香音乐盒数据目录/";
+    const configSubDir = "configs/";
     const musicFormats = new MusicFormats();
+    
+    /**
+     * 尝试迁移旧的配置文件到新的配置文件
+     * @param {string} rawFilename - 不带后缀名的文件名
+     */
+    function tryMigrateOldConfig(rawFilename) {
+        files.ensureDir(musicDir + configSubDir);
+        const oldConfigPath = musicDir + rawFilename + ".json.cfg";
+        const newConfigPath = musicDir + configSubDir + rawFilename + ".json";
+        if (files.exists(oldConfigPath) && !files.exists(newConfigPath)) {
+            console.info("迁移旧配置文件:" + oldConfigPath + " -> " + newConfigPath);
+            files.move(oldConfigPath, newConfigPath);
+        }
+    }
     
     /**
      * 初始化指定文件的配置
@@ -63,9 +78,12 @@ function Configuration() {
      */
     this.haveFileConfig = function (filename) {
         filename = musicFormats.getFileNameWithoutExtension(filename);
-        filename += ".json.cfg";
-        let filepath = musicDir + filename;
-        return files.exists(filepath);
+        const configPath = musicDir + configSubDir + filename + ".json";
+        if (files.exists(configPath)) {
+            return true;
+        }
+        tryMigrateOldConfig(filename);
+        return files.exists(configPath);
     }
 
     /**
@@ -78,17 +96,16 @@ function Configuration() {
     this.setFileConfig = function (key, val, filename) {
         console.verbose("设置文件配置: " + key + " = " + val + " for " + filename);
         filename = musicFormats.getFileNameWithoutExtension(filename);
-        filename += ".json.cfg";
-        let filepath = musicDir + filename;
-        if (!files.exists(filepath)) {
-            initFileConfig(filepath);
+        const configPath = musicDir + configSubDir + filename + ".json";
+        if (!this.haveFileConfig(filename)) {
+            initFileConfig(configPath);
         };
-        let tmp = files.read(filepath);
+        let tmp = files.read(configPath);
         tmp = JSON.parse(tmp);
 
         tmp[key] = val;
-        files.write(filepath, JSON.stringify(tmp));
-        console.verbose("写入文件" + filepath + "成功");
+        files.write(configPath, JSON.stringify(tmp));
+        console.verbose("写入文件" + configPath + "成功");
         return 0;
     };
 
@@ -101,12 +118,11 @@ function Configuration() {
      */
     this.readFileConfig = function (key, filename, defaultValue) {
         filename = musicFormats.getFileNameWithoutExtension(filename);
-        filename += ".json.cfg";
-        let filepath = musicDir + filename;
-        if (!files.exists(filepath)) {
-            initFileConfig(filepath);
+        const configPath = musicDir + configSubDir + filename + ".json";
+        if (!this.haveFileConfig(filename)) {
+            initFileConfig(configPath);
         };
-        let tmp = files.read(filepath);
+        let tmp = files.read(configPath);
         tmp = JSON.parse(tmp);
 
         //迁移: halfCeiling -> semiToneRoundingMode
@@ -171,9 +187,8 @@ function Configuration() {
      */
     this.clearFileConfig = function (filename) {
         filename = musicFormats.getFileNameWithoutExtension(filename);
-        filename += ".json.cfg";
-        let filepath = musicDir + filename;
-        initFileConfig(filepath);
+        const configPath = musicDir + configSubDir + filename + ".json";
+        initFileConfig(configPath);
         return 0;
     }
 }
