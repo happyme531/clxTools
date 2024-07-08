@@ -23,6 +23,7 @@ try {
     var noteUtils = require("./src/noteUtils.js");
     var LrcParser = require("./src/frontend/lrc.js")
     var { ConfigurationUi, ConfigurationFlags } = require("./src/ui/config_ui.js");
+    var FileProvider = require("./src/fileProvider.js");
     /**
      * @type {import("../shared/FloatButton/FloatButton.js")}
      */
@@ -56,6 +57,7 @@ let appName = undefined;
 let musicFormats = new MusicFormats();
 let gameProfile = new GameProfile();
 let visualizer = new Visualizer();
+let fileProvider = new FileProvider();
 
 const setGlobalConfig = configuration.setGlobalConfig;
 const readGlobalConfig = configuration.readGlobalConfig;
@@ -179,13 +181,6 @@ function loadConfiguration() {
         gameProfile.loadDefaultGameConfigs();
         setGlobalConfig("userGameProfile", null);
     }
-}
-
-
-function getFileList() {
-    return files.listDir(musicDir, function (name) {
-        return files.isFile(files.join(musicDir, name)) && musicFormats.isMusicFile(name);
-    });
 }
 
 /**
@@ -546,7 +541,7 @@ function autoTuneFileConfig(fileName, trackDisableThreshold) {
             new passes.ParseSourceFilePass({}),
             new passes.RemoveEmptyTracksPass({}),
         ]
-    }).run(musicDir + fileName);
+    }).run(musicDir + fileProvider.loadMusicFile(fileName));
     
     const noteData = new passes.MergeTracksPass({}).run(tracksData);
     const inferBestPitchOffsetPass = new passes.InferBestPitchOffsetPass({
@@ -687,7 +682,8 @@ function runFileConfigSetup(fullFileName, onFinish, extFlags){
                         title: "加载中...",
                         content: "正在加载数据...",
                     }).show();
-                    let tracksData = new passes.ParseSourceFilePass({}).run(musicDir + fileName);
+                    let tracksData = new passes.ParseSourceFilePass({})
+                        .run(musicDir + fileProvider.loadMusicFile(fileName));
                     dialog.dismiss();
                     let lastSelectedTracksNonEmpty = configuration.readFileConfigForTarget("lastSelectedTracksNonEmpty", rawFileName, gameProfile);
                     let result = selectTracksInteractive(tracksData, lastSelectedTracksNonEmpty);
@@ -723,7 +719,7 @@ function runFileSelector(fileNames, callback) {
      */
     const selectorWindow = floaty.rawWindow(
         <frame id="board" w="*" h="*" gravity="center">
-            <vertical w="{{ device.width / 2 }}px" height="{{ device.height - 160 }}px" bg="#ffffffff">
+            <vertical w="{{ Math.round(device.width / 2) }}px" height="{{ device.height - 160 }}px" bg="#ffffffff">
                 <horizontal id="search" w="*" bg="#ffefefef">
                     {/* <text id="btnSearch" padding="15" textSize="15dp" textColor="#ff0f9086">搜索</text> */}
                     <input id="input" inputType="text" layout_weight="1" hint="输入关键词" textColorHint="#ffbbbbbb" imeOptions="actionDone" singleLine="true" focusable="true" focusableInTouchMode="true"></input>
@@ -896,7 +892,7 @@ function initialize() {
 function main() {
     let evt = events.emitter(threads.currentThread());
 
-    const totalFiles = getFileList();
+    const totalFiles = fileProvider.listAllMusicFiles()
     const haveFloatyPermission = runtimes.getCurrentRuntime() === runtimes.Runtime.AUTOXJS ?
         floaty.checkPermission() :
         floaty.hasPermission();
@@ -1699,7 +1695,8 @@ function loadMusicFile(fileName, loadType) {
     }).on("negative", () => {
         return;
     }).show();
-
+    fileName = fileProvider.loadMusicFile(fileName);
+    console.info("加载乐曲文件: " + fileName);
     let rawFileName = musicFormats.getFileNameWithoutExtension(fileName);
     let startTime = new Date().getTime();
 

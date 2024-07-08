@@ -131,16 +131,20 @@ function MusicFormats() {
     }
 
     /**
-     * @brief 获取不包含扩展名的文件名(针对音乐文件)
+     * @brief 获取不包含扩展名也不包含路径的文件名(针对音乐文件)
      * @param {string} fullFileName 文件名(包含扩展名)
-     * @returns {string} 不包含扩展名的文件名
+     * @returns {string} 不包含扩展名以及路径的文件名
+     * @example
+     * getFileNameWithoutExtension("tmp/music1.mid") -> "music1"
+     * getFileNameWithoutExtension("music2.mid") -> "music2"
      */
     this.getFileNameWithoutExtension = function(fullFileName) {
+        let ret = fullFileName;
         if (this.isMusicFile(fullFileName)) {
             let fileFormat = this.getFileFormat(fullFileName);
-            return fullFileName.substring(0, fullFileName.length - fileFormat.fileExtension.length);
+            ret = fullFileName.substring(0, fullFileName.length - fileFormat.fileExtension.length);
         }
-        return fullFileName;
+        return ret.substring(ret.lastIndexOf("/") + 1);
     }
 
 

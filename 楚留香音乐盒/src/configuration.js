@@ -21,7 +21,7 @@ function Configuration() {
             files.move(oldConfigPath, newConfigPath);
         }
     }
-    
+
     /**
      * 初始化指定文件的配置
      * @param {string} filepath - 配置文件的路径
@@ -190,6 +190,34 @@ function Configuration() {
         const configPath = musicDir + configSubDir + filename + ".json";
         initFileConfig(configPath);
         return 0;
+    }
+
+    /**
+     * 保存json对象到配置文件夹下指定文件
+     * @param {string} filename - 文件名
+     * @param {object} obj - json对象
+     */
+    this.setJsonToFile = function (filename, obj) {
+        const configPath = musicDir + configSubDir + filename + ".json";
+        files.write(configPath, JSON.stringify(obj));
+    }
+
+    /**
+     * 从配置文件夹下指定文件读取json对象
+     * @param {string} filename - 文件名, 不带.json后缀
+     * @returns {object?} - json对象, 如果文件不存在则返回null
+     */
+    this.getJsonFromFile = function (filename) {
+        const configPath = musicDir + configSubDir + filename + ".json";
+        if (!files.exists(configPath)) {
+            return null;
+        }
+        try {
+            return JSON.parse(files.read(configPath));
+        } catch (e) {
+            console.error(`读取配置文件${configPath}失败: ${e}`);
+            return null;
+        }
     }
 }
 
