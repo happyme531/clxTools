@@ -24,6 +24,7 @@ try {
     var LrcParser = require("./src/frontend/lrc.js")
     var { ConfigurationUi, ConfigurationFlags } = require("./src/ui/config_ui.js");
     var FileProvider = require("./src/fileProvider.js");
+    var FileSelector = require("./src/ui/fileSelector.js");
     /**
      * @type {import("../shared/FloatButton/FloatButton.js")}
      */
@@ -709,90 +710,14 @@ function runFileConfigSetup(fullFileName, onFinish, extFlags){
 
 /**
  * @brief 显示文件选择器
- * @param {Array<string>} fileNames 文件名列表
- * @param {(rawFileName:number)=>void} callback 回调函数，参数为选择的文件序号
+ * @param {FileProvider} fileProvider
+ * @param {(selectedMusic: string?, selectedPlaylist: string?) => void} callback 回调函数，参数为选择的文件名与歌单名
  */
-function runFileSelector(fileNames, callback) {
-    const EditorInfo = android.view.inputmethod.EditorInfo;
-    /**
-     * @type {any}
-     */
-    const selectorWindow = floaty.rawWindow(
-        <frame id="board" w="*" h="*" gravity="center">
-            <vertical w="{{ Math.round(device.width / 2) }}px" height="{{ device.height - 160 }}px" bg="#ffffffff">
-                <horizontal id="search" w="*" bg="#ffefefef">
-                    {/* <text id="btnSearch" padding="15" textSize="15dp" textColor="#ff0f9086">搜索</text> */}
-                    <input id="input" inputType="text" layout_weight="1" hint="输入关键词" textColorHint="#ffbbbbbb" imeOptions="actionDone" singleLine="true" focusable="true" focusableInTouchMode="true"></input>
-                    <text id="btnClear" padding="15" textSize="15dp" textColor="#ff0f9086">清除</text>
-                    <text id="btnClose" padding="15" textSize="15dp" textColor="#ff0f9086">关闭</text>
-                </horizontal>
-                <list id="list" w="*" divider="#ff0000ff" dividerHeight="1px">
-                    <vertical w="*" h="wrap_content">
-                        <text textSize="15dp" textColor="#ff888888" text="{{this.name}}" w="*" padding="5" />
-                        <ImageView w="*" h="1dp" bg="#a0a0a0" />
-                    </vertical>
-                </list>
-            </vertical>
-        </frame>
-    );
-    ui.run(() => {
-        selectorWindow.setSize(-1, -1);
-        // selectorWindow.board.setVisibility(8);
-        selectorWindow.setTouchable(true);
-        selectorWindow.board.on('touch_down', () => {
-            selectorWindow.input.clearFocus();
-            selectorWindow.disableFocus();
-            // selectorWindow.board.setVisibility(8);
-            selectorWindow.setTouchable(true);
-        });
-        selectorWindow.input.setOnEditorActionListener(new android.widget.TextView.OnEditorActionListener((view, i, event) => {
-            switch (i) {
-                case EditorInfo.IME_ACTION_DONE:
-                    let keyword = selectorWindow.input.getText().toString().trim();
-                    selectorWindow.list.setDataSource(fileNames.filter(v => {
-                        if (!keyword) {
-                            return true;
-                        }
-                        return v.indexOf(keyword) > -1;
-                    }).map(v => ({ name: v })));
-                    selectorWindow.input.clearFocus();
-                    selectorWindow.disableFocus();
-                    return false;
-                default:
-                    return true;
-            }
-        }));
-        selectorWindow.input.on("touch_down", () => {
-            selectorWindow.requestFocus();
-            selectorWindow.input.requestFocus();
-        });
-        // selectorWindow.btnSearch.click(function () {
-        //     let keyword = selectorWindow.input.getText().toString().trim();
-        //     selectorWindow.list.setDataSource(fileNames.filter(v => {
-        //         if (!keyword) {
-        //             return true;
-        //         }
-        //         return v.indexOf(keyword) > -1;
-        //     }).map(v => ({ name: v })));
-        //     selectorWindow.input.clearFocus();
-        //     selectorWindow.disableFocus();
-        // });
-        selectorWindow.btnClear.click(function () {
-            if (!selectorWindow.input.getText().toString()) { return; }
-            selectorWindow.input.setText('');
-            selectorWindow.list.setDataSource(fileNames.map(v => ({ name: v })));
-        });
-        selectorWindow.btnClose.click(function () {
-            selectorWindow.close();
-        });
-        selectorWindow.list.on("item_click", function (item, index, itemView, listView) {
-            const name = item.name;
-            const absIndex = fileNames.indexOf(name);
-            callback(absIndex);
-            selectorWindow.close();
-        });
-        selectorWindow.list.setDataSource(fileNames.map(v => ({ name: v })));
-    });
+function runFileSelector(fileProvider, callback) {
+    let fileSelector = new FileSelector(fileProvider);
+    fileSelector.setOnItemSelected(callback);
+    fileSelector.show();
+    return;
 }
 
 
@@ -891,8 +816,10 @@ function initialize() {
 
 function main() {
     let evt = events.emitter(threads.currentThread());
-
-    const totalFiles = fileProvider.listAllMusicFiles()
+    /**
+     * @type {String[]}
+     */
+    let totalFiles = [];
     const haveFloatyPermission = runtimes.getCurrentRuntime() === runtimes.Runtime.AUTOXJS ?
         floaty.checkPermission() :
         floaty.hasPermission();
@@ -909,6 +836,9 @@ function main() {
 
     //输入给播放器的音乐数据。可能是按键列表，也可能是手势列表
     let musicFileData = null;
+    /**
+     * @type {Number?}
+     */
     let lastSelectedFileIndex = null;
     let progress = 0;
     let progressChanged = false;
@@ -1326,15 +1256,26 @@ function main() {
             controlWindow.musicTitleText.setText(titleStr);
         });
     });
-    evt.on("fileSelectionMenuBtnClick", () => {
-        const rawFileNameList = totalFiles.map((item) => {
-            return musicFormats.getFileNameWithoutExtension(item);
-        });
-        runFileSelector(rawFileNameList, (fileIndex) => {
-            lastSelectedFileIndex = fileIndex;
+    evt.on("fileSelectionMenuBtnClick", () =>
+        runFileSelector(fileProvider, (music, playlist) => {
+            if (playlist == null) {
+                totalFiles = fileProvider.listAllMusicFiles();
+            } else {
+                let res = fileProvider.listMusicInList(playlist);
+                if (res == null || res.length == 0) {
+                    totalFiles = [];
+                    return;
+                }
+                totalFiles = res;
+            }
+            if(music == null){
+                lastSelectedFileIndex = null;
+                return;
+            }
+            lastSelectedFileIndex = totalFiles.indexOf(music);
             evt.emit("fileSelect");
-        });
-    });
+        })
+    );
     evt.on("midiStreamStart", () => {
         if(!checkEnableAccessbility()) return;
         const stream = setupMidiStream();

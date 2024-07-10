@@ -1,7 +1,6 @@
 var configuration = require('./configuration');
 let MusicFormats = require("./musicFormats");
 
-
 function FileProvider() {
     const musicDir = configuration.getMusicDir();
     const tmpSubDir = "tmp/";
@@ -15,6 +14,17 @@ function FileProvider() {
      */
 
     let userMusicLists = /** @type {Array<UserMusicList>} */ (configuration.getJsonFromFile("config_userMusicLists"));
+    if (!userMusicLists) {
+        userMusicLists = [
+            {
+                name: "收藏",
+                musicFiles: []
+            },
+        ];
+    }
+    configuration.setJsonToFile(userMusicListsKey, userMusicLists);
+
+    this.userMusicLists = userMusicLists;
 
     function listMusicFilesInsideZip(zipPath) {
         let fileList = [];
@@ -115,6 +125,124 @@ function FileProvider() {
         } else{
             return musicName;
         }
+    }
+    
+    /**
+     * 保存歌单数据到配置文件
+     * @private
+     */
+    function saveUserMusicLists() {
+        configuration.setJsonToFile(userMusicListsKey, userMusicLists);
+    }
+
+    /**
+     * 创建新歌单
+     * @param {string} name - 歌单名称
+     * @returns {boolean} - 创建成功返回true,否则返回false
+     */
+    this.createMusicList = function(name) {
+        if (userMusicLists.some(list => list.name === name)) {
+            return false;
+        }
+        userMusicLists.push({ name: name, musicFiles: [] });
+        saveUserMusicLists();
+        return true;
+    }
+
+    /**
+     * 删除歌单
+     * @param {string} name - 歌单名称
+     * @returns {boolean} - 删除成功返回true,否则返回false
+     */
+    this.deleteMusicList = function(name) {
+        const initialLength = userMusicLists.length;
+        userMusicLists = userMusicLists.filter(list => list.name !== name);
+        if (userMusicLists.length < initialLength) {
+            saveUserMusicLists();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 重命名歌单
+     * @param {string} oldName - 原歌单名称
+     * @param {string} newName - 新歌单名称
+     * @returns {boolean} - 重命名成功返回true,否则返回false
+     */
+    this.renameMusicList = function(oldName, newName) {
+        if (userMusicLists.some(list => list.name === newName)) {
+            return false;
+        }
+        const list = userMusicLists.find(list => list.name === oldName);
+        if (list) {
+            list.name = newName;
+            saveUserMusicLists();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 添加歌曲到歌单
+     * @param {string} listName - 歌单名称
+     * @param {string} musicFile - 歌曲文件名
+     * @returns {boolean} - 添加成功返回true,否则返回false
+     */
+    this.addMusicToList = function(listName, musicFile) {
+        const list = userMusicLists.find(list => list.name === listName);
+        if (list && !list.musicFiles.includes(musicFile)) {
+            list.musicFiles.push(musicFile);
+            saveUserMusicLists();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 从歌单删除歌曲
+     * @param {string} listName - 歌单名称
+     * @param {string} musicFile - 歌曲文件名
+     * @returns {boolean} - 删除成功返回true,否则返回false
+     */
+    this.removeMusicFromList = function(listName, musicFile) {
+        const list = userMusicLists.find(list => list.name === listName);
+        if (list) {
+            const initialLength = list.musicFiles.length;
+            list.musicFiles = list.musicFiles.filter(file => file !== musicFile);
+            if (list.musicFiles.length < initialLength) {
+                saveUserMusicLists();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 列出歌单中的歌曲
+     * @param {string} listName - 歌单名称
+     * @returns {Array<string>|null} - 返回歌曲列表,如果歌单不存在则返回null
+     */
+    this.listMusicInList = function(listName) {
+        const list = userMusicLists.find(list => list.name === listName);
+        return list ? list.musicFiles : null;
+    }
+
+    /**
+     * 列出所有歌单
+     * @returns {Array<string>} - 返回所有歌单名称的数组
+     */
+    this.listAllMusicLists = function() {
+        return userMusicLists.map(list => list.name);
+    }
+
+    /**
+     * 获取歌单
+     * @param {string} listName - 歌单名称
+     * @returns {UserMusicList|null} - 返回歌单对象,如果不存在则返回null
+     */
+    this.getMusicList = function(listName) {
+        return userMusicLists.find(list => list.name === listName) || null;
     }
 }
 

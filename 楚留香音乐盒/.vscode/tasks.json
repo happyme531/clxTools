@@ -1,0 +1,23 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "autojs run project",
+            "command": "${command:extension.runProject}",
+        },
+        {
+            "label": "autojs stop all",
+            "command": "${command:extension.stopAll}",
+        },
+        {
+            "label": "start default run project",
+            "command": "${command:workbench.action.debug.run}",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+              }
+        }
+    ]
+}
