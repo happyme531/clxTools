@@ -22,7 +22,7 @@ let FloatButton = function () {
     let [w, h] = [device.width, device.height];
 
     let mConfig = {};
-    mConfig.y = 0.5;
+    mConfig.y = 0.2;
     mConfig.size = fbUtil.dp2px(40);
     mConfig.tint = '#00000000';
     mConfig.color = '#FFFFFF';
