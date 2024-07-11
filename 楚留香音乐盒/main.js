@@ -1450,6 +1450,13 @@ function main() {
                 instructWindow.setSize(-1, -1);
                 //打开硬件加速
                 instructWindow.canv.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null);
+                let targetFps = context.getSystemService(Context.WINDOW_SERVICE).getDefaultDisplay().getRefreshRate();
+                console.log(`目标FPS: ${targetFps} fps`);
+                // instructWindow.canv.setMaxFps(fps);  //坏的
+                let canvasClass = instructWindow.canv.getClass();
+                let mTimePerDrawField = canvasClass.getDeclaredField("mTimePerDraw");
+                mTimePerDrawField.setAccessible(true);
+                mTimePerDrawField.set(instructWindow.canv, org.mozilla.javascript.Context.jsToJava(1000 / targetFps, java.lang.Long.TYPE));
                 instructWindow.canv.on("draw", function (canvas) {
                     impl.draw(canvas);
                 });
