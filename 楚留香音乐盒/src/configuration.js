@@ -199,6 +199,7 @@ function Configuration() {
      */
     this.setJsonToFile = function (filename, obj) {
         const configPath = musicDir + configSubDir + filename + ".json";
+        files.ensureDir(musicDir + configSubDir);
         files.write(configPath, JSON.stringify(obj));
     }
 
