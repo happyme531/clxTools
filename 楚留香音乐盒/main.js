@@ -1111,10 +1111,11 @@ function main() {
         }
         //加载可视化窗口
         const layout = gameProfile.getKeyLayout()
-        if(layout.row == null || layout.column == null) return;
-        visualizer.setKeyLayout(layout.row, layout.column);
-        visualizer.loadNoteData(data.packedKeyList);
-        visualizer.goto(-1);
+        if(layout.row != null && layout.column != null){
+            visualizer.setKeyLayout(layout.row, layout.column);
+            visualizer.loadNoteData(data.packedKeyList);
+            visualizer.goto(-1);
+        }
 
         musicFileData = data.gestureList != null ? data.gestureList : data.packedKeyList;
         packedKeyListData = data.packedKeyList;
