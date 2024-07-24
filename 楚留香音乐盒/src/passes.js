@@ -849,6 +849,8 @@ function SpeedChangePass(config) {
     this.run = function (noteData, progressCallback) {
         for (let i = 0; i < noteData.length; i++) {
             noteData[i][1] /= speed;
+            if (noteData[i][2]["duration"] != null)
+                noteData[i][2]["duration"] /= speed;
         }
         return noteData;
     }
