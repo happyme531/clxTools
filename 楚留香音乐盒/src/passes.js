@@ -553,6 +553,10 @@ function KeyToGesturePass(config) {
     if (config.marginDuration != null)
         marginDuration = config.marginDuration;
 
+    let maxGestureSize_mid = Math.ceil(maxGestureSize * 2 / 3);
+    let maxGestureSize_low = Math.ceil(maxGestureSize * 1 / 3);
+    const eps_mid = 1; 
+
     //统计数据
     let directlyTruncatedNoteCnt = 0;
     let groupTruncatedNoteCnt = 0;
@@ -598,30 +602,35 @@ function KeyToGesturePass(config) {
             let currentGroupKeys = new Array();
             // 组列表
             let groupList = new Array();
-            for (let key of noteData) {
+            for (let currentKey of noteData) {
                 // console.log(`key: ${JSON.stringify(key)}`);
-                let thisStartTime = key[1];
+                let thisStartTime = currentKey[1];
                 //@ts-ignore
-                let thisDuration = key[2]["duration"];
+                let thisDuration = currentKey[2]["duration"];
                 let thisEndTime = thisStartTime + thisDuration;
                 //截断超过最大手势长度的部分
-                if (thisEndTime - currentGroupStartTime > maxGestureDuration) {
-                    thisEndTime = currentGroupStartTime + maxGestureDuration;
+                if (thisEndTime - thisStartTime > maxGestureDuration) {
+                    thisEndTime = thisStartTime + maxGestureDuration;
                     directlyTruncatedNoteCnt++;
                 }
                 //这是这组按键的第一个按键
                 if (currentGroupKeys.length == 0) {
                     currentGroupStartTime = thisStartTime;
                     currentGroupEndTime = thisEndTime;
-                    currentGroupKeys.push([key[0], thisStartTime, thisEndTime]);
+                    currentGroupKeys.push([currentKey[0], thisStartTime, thisEndTime]);
                     continue;
                 }
                 //检查是否要开始新的一组
                 //这个按键的开始时间大于这组按键的结束时间, 或当前组按键数量已经达到最大值
                 //则开始新的一组
-                 if (thisStartTime > currentGroupEndTime ||
-                    currentGroupKeys.length >= maxGestureSize) {
-                    // console.log(`start: ${currentGroupStartTime}ms, end: ${currentGroupEndTime}ms, current: ${thisStartTime}ms, duration: ${currentGroupEndTime - currentGroupStartTime}ms`);
+                if (currentGroupKeys.length >= maxGestureSize ||
+                    // 按键较少时, 让连续的按键分到同一组
+                    (currentGroupKeys.length < maxGestureSize_low && thisStartTime - currentGroupEndTime > marginDuration) ||
+                    // 按键较多时, 则划分到不同组
+                    (currentGroupKeys.length > maxGestureSize_mid && thisStartTime - currentGroupEndTime > - marginDuration) ||
+                    // 其它时候
+                    (currentGroupKeys.length >= maxGestureSize_low && currentGroupKeys.length <= maxGestureSize_mid && thisStartTime - currentGroupEndTime > eps_mid)) {
+                    //console.log(`start: ${currentGroupStartTime}ms, end: ${currentGroupEndTime}ms, current: ${thisStartTime}ms, groupduration: ${currentGroupEndTime - currentGroupStartTime}ms, size: ${currentGroupKeys.length}`);
                     //截断所有的音符结束时间到当前音符开始时间 TODO: 这不是最优解
                     for (let i = 0; i < currentGroupKeys.length; i++) {
                         let key = currentGroupKeys[i];
@@ -644,14 +653,21 @@ function KeyToGesturePass(config) {
                 if (currentGroupKeys.length == 0) {
                     currentGroupStartTime = thisStartTime;
                     currentGroupEndTime = thisEndTime;
-                    currentGroupKeys.push([key[0], thisStartTime, thisEndTime]);
+                    currentGroupKeys.push([currentKey[0], thisStartTime, thisEndTime]);
                     continue;
                 }
                 //检查是否与相同的按键重叠
                 let overlappedSamekeyIndex = currentGroupKeys.findIndex((e) => {
-                    return e[0] == key[0] && e[2] > thisStartTime;
+                    return e[0] == currentKey[0] && e[2] > thisStartTime;
                 });
                 if (overlappedSamekeyIndex != -1) {
+                    // //把重叠的按键连接起来
+                    // let overlappedSamekey = currentGroupKeys[overlappedSamekeyIndex];
+                    // thisStartTime = overlappedSamekey[1];
+                    // if (thisEndTime < overlappedSamekey[2]) {
+                    //     thisEndTime = overlappedSamekey[2];
+                    // }
+                    // currentGroupKeys.splice(overlappedSamekeyIndex, 1);
                     //把重叠的按键截断
                     let overlappedSamekey = currentGroupKeys[overlappedSamekeyIndex];
                     overlappedSamekey[2] = thisStartTime - marginDuration;
@@ -665,7 +681,9 @@ function KeyToGesturePass(config) {
                     }
                 }
                 //添加这个按键
-                currentGroupKeys.push([key[0], thisStartTime, thisEndTime]);
+                currentGroupKeys.push([currentKey[0], thisStartTime, thisEndTime]);
+                if (thisEndTime > currentGroupEndTime)
+                    currentGroupEndTime = thisEndTime;
             }
             if(currentGroupKeys.length > 0) groupList.push(currentGroupKeys);
             //转换为手势
