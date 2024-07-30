@@ -1281,7 +1281,7 @@ function InferBestPitchOffsetPass(config) {
      * @returns {noteUtils.NoteLike[]}
      */
     this.run = function (noteData, progressCallback) {
-        const totalTrialCount = possibleMajorPitchOffset.length + possibleMinorPitchOffset.length;
+        const totalTrialCount = 2 * possibleMajorPitchOffset.length + possibleMinorPitchOffset.length;
         let bestResult = { "outRangedNoteWeight": 10000000, "roundedNoteCnt": 10000000 };
 
         for (let i = 0; i < possibleMajorPitchOffset.length; i++) {
@@ -1292,10 +1292,10 @@ function InferBestPitchOffsetPass(config) {
             console.log("Pass " + i + " 结果: " + JSON.stringify(result));
             if (bestResult.outRangedNoteWeight - result.outRangedNoteWeight > result.outRangedNoteWeight * betterResultThreshold) {
                 bestOctaveOffset = possibleMajorPitchOffset[i];
-                bestResult.outRangedNoteWeight = result.outRangedNoteWeight;
+                bestResult = result;
             }
         }
-
+        bestResult = { "outRangedNoteWeight": 10000000, "roundedNoteCnt": 10000000 };
         for (let i = 0; i < possibleMinorPitchOffset.length; i++) {
             if (progressCallback != null)
                 progressCallback((possibleMajorPitchOffset.length + i) / totalTrialCount * 100);
@@ -1304,6 +1304,19 @@ function InferBestPitchOffsetPass(config) {
             console.log("Pass " + i + " 结果: " + JSON.stringify(result));
             if (bestResult.roundedNoteCnt - result.roundedNoteCnt > result.roundedNoteCnt * betterResultThreshold) {
                 bestSemiToneOffset = possibleMinorPitchOffset[i];
+                bestResult = result;
+            }
+        }
+        bestResult = { "outRangedNoteWeight": 10000000, "roundedNoteCnt": 10000000 };
+        for (let i = 0; i < possibleMajorPitchOffset.length; i++) {
+            if (progressCallback != null)
+                progressCallback((possibleMajorPitchOffset.length + possibleMinorPitchOffset.length + i) / totalTrialCount * 100);
+            //再次考虑超范围的音符
+            let result = evalFileConfig(noteData, possibleMajorPitchOffset[i], bestSemiToneOffset, gameProfile);
+            console.log("Pass " + i + " 结果: " + JSON.stringify(result));
+            if (bestResult.outRangedNoteWeight - result.outRangedNoteWeight > result.outRangedNoteWeight * betterResultThreshold) {
+                bestOctaveOffset = possibleMajorPitchOffset[i];
+                bestResult.outRangedNoteWeight = result.outRangedNoteWeight;
                 bestOverFlowedNoteCnt = result.overFlowedNoteCnt;
                 bestUnderFlowedNoteCnt = result.underFlowedNoteCnt;
                 bestRoundedNoteCnt = result.roundedNoteCnt;
