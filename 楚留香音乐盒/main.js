@@ -610,6 +610,54 @@ function autoTuneFileConfig(fileName, trackDisableThreshold) {
     return 0;
 }
 
+/**
+ * 预分析文件
+ */
+function preAnalyzeFile(fileName){
+    if (configuration.readFileConfigForTarget("lastAnalyzedFileTimestamp", fileName, gameProfile) != null) { //TODO: 这里应该检查时间戳, 以后再说
+        return;
+    }
+    
+    //悬浮窗提示
+    let dial = dialogs.build({
+        title: "初始化...",
+        content: "正在分析文件, 请稍候...",
+        progress: {
+            max: 100,
+            showMinMax: true
+        },
+    });
+    dial.show();
+
+    const tracksData = new passes.SequentialPass({
+        passes: [
+            new passes.ParseSourceFilePass({}),
+            new passes.RemoveEmptyTracksPass({}),
+        ]
+    }).run(musicDir + fileProvider.loadMusicFile(fileName));
+
+    const noteData = new passes.MergeTracksPass({}).run(tracksData);
+    const inferBestPitchOffsetPass = new passes.InferBestPitchOffsetPass({
+        gameProfile: gameProfile
+    });
+    inferBestPitchOffsetPass.run(noteData, (progress) => dial.setProgress(progress));
+    const stats = inferBestPitchOffsetPass.getStatistics();
+    console.info("最佳八度偏移: " + stats.bestOctaveOffset);
+    console.info("最佳半音偏移: " + stats.bestSemiToneOffset);
+    //保存分析结果
+    configuration.setFileConfigForTarget("lastAnalyzedFileTimestamp", 1, fileName, gameProfile);
+    configuration.setFileConfigForTarget("analyzedMajorPitchOffset", stats.bestOctaveOffset, fileName, gameProfile);
+    configuration.setFileConfigForTarget("analyzedMinorPitchOffset", stats.bestSemiToneOffset, fileName, gameProfile);
+    //如果之前没有设置过, 则也设置为默认值
+    if (configuration.readFileConfigForTarget("majorPitchOffset", fileName, gameProfile) == undefined) {
+        configuration.setFileConfigForTarget("majorPitchOffset", stats.bestOctaveOffset, fileName, gameProfile);
+    }
+    if (configuration.readFileConfigForTarget("minorPitchOffset", fileName, gameProfile) == undefined) {
+        configuration.setFileConfigForTarget("minorPitchOffset", stats.bestSemiToneOffset, fileName, gameProfile);
+    }
+    dial.dismiss();
+}
+
 function runClickPosSetup() {
     let pos1 = getPosInteractive("最上面那行按键中最左侧的按键中心");
     let pos2 = getPosInteractive("最下面那行按键中最右侧的按键中心");
@@ -1070,16 +1118,17 @@ function main() {
         }
         let fileName = totalFiles[lastSelectedFileIndex];
         gameProfile.clearCurrentConfigCache();
-        //如果是第一次运行，显示设置向导
-        if (!haveFileConfig(musicFormats.getFileNameWithoutExtension(fileName))) {
-            let res = dialogs.confirm("设置向导", "检测到您是第一次演奏这首乐曲，是否要运行设置?");
-            if (res) {
-                runFileConfigSetup(fileName, (anythingChanged) => {
-                    evt.emit("fileSelect");
-                });
-                return null;
-            };
-        };
+        preAnalyzeFile(fileName);
+        // //如果是第一次运行，显示设置向导
+        // if (!haveFileConfig(musicFormats.getFileNameWithoutExtension(fileName))) {
+        //     let res = dialogs.confirm("设置向导", "检测到您是第一次演奏这首乐曲，是否要运行设置?");
+        //     if (res) {
+        //         runFileConfigSetup(fileName, (anythingChanged) => {
+        //             evt.emit("fileSelect");
+        //         });
+        //         return null;
+        //     };
+        // };
         let data = null;
         try {
             //选择播放器

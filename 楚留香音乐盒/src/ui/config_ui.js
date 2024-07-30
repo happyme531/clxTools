@@ -601,12 +601,13 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
                     <seekbar id="trackDisableThresholdSeekbar" w="*" max="1000" layout_gravity="center" />
                 </vertical>
                 <horizontal>
-                    <button id="autoTuneButton" text="自动优化以下设置(重要!)" />
+                    <button id="autoTuneButton" text="自动优化以下设置" />
                 </horizontal>
                 <horizontal>
                     {/* -2~2 */}
                     <text text="升/降八度:" />
                     <text text="default" id="majorPitchOffsetValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                    <text text="" id="analyzedMajorPitchOffsetValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" textColor="black" />
                 </horizontal>
                 <seekbar id="majorPitchOffsetSeekbar" w="*" max="4" layout_gravity="center" />
                 <vertical id="minorPitchOffsetSettingContainer">
@@ -614,6 +615,7 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
                         {/* -4~7 */}
                         <text text="升/降半音(移调):" />
                         <text text="default" id="minorPitchOffsetValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                        <text text="" id="analyzedMinorPitchOffsetValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" textColor="black" />
                     </horizontal>
                     <seekbar id="minorPitchOffsetSeekbar" w="*" max="11" layout_gravity="center" />
                 </vertical>
@@ -665,9 +667,17 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
         let majorPitchOffset = configuration.readFileConfigForTarget("majorPitchOffset", rawFileName, gameProfile, 0);
         view_range.majorPitchOffsetValueText.setText(majorPitchOffset.toFixed(0));
         view_range.majorPitchOffsetSeekbar.setProgress(majorPitchOffset + 2);
+        let analyzedMajorPitchOffset = configuration.readFileConfigForTarget("analyzedMajorPitchOffset", rawFileName,gameProfile);
+        if (analyzedMajorPitchOffset != undefined) {
+            view_range.analyzedMajorPitchOffsetValueText.setText(` (推荐: ${analyzedMajorPitchOffset.toFixed(0)})`);
+        }
         let minorPitchOffset = configuration.readFileConfigForTarget("minorPitchOffset", rawFileName, gameProfile, 0);
         view_range.minorPitchOffsetValueText.setText(`${minorPitchOffset.toFixed(0)} (${midiPitch.getTranspositionEstimatedKey(minorPitchOffset)})`);
         view_range.minorPitchOffsetSeekbar.setProgress(minorPitchOffset + 4);
+        let analyzedMinorPitchOffset = configuration.readFileConfigForTarget("analyzedMinorPitchOffset", rawFileName,gameProfile);
+        if (analyzedMinorPitchOffset != undefined) {
+            view_range.analyzedMinorPitchOffsetValueText.setText(` (推荐: ${analyzedMinorPitchOffset.toFixed(0)})`);
+        }
 
         view_range.semiToneRoundingModeSetting.setOnCheckedChangeListener(function (group, checkedId) {
             anythingChanged = true;

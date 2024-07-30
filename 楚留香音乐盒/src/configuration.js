@@ -30,8 +30,6 @@ function Configuration() {
         console.info("初始化文件:" + filepath);
         files.create(filepath);
         let cfg = {};
-        cfg.majorPitchOffset = 0;
-        cfg.minorPitchOffset = 0;
         cfg.semiToneRoundingMode = 0;
         files.write(filepath, JSON.stringify(cfg));
     };
