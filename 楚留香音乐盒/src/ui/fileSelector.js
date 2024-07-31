@@ -40,7 +40,10 @@ function FileSelector(fileProvider) {
                     <list id="fileList" w="*" h="*" bg="#fafafa">
                         <horizontal w="*" h="32dp">
                             <vertical layout_weight="1">
-                                <text id="fileName" text="{{this.displayName}}" textSize="16sp" textColor="#000000" maxLines="1" ellipsize="end" />
+                                <horizontal>
+                                    <text id="fileName" text="{{this.displayName}}" textSize="16sp" textColor="#000000" maxLines="1" ellipsize="end" layout_weight="1"/>
+                                    <text id="extraInfo" text="{{this.extraInfo}}" textSize="12sp" textColor="#808080" maxLines="1" ellipsize="end"/>
+                                </horizontal>
                             </vertical>
                             <horizontal>
                                 <button id="btnLike" text="{{this.liked ? '♥' : '♡'}}" textSize="15sp" w="40dp" h="40dp" margin="0" style="Widget.AppCompat.Button.Borderless" textColor="#FF8080" />
@@ -195,7 +198,8 @@ function FileSelector(fileProvider) {
                 displayName: musicFormats.getFileNameWithoutExtension(name),
                 addable: selectedPlaylistIndex == null,
                 removable: selectedPlaylistIndex != null,
-                liked: fileProvider.userMusicLists[0].musicFiles.includes(name)
+                liked: fileProvider.userMusicLists[0].musicFiles.includes(name),
+                extraInfo: name.startsWith('cloud') ? '(云端)' : ''
             };
         })));
     }

@@ -218,6 +218,20 @@ function Configuration() {
             return null;
         }
     }
+
+    /**
+     * 获取配置文件夹下指定文件的上次修改时间
+     * @param {string} filename - 文件名, 不带.json后缀
+     * @returns {number?} - 返回上次修改时间(毫秒), 如果文件不存在则返回null
+     */
+    this.getJsonFileLastModifiedTime = function (filename) {
+        const configPath = musicDir + configSubDir + filename + ".json";
+        if (!files.exists(configPath)) {
+            return null;
+        }
+        return java.nio.file.Files.getLastModifiedTime(java.nio.file.Paths.get(configPath)).toMillis();
+    }
+
 }
 
 module.exports = new Configuration();

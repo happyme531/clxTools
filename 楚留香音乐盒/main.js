@@ -860,6 +860,7 @@ function initialize() {
         };
         setGlobalConfig("lastVersion", scriptVersion);
     };
+    fileProvider.updateCloudMusicList();
 }
 
 function main() {
@@ -1118,6 +1119,27 @@ function main() {
         }
         let fileName = totalFiles[lastSelectedFileIndex];
         gameProfile.clearCurrentConfigCache();
+        //如果是云端文件, 需要先下载.
+        if (fileName.startsWith("cloud:") && fileProvider.loadCloudMusicFileFromTmp(fileName) == null) {
+            const d = dialogs.build({
+                title: "加载中...",
+                content: "正在加载云端音乐文件...",
+                progress: {
+                    max: -1,
+                    horizontal: true
+                }
+            });
+            d.show();
+            fileProvider.loadCloudMusicFile(fileName, (err, succeed) => {
+                d.dismiss();
+                if (err) {
+                    dialogs.alert("加载失败", "加载云端音乐文件失败: " + err);
+                    return;
+                }
+                evt.emit("fileSelect");
+            });
+            return;
+        }
         preAnalyzeFile(fileName);
         // //如果是第一次运行，显示设置向导
         // if (!haveFileConfig(musicFormats.getFileNameWithoutExtension(fileName))) {
