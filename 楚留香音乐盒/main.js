@@ -46,12 +46,6 @@ const scriptVersion = 25;
 //在日志中打印脚本生成的中间结果, 可选项: parse, humanify, key, timing, merge, gestures
 const debugDumpPass = "";
 
-//将两个/几个彼此间隔时间小于以下阈值的音符合并, 单位: 秒
-//用于自动演奏的合并阈值
-const autoPlayMergeThreshold = 0.01;
-//用于乐谱导出的合并阈值
-const scoreExportMergeThreshold = 0.2;
-
 //应用名称, 稍后会被初始化
 let appName = undefined;
 
@@ -1743,7 +1737,7 @@ function loadMusicFile(fileName, loadType) {
     let noteCountLimitMode = readFileConfig("noteCountLimitMode", rawFileName, "split");
     let noteCountLimitSplitDelay = readFileConfig("noteCountLimitSplitDelay", rawFileName, 75);
     let chordSelectMode = readFileConfig("chordSelectMode", rawFileName, "high");
-    let mergeThreshold = (loadType == MusicLoaderDataType.KeySequenceHumanFriendly ? scoreExportMergeThreshold : autoPlayMergeThreshold);
+    let mergeThreshold = readFileConfig("mergeNearbyNotesInterval", rawFileName, 50);
     let lastSelectedTracksNonEmpty = configuration.readFileConfigForTarget("lastSelectedTracksNonEmpty", rawFileName, gameProfile);
     let keyRange = gameProfile.getKeyRange();
 
@@ -1805,7 +1799,7 @@ function loadMusicFile(fileName, loadType) {
     }
     //合并按键
     pipeline.push(new passes.MergeKeyPass({
-        maxInterval: mergeThreshold * 1000,
+        maxInterval: mergeThreshold,
     }));
     //限制按键频率
     if (limitClickSpeedHz != 0) {
@@ -1877,7 +1871,7 @@ function loadMusicFile(fileName, loadType) {
     const overFlowedNoteCnt = stats.LegalizeTargetNoteRangePass.overFlowedNoteCnt;
     const underFlowedNoteCnt = stats.LegalizeTargetNoteRangePass.underFlowedNoteCnt;
     const roundedNoteCnt = stats.LegalizeTargetNoteRangePass.roundedNoteCnt;
-    const droppedNoteCnt = stats.SingleKeyFrequencyLimitPass.droppedNoteCnt;
+    const droppedNoteCnt = stats.SingleKeyFrequencyLimitPass.droppedNoteCnt + stats.MergeKeyPass.droppedSameNoteCount;
     const outRangedNoteCnt = overFlowedNoteCnt + underFlowedNoteCnt;
 
     const statString = "音符总数:" + inputNoteCnt + " -> " + finalNoteCnt +

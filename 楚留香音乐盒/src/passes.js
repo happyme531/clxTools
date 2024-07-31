@@ -467,7 +467,7 @@ function MergeKeyPass(config) {
     this.description = "合并相邻的按键";
 
     let maxInterval = 0; // 毫秒
-    let maxBatchSize = 10; // 最大合并数量
+    let maxBatchSize = 19; // 最大合并数量
 
     if (config.maxInterval == null) {
         throw new Error("maxInterval is null");
@@ -476,31 +476,35 @@ function MergeKeyPass(config) {
     if (config.maxBatchSize != null) {
         maxBatchSize = config.maxBatchSize;
     }
+    let droppedSameNoteCount = 0;
 
     /**
      * 运行此pass
      * @param {noteUtils.NoteLike[]} noteData - 音乐数据
-     * @param {function(number):void} progressCallback - 进度回调函数, 参数为进度(0-100)
+     * @param {function(number):void} [progressCallback] - 进度回调函数, 参数为进度(0-100)
      * @returns {noteUtils.NoteLike[]} - 返回解析后的数据
      * @throws {Error} - 如果解析失败则抛出异常
      */
     this.run = function (noteData, progressCallback) {
         let lastTime = noteData[0][1];
         let lastSize = 0;
-        let lastNotes = new Array(maxBatchSize);
+        let lastNotes = new Set();
+        lastNotes.add(noteData[0][0]);
         for (let i = 1; i < noteData.length; i++) {
             let note = noteData[i];
             if (note[1] - lastTime < maxInterval && lastSize < maxBatchSize) {
                 note[1] = lastTime;
                 //检查重复
-                if(lastNotes.indexOf(note[0]) != -1){
+                if(lastNotes.has(note[0])){
                     noteUtils.softDeleteNoteAt(noteData,i);
+                    droppedSameNoteCount++;
                     continue;
                 }
-                lastNotes.push(note[0]);
+                lastNotes.add(note[0]);
                 lastSize++;
             } else {
-                lastNotes = new Array(maxBatchSize);
+                lastNotes = new Set();
+                lastNotes.add(note[0]);
                 lastSize = 0;
                 lastTime = note[1];
             }
@@ -510,7 +514,9 @@ function MergeKeyPass(config) {
     }
 
     this.getStatistics = function () {
-        return {};
+        return {
+            "droppedSameNoteCount": droppedSameNoteCount
+        };
     }
 }
 

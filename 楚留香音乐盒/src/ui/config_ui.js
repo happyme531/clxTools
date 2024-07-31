@@ -413,7 +413,7 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
         //时长控制
         let view_duration = ui.inflate(
             <vertical>
-                <text text="时长控制(输出):" textColor="red" />
+                <text text="时长优化:" textColor="red" />
                 {/* 音符时长输出模式 */}
                 <vertical id="noteDurationOutputModeContainer">
                     <horizontal>
@@ -456,6 +456,14 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
                     </horizontal>
                     <seekbar id="marginDurationSeekbar" w="*" max="1000" layout_gravity="center" />
                 </vertical>
+                {/* 合并邻近音符, 5~800ms, 对数, 默认50 */}
+                <vertical id="mergeNearbyNotesIntervalContainer">
+                    <horizontal w="*">
+                        <text text="邻近音符最大间隔: " />
+                        <text text="defaultms" id="mergeNearbyNotesIntervalValueText" gravity="right|center_vertical" layout_gravity="right|center_vertical" layout_weight="1" />
+                    </horizontal>
+                    <seekbar id="mergeNearbyNotesIntervalSeekbar" w="*" max="1000" layout_gravity="center" />
+                </vertical>
             </vertical>
         )
         let noteDurationOutputMode = configuration.readFileConfigForTarget("noteDurationOutputMode", rawFileName, gameProfile, "none");
@@ -492,6 +500,7 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
             view_duration.defaultClickDurationContainer.setVisibility(View.GONE);
             view_duration.maxGestureDurationContainer.setVisibility(View.GONE);
             view_duration.marginDurationContainer.setVisibility(View.GONE);
+            view_duration.mergeNearbyNotesIntervalContainer.setVisibility(View.GONE);
         }
 
         let defaultClickDuration = configuration.readGlobalConfig("defaultClickDuration", 5);
@@ -503,6 +512,9 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
         let marginDuration = configuration.readGlobalConfig("marginDuration", 100);
         view_duration.marginDurationValueText.setText(marginDuration.toFixed(2) + "ms");
         view_duration.marginDurationSeekbar.setProgress(numberMapLog(marginDuration, 1, 600));
+        let mergeNearbyNotesInterval = configuration.readFileConfig("mergeNearbyNotesInterval", rawFileName, 50);
+        view_duration.mergeNearbyNotesIntervalValueText.setText(mergeNearbyNotesInterval.toFixed(2) + "ms");
+        view_duration.mergeNearbyNotesIntervalSeekbar.setProgress(numberMapLog(mergeNearbyNotesInterval, 5, 800));
 
         view_duration.noteDurationOutputMode.setOnCheckedChangeListener(function (group, checkedId) {
             anythingChanged = true;
@@ -572,6 +584,22 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
                 configuration.setGlobalConfig("marginDuration", value);
             }
         });
+
+        view_duration.mergeNearbyNotesIntervalSeekbar.setOnSeekBarChangeListener({
+            onProgressChanged: function (seekbar, progress, fromUser) {
+                if (progress == undefined) return;
+                let value = numberRevMapLog(progress, 5, 800);
+                view_duration.mergeNearbyNotesIntervalValueText.setText(value.toFixed(2) + "ms");
+                return true;
+            },
+            onStartTrackingTouch: function (seekbar) { },
+            onStopTrackingTouch: function (seekbar) {
+                anythingChanged = true;
+                let value = numberRevMapLog(seekbar.getProgress(), 5, 800);
+                configuration.setFileConfig("mergeNearbyNotesInterval", value, rawFileName);
+            }
+        });
+        
         this.fragments.push({
             name: "duration",
             view: view_duration
