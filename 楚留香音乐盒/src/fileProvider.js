@@ -5,6 +5,7 @@ let ChimomoApi = require("./cloud/chimomoApi");
 function FileProvider() {
     const musicDir = configuration.getMusicDir();
     const tmpSubDir = "tmp/";
+    files.ensureDir(musicDir + tmpSubDir);
     const musicFormats = new MusicFormats();
     const userMusicListsKey = "config_userMusicLists";
 
