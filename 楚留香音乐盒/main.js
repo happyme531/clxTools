@@ -1742,7 +1742,7 @@ function main() {
 function loadMusicFile(fileName, loadType) {
     //////////////显示加载进度条
     let progressDialog = dialogs.build({
-        title: "加载中",
+        title: "加载中...",
         content: "正在解析文件...",
         negative: "取消",
         progress: {
@@ -1808,7 +1808,16 @@ function loadMusicFile(fileName, loadType) {
         skipPercussion: true,
     }));
     pipeline.push(new passes.StoreCurrentNoteTimePass());
-
+    //变速
+    if (speedMultiplier != 1) {
+        pipeline.push(new passes.SpeedChangePass({
+            speed: speedMultiplier
+        }));
+    }
+    //合并按键
+    pipeline.push(new passes.MergeKeyPass({
+        maxInterval: mergeThreshold,
+    }));
     //伪装手弹
     if (humanifyNoteAbsTimeStdDev > 0) {
         pipeline.push(new passes.HumanifyPass({
@@ -1827,7 +1836,6 @@ function loadMusicFile(fileName, loadType) {
     pipeline.push(new passes.SingleKeyFrequencyLimitPass({
         minInterval: gameProfile.getSameKeyMinInterval()
     }));
-
     //跳过前奏
     if (readGlobalConfig("skipInit", true)) {
         pipeline.push(new passes.SkipIntroPass({}));
@@ -1836,16 +1844,6 @@ function loadMusicFile(fileName, loadType) {
     if (readGlobalConfig("skipBlank5s", true)) {
         pipeline.push(new passes.LimitBlankDurationPass({})); //默认5秒
     }
-    //变速
-    if (speedMultiplier != 1) {
-        pipeline.push(new passes.SpeedChangePass({
-            speed: speedMultiplier
-        }));
-    }
-    //合并按键
-    pipeline.push(new passes.MergeKeyPass({
-        maxInterval: mergeThreshold,
-    }));
     //限制按键频率
     if (limitClickSpeedHz != 0) {
         pipeline.push(new passes.NoteFrequencySoftLimitPass({
