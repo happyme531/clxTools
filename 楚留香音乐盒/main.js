@@ -818,6 +818,44 @@ function calibrateFullScreenCanvasOffset(prompt){
     return offset;
 }
 
+function Vibrator(){
+    const vibrator = context.getSystemService(context.VIBRATOR_SERVICE);
+    let effect = null;
+
+    /**
+     * 设置振动模式
+     * @param {number} mode 模式
+     */
+    this.setMode = function(mode){
+        switch(mode){
+            case 0:
+                effect = null;
+                break;
+            case 1:
+                effect = android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_TICK);
+                break;
+            case 2:
+                effect = android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_CLICK);
+                break;
+            case 3:
+                effect = android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_HEAVY_CLICK);
+                break;
+            default:    
+                effect = null;
+                break;
+        }
+    }
+
+    /**
+     * 触发振动
+     */
+    this.vibrate = function(){
+        if(effect != null){
+            vibrator.vibrate(effect);
+        }
+    }
+}
+
 
 
 /////////
@@ -907,6 +945,7 @@ function main() {
      */
     let selectedPlayers = [new AutoJsGesturePlayer()];
     let instructWindow = null;
+    const vibrator = new Vibrator();
 
     //显示悬浮窗
     /**
@@ -1526,6 +1565,9 @@ function main() {
                 instructWindow.canv.on("draw", function (canvas) {
                     impl.draw(canvas);
                 });
+                //设置振动
+                let instructVibrationEffect = configuration.readGlobalConfig("instructVibrationEffect", 1);
+                vibrator.setMode(instructVibrationEffect);
                 break;
             default:
                 throw new Error("未知的播放器类型: " + selectedPlayerTypes);
@@ -1545,6 +1587,9 @@ function main() {
             visualizer.goto(note);
             if (packedKeyListData[note][2][0].lyric != null) {
                 currentLyricLine = packedKeyListData[note][2][0].lyric;
+            }
+            if(instructWindow != null){
+                vibrator.vibrate();
             }
         });
         ui.run(() => {
