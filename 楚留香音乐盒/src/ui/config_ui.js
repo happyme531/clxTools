@@ -777,6 +777,14 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
                     </horizontal>
                     <seekbar id="minorPitchOffsetSeekbar" w="*" max="11" layout_gravity="center" />
                 </vertical>
+                <horizontal id="wrapHigherOctaveContainer">
+                    <text text="移动高八度音符到音域内: " />
+                    <checkbox id="wrapHigherOctaveCheckbox" />
+                </horizontal>
+                <horizontal id="wrapLowerOctaveContainer">
+                    <text text="移动低八度音符到音域内: " />
+                    <checkbox id="wrapLowerOctaveCheckbox" />
+                </horizontal>
                 <horizontal id="trackSelectionContainer">
                     <text text="音轨选择:" />
                     <button id="selectTracksButton" text="选择..." padding="0dp" />
@@ -790,6 +798,8 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
             view_range.semiToneRoundingModeSettingContainer.setVisibility(View.GONE);
             view_range.trackDisableThresholdSettingContainer.setVisibility(View.GONE);
             view_range.minorPitchOffsetSettingContainer.setVisibility(View.GONE);
+            view_range.wrapHigherOctaveContainer.setVisibility(View.GONE);
+            view_range.wrapLowerOctaveContainer.setVisibility(View.GONE);
         }
         //如果游戏有所有半音, 隐藏移调设置
         if (this.flags.includes(ConfigurationFlags.GAME_HAS_ALL_SEMITONES)) {
@@ -836,6 +846,10 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
         if (analyzedMinorPitchOffset != undefined) {
             view_range.analyzedMinorPitchOffsetValueText.setText(` (推荐: ${analyzedMinorPitchOffset.toFixed(0)})`);
         }
+        let wrapHigherOctave = configuration.readFileConfigForTarget("wrapHigherOctave", rawFileName, gameProfile, 1);
+        view_range.wrapHigherOctaveCheckbox.setChecked(wrapHigherOctave > 0);  //居然不会自动转换成bool
+        let wrapLowerOctave = configuration.readFileConfigForTarget("wrapLowerOctave", rawFileName, gameProfile, 0);
+        view_range.wrapLowerOctaveCheckbox.setChecked(wrapLowerOctave > 0);
 
         view_range.semiToneRoundingModeSetting.setOnCheckedChangeListener(function (group, checkedId) {
             anythingChanged = true;
@@ -903,6 +917,14 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
             runCallback(ConfigurationCallbacks.runAutoTune, {
                 "trackDisableThreshold": trackDisableThreshold
             });
+        });
+        view_range.wrapHigherOctaveCheckbox.setOnCheckedChangeListener(function (button, checked) {
+            anythingChanged = true;
+            configuration.setFileConfigForTarget("wrapHigherOctave", checked, rawFileName, gameProfile);
+        });
+        view_range.wrapLowerOctaveCheckbox.setOnCheckedChangeListener(function (button, checked) {
+            anythingChanged = true;
+            configuration.setFileConfigForTarget("wrapLowerOctave", checked, rawFileName, gameProfile);
         });
         view_range.selectTracksButton.click(function () {
             anythingChanged = true;

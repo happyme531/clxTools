@@ -208,6 +208,8 @@ var SemiToneRoundingMode = {
  * @brief 处理目标游戏中无法演奏的音符
  * @typedef {Object} LegalizeTargetNoteRangePassConfig
  * @property {SemiToneRoundingMode} semiToneRoundingMode - 半音处理方式
+ * @property {number} [wrapHigherOctave] - 将超出最高音n个八度内的音符移动到范围内, 默认为0
+ * @property {number} [wrapLowerOctave] - 将超出最低音n个八度内的音符移动到范围内, 默认为0
  * @property {GameProfile} currentGameProfile - 当前游戏配置
  * @param {LegalizeTargetNoteRangePassConfig} config
  */
@@ -216,12 +218,16 @@ function LegalizeTargetNoteRangePass(config) {
     this.description = "处理目标游戏中无法演奏的音符";
 
     let semiToneRoundingMode = SemiToneRoundingMode.floor;
+    let wrapHigherOctave = 0;
+    let wrapLowerOctave = 0;
     let currentGameProfile = null;
 
     let underFlowedNoteCnt = 0;
     let overFlowedNoteCnt = 0;
     let roundedNoteCnt = 0;
     let middleFailedNoteCnt = 0;
+    let wrappedHigherNoteCnt = 0;
+    let wrappedLowerNoteCnt = 0;
     let lastIsFloor = false;
 
 
@@ -233,6 +239,13 @@ function LegalizeTargetNoteRangePass(config) {
     }
     semiToneRoundingMode = config.semiToneRoundingMode;
     currentGameProfile = config.currentGameProfile;
+
+    if (config.wrapHigherOctave != null) {
+        wrapHigherOctave = config.wrapHigherOctave;
+    }
+    if (config.wrapLowerOctave != null) {
+        wrapLowerOctave = config.wrapLowerOctave;
+    }
 
     /**
      * 运行此pass
@@ -250,12 +263,24 @@ function LegalizeTargetNoteRangePass(config) {
             let midiPitch = note[0];
             //超出范围的音符
             if (midiPitch < noteRange[0]) {
-                underFlowedNoteCnt++;
-                continue;
+                if(midiPitch >= noteRange[0] - wrapLowerOctave * 12){
+                    midiPitch += 12 * Math.ceil((noteRange[0] - midiPitch) / 12);
+                    note[0] = midiPitch;
+                    wrappedLowerNoteCnt++;
+                }else{
+                    underFlowedNoteCnt++;
+                    continue;
+                }
             }
             if (midiPitch > noteRange[1]) {
-                overFlowedNoteCnt++;
-                continue;
+                if(midiPitch <= noteRange[1] + wrapHigherOctave * 12){
+                    midiPitch -= 12 * Math.ceil((midiPitch - noteRange[1]) / 12);
+                    note[0] = midiPitch;
+                    wrappedHigherNoteCnt++;
+                } else {
+                    overFlowedNoteCnt++;
+                    continue;
+                }
             }
             let key = currentGameProfile.getKeyByPitch(midiPitch);
             if (key != -1) { //有对应的按键, 不需要处理

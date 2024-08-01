@@ -1770,6 +1770,8 @@ function loadMusicFile(fileName, loadType) {
     let humanifyNoteAbsTimeStdDev = readGlobalConfig("humanifyNoteAbsTimeStdDev", 0)
     let majorPitchOffset = configuration.readFileConfigForTarget("majorPitchOffset", rawFileName, gameProfile, 0);
     let minorPitchOffset = configuration.readFileConfigForTarget("minorPitchOffset", rawFileName, gameProfile, 0);
+    let wrapHigherOctave = configuration.readFileConfigForTarget("wrapHigherOctave", rawFileName, gameProfile, 1);
+    let wrapLowerOctave = configuration.readFileConfigForTarget("wrapLowerOctave", rawFileName, gameProfile, 0);
     let semiToneRoundingMode = readFileConfig("semiToneRoundingMode", rawFileName, 0);
     let limitClickSpeedHz = readFileConfig("limitClickSpeedHz", rawFileName, 0);
     let speedMultiplier = readFileConfig("speedMultiplier", rawFileName, 1);
@@ -1831,6 +1833,8 @@ function loadMusicFile(fileName, loadType) {
     pipeline.push(new passes.LegalizeTargetNoteRangePass({
         semiToneRoundingMode: semiToneRoundingMode,
         currentGameProfile: gameProfile,
+        wrapHigherOctave: wrapHigherOctave,
+        wrapLowerOctave: wrapLowerOctave
     }));
     //单个按键频率限制
     pipeline.push(new passes.SingleKeyFrequencyLimitPass({
