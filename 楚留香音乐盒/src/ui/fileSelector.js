@@ -182,8 +182,6 @@ function FileSelector(fileProvider) {
         window.fileList.setItemViewCacheSize(40);
         window.fileList.setDrawingCacheEnabled(true);
         window.fileList.recycledViewPool.setMaxRecycledViews(0, 40);
-
-        refreshFileList();
     }
 
     function refreshFileList(searchText) {
@@ -192,7 +190,14 @@ function FileSelector(fileProvider) {
         if (selectedPlaylist) {
             files = fileProvider.listMusicInList(selectedPlaylist) || [];
         } else {
-            files = fileProvider.listAllMusicFiles();
+            try {
+                files = fileProvider.listAllMusicFiles();
+            } catch (e) {
+                console.error(e);
+                dialogs.alert("错误", "无法读取音乐文件列表: " + e + "\n" + e.stack);
+                window.close();
+                return;
+            }
         }
 
         // 应用搜索过滤
@@ -312,7 +317,7 @@ function FileSelector(fileProvider) {
     // 公开方法：显示选择菜单
     this.show = function () {
         createUI();
-        refreshFileList();
+        // refreshFileList();  // window.playlistSelector.setOnItemSelectedListener会自动调用
     };
 
     // 公开方法：获取选择的音乐名称

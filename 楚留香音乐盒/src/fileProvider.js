@@ -34,9 +34,9 @@ function FileProvider() {
 
     this.userMusicLists = userMusicLists;
 
-    function listMusicFilesInsideZip(zipPath) {
+    function tryListMusicFilesInsideZip(zipPath, charSet) {
         let fileList = [];
-        const zip = new java.util.zip.ZipFile(zipPath);
+        const zip = new java.util.zip.ZipFile(zipPath, java.nio.charset.Charset.forName(charSet));
         const entries = zip.entries();
         while (entries.hasMoreElements()) {
             let entry = entries.nextElement();
@@ -49,6 +49,25 @@ function FileProvider() {
         return fileList;
     }
 
+    function listMusicFilesInsideZip(zipPath) {
+        const charSets = ['UTF-8', 'GBK'];
+        const fileCharSet = configuration.readFileConfig("zipFileCharSet", zipPath);
+        if (fileCharSet) {
+            return tryListMusicFilesInsideZip(zipPath, fileCharSet);
+        }
+        
+        for (let charSet of charSets) {
+            try {
+                let res = tryListMusicFilesInsideZip(zipPath, charSet);
+                configuration.setFileConfig("zipFileCharSet", charSet, zipPath);
+                return res;
+            } catch (e) {
+                console.error(`Failed to list music files inside zip file ${zipPath} with charset ${charSet}: ${e}`);
+            }
+        }
+        throw new Error(`Zip文件 ${zipPath} 内的文件名编码未知, 读取失败! (尝试在电脑上解压后重新压缩)`);
+    }
+
     /**
      * 从 zip 文件中提取音乐文件到临时目录
      * @param {string} zipName - zip 文件名
@@ -58,8 +77,9 @@ function FileProvider() {
     this.extractMusicFromZip = function (zipName, musicName) {
         const zipPath = musicDir + zipName;
         const tmpPath = musicDir + tmpSubDir + musicName;
+        const fileCharSet = configuration.readFileConfig("zipFileCharSet", zipPath);
         files.ensureDir(tmpPath);
-        const zip = new java.util.zip.ZipFile(zipPath);
+        const zip = new java.util.zip.ZipFile(zipPath, java.nio.charset.Charset.forName(fileCharSet));
         const entries = zip.entries();
         while (entries.hasMoreElements()) {
             let entry = entries.nextElement();
