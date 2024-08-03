@@ -23,7 +23,7 @@ function FileSelector(fileProvider) {
     /**
      * @type {(selectedMusic: string?, selectedPlaylist: string?) => void}
      */
-    let onItemSelected = (selectedMusic, selectedPlaylist) => {};
+    let onItemSelected = (selectedMusic, selectedPlaylist) => { };
 
     // 创建UI
     function createUI() {
@@ -31,25 +31,19 @@ function FileSelector(fileProvider) {
             <frame id="board" w="*" h="*">
                 <vertical w="{{Math.round(device.width * 0.9)}}px" h="{{Math.round(device.height * 0.8)}}px" bg="#ffffff" padding="8sp">
                     <horizontal w="*" h="32dp" bg="#f5f5f5" marginBottom="8sp">
-                        <text id="btnManagePlaylist" text="≡" textSize="24sp" textColor="#000000" padding="12 0"  h= "*" gravity="center"/>
-                        <spinner id="playlistSelector" w="*" h= "*" layout_weight="1.6" gravity="center" ellipsize="end" margin="12 0" />
+                        <text id="btnManagePlaylist" text="≡" textSize="24sp" textColor="#000000" padding="12 0" h="*" gravity="center" />
+                        <spinner id="playlistSelector" w="*" h="*" layout_weight="1.6" gravity="center" ellipsize="end" margin="12 0" />
                         <input id="searchInput" w="*" h="40dp" hint="搜索音乐" bg="#f0f0f0" padding="8sp" layout_weight="1" inputType="text" imeOptions="actionDone" singleLine="true" focusable="true" focusableInTouchMode="true" />
-                        <text id="btnClose" text="×" textSize="24sp" textColor="#000000" padding="12 0" gravity="center"/>
+                        <text id="btnClose" text="×" textSize="24sp" textColor="#000000" padding="12 0" gravity="center" />
                     </horizontal>
 
                     <list id="fileList" w="*" h="*" bg="#fafafa">
-                        <horizontal w="*" h="32dp">
-                            <vertical layout_weight="1">
-                                <horizontal>
-                                    <text id="fileName" text="{{this.displayName}}" textSize="16sp" textColor="#000000" maxLines="1" ellipsize="end" layout_weight="1"/>
-                                    <text id="extraInfo" text="{{this.extraInfo}}" textSize="12sp" textColor="#808080" maxLines="1" ellipsize="end"/>
-                                </horizontal>
-                            </vertical>
-                            <horizontal>
-                                <button id="btnLike" text="{{this.liked ? '♥' : '♡'}}" textSize="15sp" w="40dp" h="40dp" margin="0" style="Widget.AppCompat.Button.Borderless" textColor="#FF8080" />
-                                <button id="btnAdd" text="+" textSize="18sp" w="40dp" h="40dp" padding="0" style="Widget.AppCompat.Button.Borderless" textColor="#4CAF50" visibility="{{this.addable ? 'visible' : 'gone'}}" />
-                                <button id="btnRemove" text="-" textSize="22sp" w="40dp" h="40dp" style="Widget.AppCompat.Button.Borderless" textColor="#F44336" visibility="{{this.removable ? 'visible' : 'gone'}}" />
-                            </horizontal>
+                        <horizontal w="*" h="40dp">
+                            <text id="fileName" text="{{this.displayName}}" textSize="16sp" textColor="#000000" maxLines="1" ellipsize="end" layout_weight="1" />
+                            <text id="extraInfo" text="{{this.extraInfo}}" textSize="12sp" textColor="#808080" maxLines="1" ellipsize="end" />
+                            <button id="btnLike" text="{{this.liked ? '♥' : '♡'}}" textSize="15sp" w="40dp" h="40dp" margin="0" style="Widget.AppCompat.Button.Borderless" textColor="#FF8080" />
+                            <button id="btnAdd" text="+" textSize="18sp" w="40dp" h="40dp" padding="0" style="Widget.AppCompat.Button.Borderless" textColor="#4CAF50" visibility="{{this.addable ? 'visible' : 'gone'}}" />
+                            <button id="btnRemove" text="-" textSize="22sp" w="40dp" h="40dp" style="Widget.AppCompat.Button.Borderless" textColor="#F44336" visibility="{{this.removable ? 'visible' : 'gone'}}" />
                         </horizontal>
                     </list>
                 </vertical>
@@ -62,7 +56,7 @@ function FileSelector(fileProvider) {
     // 设置UI交互逻辑
     function setupUILogic() {
         // window.setAdjustEnabled(true);
-        window.setSize(-1,-1);
+        window.setSize(-1, -1);
         // window.setTouchable(true);
         window.board.on('touch_down', () => {
             window.searchInput.clearFocus();
@@ -118,28 +112,41 @@ function FileSelector(fileProvider) {
         window.fileList.on("item_click", function (item, position, itemView, listView) {
             selectedMusic = item.name;
             window.close();
-            if(onItemSelected != null){
+            if (onItemSelected != null) {
                 onItemSelected(selectedMusic, selectedPlaylist);
             }
         });
-        // 文件列表项绑定事件
-        window.fileList.on("item_bind", function (itemView, itemHolder) {
-            //收藏
-            itemView.btnLike.on("click", function () {
+
+        function onBtnRemoveClickFunc(itemHolder) {
+            return function () {
+                const musicName = itemHolder.getItem().name;
+                if (selectedPlaylist && fileProvider.removeMusicFromList(selectedPlaylist, musicName)) {
+                    toast("已从歌单移除");
+                    refreshFileList();
+                } else {
+                    toast("移除失败");
+                }
+            };
+        }
+
+        function onBtnLikeClickFunc(itemHolder, itemView) {
+            return function () {
                 const musicName = itemHolder.getItem().name;
                 const liked = fileProvider.userMusicLists[0].musicFiles.includes(musicName);
-                if(!liked){
+                if (!liked) {
                     fileProvider.addMusicToList(fileProvider.userMusicLists[0].name, musicName);
                     itemView.btnLike.setText("♥");
                     toast("已收藏");
-                }else{
+                } else {
                     fileProvider.removeMusicFromList(fileProvider.userMusicLists[0].name, musicName);
                     itemView.btnLike.setText("♡");
                     toast("已取消收藏");
                 }
-            });
-            //加入指定歌单
-            itemView.btnAdd.on("click", function () {
+            };
+        }
+
+        function onBtnAddClickFunc(itemHolder, itemView) {
+            return function () {
                 const musicName = itemHolder.getItem().name;
                 //弹出菜单
                 const popUpMenu = new android.widget.PopupMenu(context, itemView.btnAdd);
@@ -160,18 +167,21 @@ function FileSelector(fileProvider) {
                     }
                 }));
                 popUpMenu.show();
-            });
+            };
+        }
 
-            itemView.btnRemove.on("click", function () {
-                const musicName = itemHolder.getItem().name;
-                if (selectedPlaylist && fileProvider.removeMusicFromList(selectedPlaylist, musicName)) {
-                    toast("已从歌单移除");
-                    refreshFileList();
-                } else {
-                    toast("移除失败");
-                }
-            });
+        // 文件列表项绑定事件
+        window.fileList.on("item_bind", function (itemView, itemHolder) {
+            //收藏
+            itemView.btnLike.on("click", onBtnLikeClickFunc(itemHolder, itemView));
+            //加入指定歌单
+            itemView.btnAdd.on("click", onBtnAddClickFunc(itemHolder, itemView));
+            //移除当前歌单
+            itemView.btnRemove.on("click", onBtnRemoveClickFunc(itemHolder));
         });
+        window.fileList.setItemViewCacheSize(40);
+        window.fileList.setDrawingCacheEnabled(true);
+        window.fileList.recycledViewPool.setMaxRecycledViews(0, 40);
 
         refreshFileList();
     }
@@ -186,22 +196,22 @@ function FileSelector(fileProvider) {
         }
 
         // 应用搜索过滤
-        if(searchText != null)
+        if (searchText != null)
             files = files.filter(function (file) {
                 return file.toLowerCase().includes(searchText);
             });
 
-        ui.run(()=>
-        window.fileList.setDataSource(files.map(function (name) {
-            return {
-                name: name,
-                displayName: musicFormats.getFileNameWithoutExtension(name),
-                addable: selectedPlaylistIndex == null,
-                removable: selectedPlaylistIndex != null,
-                liked: fileProvider.userMusicLists[0].musicFiles.includes(name),
-                extraInfo: name.startsWith('cloud') ? '(云端)' : ''
-            };
-        })));
+        ui.run(() =>
+            window.fileList.setDataSource(files.map(function (name) {
+                return {
+                    name: name,
+                    displayName: musicFormats.getFileNameWithoutExtension(name),
+                    addable: selectedPlaylistIndex == null,
+                    removable: selectedPlaylistIndex != null,
+                    liked: fileProvider.userMusicLists[0].musicFiles.includes(name),
+                    extraInfo: name.startsWith('cloud') ? '(云端)' : ''
+                };
+            })));
     }
 
     function showPlaylistManagementDialog() {
@@ -318,7 +328,7 @@ function FileSelector(fileProvider) {
     this.setOnItemSelected = function (/** @type {(selectedMusic: string?, selectedPlaylistIndex: string?) => void} */ callback) {
         onItemSelected = callback;
     }
-    
+
 }
 
 module.exports = FileSelector;
