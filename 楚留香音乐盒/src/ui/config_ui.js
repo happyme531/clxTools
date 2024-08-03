@@ -279,6 +279,10 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
                                 <text text="为下下一个音符画出引导线: " />
                                 <checkbox id="SkyCotlLikeInstructPlayer_DrawLineToNextNextKeyCheckbox" />
                             </horizontal>
+                            <horizontal>
+                                <text text="将引导圆画在按钮外侧: " />
+                                <checkbox id="SkyCotlLikeInstructPlayer_DrawRingOutsideCheckbox" />
+                            </horizontal>
                         </vertical>
                         <horizontal height="wrap_content">
                             <text text="振动效果: " />
@@ -294,6 +298,8 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
                     view_instructMode.SkyCotlLikeInstructPlayer_DrawLineToEachNextKeysCheckbox.setChecked(SkyCotlLikeInstructPlayer_DrawLineToEachNextKeys);
                     let SkyCotlLikeInstructPlayer_DrawLineToNextNextKey = configuration.readGlobalConfig("SkyCotlLikeInstructPlayer_DrawLineToNextNextKey", true);
                     view_instructMode.SkyCotlLikeInstructPlayer_DrawLineToNextNextKeyCheckbox.setChecked(SkyCotlLikeInstructPlayer_DrawLineToNextNextKey);
+                    let SkyCotlLikeInstructPlayer_DrawRingOutside = configuration.readGlobalConfig("SkyCotlLikeInstructPlayer_DrawRingOutside", false);
+                    view_instructMode.SkyCotlLikeInstructPlayer_DrawRingOutsideCheckbox.setChecked(SkyCotlLikeInstructPlayer_DrawRingOutside);
                 }
 
                 let SimpleInstructPlayer_MarkSize = configuration.readGlobalConfig("SimpleInstructPlayer_MarkSize", 1);
@@ -323,6 +329,11 @@ function ConfigurationUi(rawFileName, gameProfile, flags, callback) {
                 view_instructMode.SkyCotlLikeInstructPlayer_DrawLineToNextNextKeyCheckbox.setOnCheckedChangeListener(function (button, checked) {
                     anythingChanged = true;
                     configuration.setGlobalConfig("SkyCotlLikeInstructPlayer_DrawLineToNextNextKey", checked);
+                });
+                
+                view_instructMode.SkyCotlLikeInstructPlayer_DrawRingOutsideCheckbox.setOnCheckedChangeListener(function (button, checked) {
+                    anythingChanged = true;
+                    configuration.setGlobalConfig("SkyCotlLikeInstructPlayer_DrawRingOutside", checked);
                 });
 
                 let instructVibrationEffect = configuration.readGlobalConfig("instructVibrationEffect", 1);  

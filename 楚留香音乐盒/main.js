@@ -1524,6 +1524,9 @@ function main() {
                     impl.setDrawLineToNextNextKey(
                         configuration.readGlobalConfig("SkyCotlLikeInstructPlayer_DrawLineToNextNextKey", true)
                     );
+                    impl.setDrawRingOutside(
+                        configuration.readGlobalConfig("SkyCotlLikeInstructPlayer_DrawRingOutside", false)
+                    );
                     let keyRange = gameProfile.getKeyRange();
                     keyRange = [keyRange[0] - 1, keyRange[1] - 1]; //从0开始
                     let keyOrderMap = new Map();

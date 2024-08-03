@@ -240,6 +240,18 @@ function SkyCotlLikeInstructPlayerImpl() {
     }
 
     /**
+     * 是否在按键外部画圆环(而不是默认的内部)
+     * @type {boolean}
+     */
+    let drawRingOutside = false;
+    /**
+     * @param {boolean} value 
+     */
+    this.setDrawRingOutside = function (value) {
+        drawRingOutside = value;
+    }
+
+    /**
      * @brief 在指定位置画一个实心三角形
      * @param {android.graphics.Canvas} canvas
      * @param {Paint} paint
@@ -412,7 +424,7 @@ function SkyCotlLikeInstructPlayerImpl() {
      */
     let lastKeys = [[-1], 0, {}];
     let lastKeysTime = 0;
-
+    
     /**
      * @param {android.graphics.Canvas} canvas 
      */
@@ -452,10 +464,14 @@ function SkyCotlLikeInstructPlayerImpl() {
         }
 
         //3. 给要处理的按键画空心圆. 下一组按键用黄色，其他用灰色
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(5);
         for (let i = 0; i < activeKeys.length; i++) {
             let keys = activeKeys[i];
             let deltaTime = keys[1] - lastKeys[1];
             let radiusFactor = 1 - (lastKeysTime + deltaTime - now) / lookAheadTime;
+            let startRadius = drawRingOutside ? keyRadius * 2 : keyRadius;
+            let endRadius = drawRingOutside ? keyRadius : 0;
             if (radiusFactor > 1) radiusFactor = 1;
             if (radiusFactor < 0) radiusFactor = 0;
             for (let j = 0; j < keys[0].length; j++) {
@@ -465,9 +481,7 @@ function SkyCotlLikeInstructPlayerImpl() {
                 } else {
                     paint.setARGB(220, 255, 255, 255);
                 }
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(5);
-                canvas.drawCircle(pos[0], pos[1], keyRadius * radiusFactor, paint);
+                canvas.drawCircle(pos[0], pos[1], startRadius + (endRadius - startRadius) * radiusFactor, paint);
             }
         }
 
