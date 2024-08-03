@@ -191,7 +191,7 @@ function FileSelector(fileProvider) {
             files = fileProvider.listMusicInList(selectedPlaylist) || [];
         } else {
             try {
-                files = fileProvider.listAllMusicFiles();
+                files = fileProvider.listAllMusicFilesWithCache();
             } catch (e) {
                 console.error(e);
                 dialogs.alert("错误", "无法读取音乐文件列表: " + e + "\n" + e.stack);

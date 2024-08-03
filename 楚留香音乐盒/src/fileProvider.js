@@ -190,13 +190,31 @@ function FileProvider() {
     }
 
     /**
+     * 缓存的音乐文件列表
+     * @type {Array<string>}
+     */
+    let cachedAllMusicFiles = []
+
+    /**
      * 读取所有音乐文件的列表
      * @returns {Array<string>} - 返回音乐文件列表, 如["music1.mid", "music2.mid", "1.zip/music1.mid", "2.zip/music2.mid", "cloud:chimomoapi/1.json", "cloud:chimomoapi/2.json"]
      */
     this.listAllMusicFiles = function () {
-        return this.listDiscreteMusicFiles()
+        cachedAllMusicFiles = this.listDiscreteMusicFiles()
             .concat(this.listAllZippedMusicFiles())
             .concat(this.listAllCloudMusicFiles());
+        return cachedAllMusicFiles;
+    }
+
+    /**
+     * 读取所有音乐文件的列表, 但是这个有缓存
+     * @returns {Array<string>} - 返回音乐文件列表, 如["music1.mid", "music2.mid", "1.zip/music1.mid", "2.zip/music2.mid", "cloud:chimomoapi/1.json", "cloud:chimomoapi/2.json"]
+     */
+    this.listAllMusicFilesWithCache = function () {
+        if (cachedAllMusicFiles.length === 0) {
+            return this.listAllMusicFiles();
+        }
+        return cachedAllMusicFiles;
     }
 
     /**
