@@ -181,22 +181,29 @@ function FileProvider() {
 
     /**
      * 更新云端音乐列表
+     * @param {(err: Error?, succeeded: boolean) => void} [callback] - 回调函数
      * @param {boolean} [force] - 是否强制刷新(忽略缓存)
      */
-    this.updateCloudMusicList = function (force) {
+    this.updateCloudMusicList = function (callback, force) {
         let chimomoApiLastUpdate = configuration.getJsonFileLastModifiedTime(chimomoApiMusicListKey);
         if (force || chimomoApiLastUpdate === null || Date.now() - chimomoApiLastUpdate > cloudCacheTTLMs) {
             console.log("Start fetching cloud music list (chimpomoapi)");
             chimomoApi.fetchMusicList(0, 10000, null, (err, data) => {
                 if (err) {
                     console.error("Failed to fetch cloud music list(chimomoapi): " + err);
+                    if (callback)
+                        callback(err, false);
                     return;
                 }
                 console.log("Fetched cloud music list(chimomoapi):");
                 configuration.setJsonToFile(chimomoApiMusicListKey, data);
+                if (callback)
+                    callback(null, true);
             });
         } else {
             console.log("Skip fetching cloud music list(chimomoapi)");
+            if (callback)
+                callback(null, true);
         }
     }
 
@@ -220,6 +227,14 @@ function FileProvider() {
         } else {
             return musicName;
         }
+    }
+
+    /**
+     * 清除音乐文件缓存
+     */
+    this.clearMusicFileCache = function () {
+        files.removeDir(musicDir + tmpSubDir);
+        files.ensureDir(musicDir + tmpSubDir);
     }
 
     /**

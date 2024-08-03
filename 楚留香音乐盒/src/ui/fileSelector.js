@@ -206,8 +206,8 @@ function FileSelector(fileProvider) {
 
     function showPlaylistManagementDialog() {
         dialogs.build({
-            title: "管理歌单",
-            items: ["创建新歌单", "重命名此歌单", "删除此歌单"],
+            title: "管理...",
+            items: ["创建新歌单", "重命名当前歌单", "删除当前歌单", "手动刷新云端歌曲列表", "清除歌曲缓存"],
             itemsSelectMode: "select"
         }).on("item_select", function (index, item) {
             switch (index) {
@@ -219,6 +219,31 @@ function FileSelector(fileProvider) {
                     break;
                 case 2:
                     deletePlaylist();
+                    break;
+                case 3:
+                    {
+                        const d = dialogs.build({
+                            title: "加载中...",
+                            content: "正在更新云端歌曲列表...",
+                            progress: {
+                                max: -1,
+                                horizontal: true
+                            }
+                        });
+                        d.show();
+                        fileProvider.updateCloudMusicList((err, succeed) => {
+                            d.dismiss();
+                            if (err) {
+                                dialogs.alert("加载失败", "更新云端歌曲列表失败: " + err);
+                                return;
+                            }
+                            toast("更新成功");
+                        }, true);
+                    }
+                    break;
+                case 4:
+                    fileProvider.clearMusicFileCache();
+                    toast("歌曲缓存已清除");
                     break;
             }
         }).show();
