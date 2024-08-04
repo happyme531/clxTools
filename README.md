@@ -5,7 +5,7 @@
 适用于一些RPG手游，例如《楚留香(一梦江湖)》的自动脚本。 Automatics scripts for some mobile RPGs, such as netease ChuLiuXiang.
 
 脚本文件:[点我下载](https://github.com/happyme531/clxTools/archive/master.zip)  
-脚本运行环境: AutoX(Auto.js的一个fork). [进入apk下载](https://github.com/kkevsekk1/AutoX/releases)/[进入项目主页](https://github.com/kkevsekk1/AutoX).  
+脚本运行环境: AutoX(Auto.js的一个fork). [进入apk下载](https://github.com/kkevsekk1/AutoX/releases)/[进入项目主页](https://github.com/kkevsekk1/AutoX). (建议使用6.5.9版本)  
 注意: 不支持收费版Auto.js  
 
 ## 安装说明
@@ -13,7 +13,7 @@
 1. 下载:
   先下载脚本文件: [脚本文件](https://github.com/happyme531/clxTools/archive/master.zip)  
   如果上面的链接无法访问，也可以点击[镜像地址](https://gh.api.99988866.xyz/https://github.com/happyme531/clxTools/archive/master.zip)下载  
-  之后再下载脚本运行环境(AutoX): [进入apk下载](https://github.com/kkevsekk1/AutoX/releases)或[使用镜像地址下载](http://autoxoss.autoxjs.com/autoxjs/6.4.3/app-v6-arm64-v8a-release-unsigned-signed.apk)
+  之后再下载脚本运行环境(AutoX): [进入apk下载](https://github.com/kkevsekk1/AutoX/releases) (建议使用6.5.9版本)
 
 2. 安装:  
      - 点击下载的apk文件，安装AutoX
