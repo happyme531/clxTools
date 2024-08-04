@@ -7,7 +7,7 @@
 function requireShared(fileName) {
     const sharedDirRel = "../shared/";
     const cacheDirRel = "./sharedcache/";
-    const alternativeSharedDir = "/sdcard/脚本/shared/";
+    const alternativeSharedDir = "/sdcard/脚本/clxTools/shared/";
     function copyDir(src, dst) {
         let filess = files.listDir(src);
         for (let i = 0; i < filess.length; i++) {
