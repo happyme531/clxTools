@@ -36,7 +36,10 @@ function FileSelector(fileProvider) {
                         <input id="searchInput" w="*" h="40dp" hint="搜索音乐" bg="#f0f0f0" padding="8sp" layout_weight="1" inputType="text" imeOptions="actionDone" singleLine="true" focusable="true" focusableInTouchMode="true" />
                         <text id="btnClose" text="×" textSize="24sp" textColor="#000000" padding="12 0" gravity="center" />
                     </horizontal>
-
+                    {/* 进度条 */}
+                    {/* progressbar 上下有空白很难看, 这个没有 */}
+                    <com.google.android.material.progressindicator.LinearProgressIndicator id="loadingProgressBar" w="*" h="8dp" bg="#f0f0f0" indeterminate="true" />
+                    {/* 文件列表 */}
                     <list id="fileList" w="*" h="*" bg="#fafafa">
                         <horizontal w="*" h="40dp">
                             <text id="fileName" text="{{this.displayName}}" textSize="16sp" textColor="#000000" maxLines="1" ellipsize="end" layout_weight="1" />
@@ -185,38 +188,46 @@ function FileSelector(fileProvider) {
     }
 
     function refreshFileList(searchText) {
-        let files;
+        window.loadingProgressBar.setVisibility(android.view.View.VISIBLE);
+        if(searchText == null) 
+            searchText = '';
+        setImmediate((searchText) => {
+            console.log(`searchText: ${searchText}`);
+            let files;
 
-        if (selectedPlaylist) {
-            files = fileProvider.listMusicInList(selectedPlaylist) || [];
-        } else {
-            try {
-                files = fileProvider.listAllMusicFilesWithCache();
-            } catch (e) {
-                console.error(e);
-                dialogs.alert("错误", "无法读取音乐文件列表: " + e + "\n" + e.stack);
-                window.close();
-                return;
+            if (selectedPlaylist) {
+                files = fileProvider.listMusicInList(selectedPlaylist) || [];
+            } else {
+                try {
+                    files = fileProvider.listAllMusicFilesWithCache();
+                } catch (e) {
+                    console.error(e);
+                    dialogs.alert("错误", "无法读取音乐文件列表: " + e + "\n" + e.stack);
+                    window.close();
+                    return;
+                }
             }
-        }
 
-        // 应用搜索过滤
-        if (searchText != null)
-            files = files.filter(function (file) {
-                return file.toLowerCase().includes(searchText);
+            // 应用搜索过滤
+            if (searchText.trim() !== '')
+                files = files.filter(function (file) {
+                    return file.toLowerCase().includes(searchText);
+                });
+
+            ui.run(() => {
+                window.fileList.setDataSource(files.map(function (name) {
+                    return {
+                        name: name,
+                        displayName: musicFormats.getFileNameWithoutExtension(name),
+                        addable: selectedPlaylistIndex == null,
+                        removable: selectedPlaylistIndex != null,
+                        liked: fileProvider.userMusicLists[0].musicFiles.includes(name),
+                        extraInfo: name.startsWith('cloud') ? '(云端)' : ''
+                    };
+                }));
+                window.loadingProgressBar.setVisibility(android.view.View.GONE);
             });
-
-        ui.run(() =>
-            window.fileList.setDataSource(files.map(function (name) {
-                return {
-                    name: name,
-                    displayName: musicFormats.getFileNameWithoutExtension(name),
-                    addable: selectedPlaylistIndex == null,
-                    removable: selectedPlaylistIndex != null,
-                    liked: fileProvider.userMusicLists[0].musicFiles.includes(name),
-                    extraInfo: name.startsWith('cloud') ? '(云端)' : ''
-                };
-            })));
+        }, searchText);
     }
 
     function showPlaylistManagementDialog() {

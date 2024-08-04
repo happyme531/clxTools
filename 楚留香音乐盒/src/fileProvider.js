@@ -218,6 +218,13 @@ function FileProvider() {
     }
 
     /**
+     * 清除缓存
+     */
+    this.refreshAllMusicFilesListCache = function () {
+        cachedAllMusicFiles = [];
+    }
+
+    /**
      * 更新云端音乐列表
      * @param {(err: Error?, succeeded: boolean) => void} [callback] - 回调函数
      * @param {boolean} [force] - 是否强制刷新(忽略缓存)

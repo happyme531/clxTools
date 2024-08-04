@@ -756,7 +756,7 @@ function runFileConfigSetup(fullFileName, onFinish, extFlags){
  * @param {(selectedMusic: string?, selectedPlaylist: string?) => void} callback 回调函数，参数为选择的文件名与歌单名
  */
 function runFileSelector(fileProvider, callback) {
-    fileProvider.listAllMusicFiles(); 
+    fileProvider.refreshAllMusicFilesListCache();
     let fileSelector = new FileSelector(fileProvider);
     fileSelector.setOnItemSelected(callback);
     fileSelector.show();
