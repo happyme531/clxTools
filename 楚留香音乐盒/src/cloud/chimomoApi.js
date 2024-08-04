@@ -6,9 +6,9 @@ let axios = require('axios');
 
 /**
  * @typedef {Object} ChimomoApiFileEntry
- * @property {number} id - 文件的唯一标识符
+ * @property {string} id - 文件的唯一标识符 (uuid)
  * @property {string} name - MIDI文件的名称
- * @property {string} url - MIDI文件的下载链接
+ * @property {string} type - 文件类型，貌似不影响使用
  * @property {string} createdAt - 文件创建的日期和时间，格式为 'YYYY-MM-DD HH:mm:ss'
  * @property {string} uploader - 上传者的名称
  */
@@ -23,7 +23,7 @@ let axios = require('axios');
  */
 
 function ChimomoApi() {
-    const apiBase = "http://autoplay.chimomo.cn/api/v1/"
+    const apiBase = "https://autoplay.chimomo.cn/api/v1/"
 
 
     /**
@@ -34,7 +34,7 @@ function ChimomoApi() {
      * @param {(err: Error?, data: ChimomoApiMusicList?) => void} callback 回调函数
      */
     this.fetchMusicList = function (pageNo, pageSize, keyword, callback) {
-        const url = `${apiBase}midi/list`;
+        const url = `${apiBase}/song/list`;
         const params = {
             pageNo,
             pageSize,
@@ -59,11 +59,11 @@ function ChimomoApi() {
 
     /**
      * @brief 获取音乐文件
-     * @param {number} musicId 音乐ID
+     * @param {string} musicId 音乐ID
      * @param {(err: Error?, data: import('@tonejs/midi').MidiJSON?) => void} callback 回调函数
      */
     this.fetchMusicFileById = function (musicId, callback) {
-        const url = `${apiBase}midi/${musicId}`;
+        const url = `${apiBase}/song/${musicId}`;
         let config = {
             timeout: 5000
         };

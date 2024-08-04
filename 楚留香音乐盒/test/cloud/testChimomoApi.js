@@ -15,7 +15,7 @@ describe('ChimomoApi', () => {
     });
 
     test('fetchMusicFileById', (t, done) => {
-        api.fetchMusicFileById(949, (err, data) => {
+        api.fetchMusicFileById('58a38ed3-f8b1-4a6b-a69a-1ca9048ed3d8', (err, data) => {
             assert.strictEqual(err, null);
             assert.notStrictEqual(data, undefined);
             assert.ok(typeof data === 'object');
