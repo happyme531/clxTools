@@ -46,36 +46,52 @@ const FeatureFlags = {
     "hasAllSemitone": "hasAllSemitone",
 }
 
+/**
+ * @typedef {Object} NoteKeyMapConfig
+ * @property {string} startPitch 起始音高, 如: C3
+ * @property {string} endPitch 结束音高, 如: C5(包含C5)
+ * @property {boolean} haveSemitone 是否有半音
+ */
 
 /**
- * @typedef {Object.<string, number>} NoteKeyMap
+ * @brief 生成音高到按键的映射
+ * @param {NoteKeyMapConfig} config 配置
+ * @returns {NoteKeyMap} 音高到按键的映射
+ */
+function generateNoteKeyMap(config) {
+    const noteKeyMap = {};
+    let currentPitch = midiPitch.nameToMidiPitch(config.startPitch);
+    const endPitch = midiPitch.nameToMidiPitch(config.endPitch);
+    let keyNumber = 1;
+
+    while (currentPitch <= endPitch) {
+        let pitchName = midiPitch.midiPitchToName(currentPitch);
+        noteKeyMap[pitchName] = keyNumber;
+        keyNumber++;
+
+        if (config.haveSemitone) {
+            currentPitch++;
+        } else {
+            // 如果没有半音，跳过黑键
+            currentPitch += (midiPitch.isHalf(currentPitch + 1) ? 2 : 1);
+        }
+    }
+    //@ts-ignore
+    return noteKeyMap;
+}
+
+
+/**
+ * @typedef {Object.<string, number>} NoteKeyMap         //音高与按键的映射, 左下角开始, 从左到右, 从下到上
+
  * @type {Object.<string, NoteKeyMap>}
  */
 const noteKeyMaps = {
-    "generic_3x7": {
-        //音高与按键的映射, 左下角开始, 从左到右, 从下到上
-        "C3": 1,
-        "D3": 2,
-        "E3": 3,
-        "F3": 4,
-        "G3": 5,
-        "A3": 6,
-        "B3": 7,
-        "C4": 8,
-        "D4": 9,
-        "E4": 10,
-        "F4": 11,
-        "G4": 12,
-        "A4": 13,
-        "B4": 14,
-        "C5": 15,
-        "D5": 16,
-        "E5": 17,
-        "F5": 18,
-        "G5": 19,
-        "A5": 20,
-        "B5": 21,
-    },
+    "generic_3x7": generateNoteKeyMap({
+        startPitch: "C3",
+        endPitch: "B5",
+        haveSemitone: false,
+    }),
     "sky_3x5": {
         // C3 D3 E3 F3 G3 
         // A3 B3 C4 D4 E4 
@@ -134,47 +150,11 @@ const noteKeyMaps = {
         "G5#": 20,
         "A5#": 21,
     },
-    "generic_3x12": {
-        //C5 C#5 D5 D#5 E5 F5 F#5 G5 G#5 A5 A#5 B5
-        //C4 C#4 D4 D#4 E4 F4 F#4 G4 G#4 A4 A#4 B4
-        //C3 C#3 D3 D#3 E3 F3 F#3 G3 G#3 A3 A#3 B3
-        "C3": 1,
-        "C3#": 2,
-        "D3": 3,
-        "D3#": 4,
-        "E3": 5,
-        "F3": 6,
-        "F3#": 7,
-        "G3": 8,
-        "G3#": 9,
-        "A3": 10,
-        "A3#": 11,
-        "B3": 12,
-        "C4": 13,
-        "C4#": 14,
-        "D4": 15,
-        "D4#": 16,
-        "E4": 17,
-        "F4": 18,
-        "F4#": 19,
-        "G4": 20,
-        "G4#": 21,
-        "A4": 22,
-        "A4#": 23,
-        "B4": 24,
-        "C5": 25,
-        "C5#": 26,
-        "D5": 27,
-        "D5#": 28,
-        "E5": 29,
-        "F5": 30,
-        "F5#": 31,
-        "G5": 32,
-        "G5#": 33,
-        "A5": 34,
-        "A5#": 35,
-        "B5": 36,
-    },
+    "generic_3x12": generateNoteKeyMap({
+        startPitch: "C3",
+        endPitch: "B5",
+        haveSemitone: true,
+    }),
     "mrzh_3x12": {
         //C5 C#5 D5 D#5 E5 NC F5 F#5 G5 G#5 A5 A#5 B5
         //C4 C#4 D4 D#4 E4 NC F4 F#4 G4 G#4 A4 A#4 B4
@@ -216,16 +196,11 @@ const noteKeyMaps = {
         "A5#": 38,
         "B5": 39,
     },
-    "nshm_1x7": {
-        //C4 D4 E4 F4 G4 A4 B4
-        "C4": 1,
-        "D4": 2,
-        "E4": 3,
-        "F4": 4,
-        "G4": 5,
-        "A4": 6,
-        "B4": 7,
-    },
+    "nshm_1x7": generateNoteKeyMap({
+        startPitch: "C4",
+        endPitch: "B4",
+        haveSemitone: false,
+    }),
     "nshm_zhuangyuan_noteplacer_4x12": {  //逆水寒宅邸的聆音骨牌
         //C#2 D#2 F#2 G#2 A#2 C2 D2 E2 F2 G2 A2 B2
         //C#5 D#5 F#5 G#5 A#5 C5 D5 E5 F5 G5 A5 B5
@@ -280,25 +255,11 @@ const noteKeyMaps = {
         "A2": 47,
         "B2": 48,
     },
-    "dzpd_7_8":{
-        //C5 D5 E5 F5 G5 A5 B5 C6
-        //C4 D4 E4 F4 G4 A4 B4
-        "C4": 1,
-        "D4": 2,
-        "E4": 3,
-        "F4": 4,
-        "G4": 5,
-        "A4": 6,
-        "B4": 7,
-        "C5": 8,
-        "D5": 9,
-        "E5": 10,
-        "F5": 11,
-        "G5": 12,
-        "A5": 13,
-        "B5": 14,
-        "C6": 15,
-    },
+    "dzpd_7_8": generateNoteKeyMap({
+        startPitch: "C4",
+        endPitch: "C6",
+        haveSemitone: false,
+    }),
     "abd_7_8_7":{
         //C3 D3 E3 F3 G3 A3 B3
         //C4 D4 E4 F4 G4 A4 B4 C5
@@ -345,28 +306,17 @@ const noteKeyMaps = {
         "A3": 14,
         "B3": 15,
     },
-    "hpma_2x7": {
-        //音高与按键的映射, 左下角开始, 从左到右, 从下到上
-        "C3": 1,
-        "D3": 2,
-        "E3": 3,
-        "F3": 4,
-        "G3": 5,
-        "A3": 6,
-        "B3": 7,
-        "C4": 8,
-        "D4": 9,
-        "E4": 10,
-        "F4": 11,
-        "G4": 12,
-        "A4": 13,
-        "B4": 14,
-    },
+    "hpma_2x7": generateNoteKeyMap({
+        startPitch: "C3",
+        endPitch: "B4",
+        haveSemitone: false,
+    }),
 }
 
 
 /**
  * @typedef {{
+ * name: string,
  * displayName: string,
  * type: string,
  * locator: string,
@@ -380,6 +330,7 @@ const noteKeyMaps = {
  */
 const keyLayouts = {
     "generic_3x7": {
+        name: "generic_3x7",
         //名称
         displayName: "3x7",
         //类型
@@ -396,6 +347,7 @@ const keyLayouts = {
         noteKeyMap: noteKeyMaps.generic_3x7,
     },
     "sky_3x5": {   //光遇3x5
+        name: "sky_3x5",
         displayName: "3x5",
         type: KeyLayoutTypes.grid,
         locator: KeyLocatorTypes.left_top_right_bottom,
@@ -404,6 +356,7 @@ const keyLayouts = {
         noteKeyMap: noteKeyMaps.sky_3x5,
     },
     "sky_2x4": { //光遇2x4
+        name: "sky_2x4",    
         displayName: "2x4",
         type: KeyLayoutTypes.grid,
         locator: KeyLocatorTypes.left_top_right_bottom,
@@ -412,6 +365,7 @@ const keyLayouts = {
         noteKeyMap: noteKeyMaps.sky_2x4,
     },
     "generic_3x12": {
+        name: "generic_3x12",   
         displayName: "3x12",
         type: KeyLayoutTypes.grid,
         locator: KeyLocatorTypes.left_top_right_bottom,
@@ -420,6 +374,7 @@ const keyLayouts = {
         noteKeyMap: noteKeyMaps.generic_3x12,
     },
     "nshm_1x7": {  //逆水寒手游1x7
+        name: "nshm_1x7",
         displayName: "1x7",
         type: KeyLayoutTypes.grid,
         locator: KeyLocatorTypes.left_top_right_bottom,
@@ -429,31 +384,37 @@ const keyLayouts = {
     },
     //TODO: 重构?
     "nshm_professional.gu_zheng":{ 
+        name: "nshm_professional.gu_zheng",
         displayName: "专业模式(古筝)",
         type: KeyLayoutTypes.nshm_professional,
         locator: KeyLocatorTypes.left_top_right_bottom,
         //具体的键位和映射表会动态生成。
     },
     "nshm_professional.qv_di":{ 
+        name: "nshm_professional.qv_di",
         displayName: "专业模式(曲笛)",
         type: KeyLayoutTypes.nshm_professional,
         locator: KeyLocatorTypes.left_top_right_bottom,
     },
     "nshm_professional.pi_pa":{
+        name: "nshm_professional.pi_pa",
         displayName: "专业模式(琵琶)",
         type: KeyLayoutTypes.nshm_professional,
         locator: KeyLocatorTypes.left_top_right_bottom,
     },
     "nshm_professional.suo_na":{
+        name: "nshm_professional.suo_na",
         displayName: "专业模式(唢呐)",
         type: KeyLayoutTypes.nshm_professional,
         locator: KeyLocatorTypes.left_top_right_bottom,
     },
     "nshm_zhuangyuan_noteplacer_4x12": {  //逆水寒宅邸的聆音骨牌
+        name: "nshm_zhuangyuan_noteplacer_4x12",
         displayName: "宅邸聆音骨牌",
         noteKeyMap: noteKeyMaps.nshm_zhuangyuan_noteplacer_4x12,
     },
     "dzpd_interleaved3x7": { //蛋仔派对 交错的3x7
+        name: "dzpd_interleaved3x7",
         displayName: "21键",
         type: KeyLayoutTypes.arbitrary,
         locator: KeyLocatorTypes.left_top_right_bottom,
@@ -472,6 +433,7 @@ const keyLayouts = {
         noteKeyMap: noteKeyMaps.generic_3x7,
     },
     "dzpd_7_8": { //蛋仔派对 7+8
+        name: "dzpd_7_8",
         displayName: "15键",
         type: KeyLayoutTypes.arbitrary,
         locator: KeyLocatorTypes.left_top_right_bottom,
@@ -488,6 +450,7 @@ const keyLayouts = {
         noteKeyMap: noteKeyMaps.dzpd_7_8,
     },
     "dzpd_yinterleaved36" :{ //蛋仔派对 交错的3x12
+        name: "dzpd_yinterleaved36",
         displayName: "36键",
         type: KeyLayoutTypes.arbitrary,
         locator: KeyLocatorTypes.left_top_right_bottom,
@@ -509,6 +472,7 @@ const keyLayouts = {
         noteKeyMap: noteKeyMaps.generic_3x12,
     },
     "abd_7_8_7": { //奥比岛 7+8+7
+        name: "abd_7_8_7",
         displayName: "22键",
         type: KeyLayoutTypes.arbitrary,
         locator: KeyLocatorTypes.left_top_right_bottom,
@@ -527,6 +491,7 @@ const keyLayouts = {
         noteKeyMap: noteKeyMaps.abd_7_8_7,
     },
     "abd_8_7": { //奥比岛 8+7
+        name: "abd_8_7",
         displayName: "15键",
         type: KeyLayoutTypes.arbitrary,
         locator: KeyLocatorTypes.left_top_right_bottom,
@@ -543,6 +508,7 @@ const keyLayouts = {
         noteKeyMap: noteKeyMaps.abd_8_7,
     },
     "hpma_yinterleaved3x12": { //哈利波特魔法觉醒 y交错的3x12 aka专业模式
+        name: "hpma_yinterleaved3x12",
         displayName: "专业模式",
         type: KeyLayoutTypes.arbitrary,
         locator: KeyLocatorTypes.left_top_right_bottom,
@@ -564,6 +530,7 @@ const keyLayouts = {
         noteKeyMap: noteKeyMaps.generic_3x12,
     },
     "hpma_2x7": { //哈利波特魔法觉醒 2x7
+        name: "hpma_2x7",
         displayName: "普通模式",
         type: KeyLayoutTypes.grid,
         locator: KeyLocatorTypes.left_top_right_bottom,
@@ -573,6 +540,7 @@ const keyLayouts = {
         noteKeyMap: noteKeyMaps.hpma_2x7,
     }, 
     "mrzh_3x12":{
+        name: "mrzh_3x12",
         displayName: "传统模式",
         type: KeyLayoutTypes.grid,
         locator: KeyLocatorTypes.left_top_right_bottom,
@@ -697,17 +665,10 @@ function GameConfig(json) {
     this.gameName = "";
 
     /**
-     * @type {Array<string>}
+     * @type {Array<KeyLayout>}
      * 可用的键位类型
      */
     this.keyTypes = [];
-
-    /**
-     * @type {Map<string,pos2dPair>}
-     * 键位类型对应的定位点坐标
-     * @default new Map()
-     */
-    this.keyLocators = new Map();
 
     /**
      * @type {Array<VariantConfig>}
@@ -731,13 +692,12 @@ function GameConfig(json) {
 
     /**
      * 
-     * @param {{ gameType: string; gameName: string; keyTypes: Array<string>; keyLocators: Map<string,pos2dPair>; variants: Array<VariantConfig>; sameKeyMinInterval: number; packageNamePart: Array<string>; }} json
+     * @param {{ gameType: string; gameName: string; keyTypes: Array<KeyLayout>; variants: Array<VariantConfig>; sameKeyMinInterval: number; packageNamePart: Array<string>; }} json
      */
     this.fromJSON = function (json) {
         this.gameType = json.gameType;
         this.gameName = json.gameName;
         this.keyTypes = json.keyTypes;
-        this.keyLocators = json.keyLocators;
         this.variants = json.variants;
         this.sameKeyMinInterval = json.sameKeyMinInterval;
         this.packageNamePart = json.packageNamePart;
@@ -748,7 +708,6 @@ function GameConfig(json) {
             gameType: this.gameType,
             gameName: this.gameName,
             keyTypes: this.keyTypes,
-            keyLocators: this.keyLocators,
             variants: this.variants,
             sameKeyMinInterval: this.sameKeyMinInterval,
             packageNamePart: this.packageNamePart,
@@ -772,10 +731,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "楚留香",
         gameName: "楚留香",
-        keyTypes: ["generic_3x7"],
-        keyLocators: new Map([
-            ["generic_3x7", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["generic_3x7"]],
         variants: [
             new VariantConfig({ //TODO:
                 variantType: "default",
@@ -792,10 +748,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "天涯明月刀",
         gameName: "天涯明月刀",
-        keyTypes: ["generic_3x7"],
-        keyLocators: new Map([
-            ["generic_3x7", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["generic_3x7"]],
         variants: [
             defaultVariantConfig,
         ],
@@ -805,10 +758,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "原神",
         gameName: "原神",
-        keyTypes: ["generic_3x7"],
-        keyLocators: new Map([
-            ["generic_3x7", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["generic_3x7"]],
         variants: [
             new VariantConfig({
                 variantType: "风物之诗琴",
@@ -833,11 +783,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "光遇",
         gameName: "光遇",
-        keyTypes: ["sky_3x5", "sky_2x4"],
-        keyLocators: new Map([
-            ["sky_3x5", [[0, 0], [0, 0]]],
-            ["sky_2x4", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["sky_3x5"], keyLayouts["sky_2x4"]],
         variants: [
            defaultVariantConfig
         ],
@@ -847,12 +793,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "逆水寒手游",
         gameName: "逆水寒",
-        keyTypes: ["generic_3x7", "generic_3x12", "nshm_1x7", "nshm_professional.gu_zheng", "nshm_professional.qv_di", "nshm_professional.pi_pa", "nshm_professional.suo_na", "nshm_zhuangyuan_noteplacer_4x12"],
-        keyLocators: new Map([
-            ["generic_3x7", [[0, 0], [0, 0]]],
-            ["generic_3x12", [[0, 0], [0, 0]]],
-            ["nshm_1x7", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["generic_3x7"], keyLayouts["generic_3x12"], keyLayouts["nshm_1x7"], keyLayouts["nshm_professional.gu_zheng"], keyLayouts["nshm_professional.qv_di"], keyLayouts["nshm_professional.pi_pa"], keyLayouts["nshm_professional.suo_na"], keyLayouts["nshm_zhuangyuan_noteplacer_4x12"]],
         variants: [
             defaultVariantConfig,
             new VariantConfig({
@@ -894,12 +835,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "蛋仔派对",
         gameName: "蛋仔派对",
-        keyTypes: ["dzpd_interleaved3x7", "dzpd_yinterleaved36", "dzpd_7_8"],
-        keyLocators: new Map([
-            ["dzpd_interleaved3x7", [[0, 0], [0, 0]]],
-            ["dzpd_7_8", [[0, 0], [0, 0]]],
-            ["dzpd_yinterleaved36", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["dzpd_interleaved3x7"], keyLayouts["dzpd_yinterleaved36"], keyLayouts["dzpd_7_8"]],
         variants: [
             defaultVariantConfig 
         ],
@@ -909,10 +845,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "黎明觉醒",
         gameName: "黎明觉醒",
-        keyTypes: ["generic_3x7"],
-        keyLocators: new Map([
-            ["generic_3x7", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["generic_3x7"]],
         variants: [
             defaultVariantConfig 
         ],
@@ -922,11 +855,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "奥比岛",
         gameName: "奥比岛",
-        keyTypes: ["abd_7_8_7", "abd_8_7"],
-        keyLocators: new Map([
-            ["abd_7_8_7", [[0, 0], [0, 0]]],
-            ["abd_8_7", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["abd_7_8_7"], keyLayouts["abd_8_7"]],
         variants: [
             defaultVariantConfig
         ],
@@ -936,11 +865,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "哈利波特_魔法觉醒",
         gameName: "哈利波特: 魔法觉醒",
-        keyTypes: ["hpma_yinterleaved3x12", "hpma_2x7"],
-        keyLocators: new Map([
-            ["hpma_yinterleaved3x12", [[0, 0], [0, 0]]],
-            ["hpma_2x7", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["hpma_yinterleaved3x12"], keyLayouts["hpma_2x7"]],
         variants: [
             defaultVariantConfig
         ],
@@ -950,10 +875,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "第五人格",
         gameName: "第五人格",
-        keyTypes: ["generic_3x7"],
-        keyLocators: new Map([
-            ["generic_3x7", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["generic_3x7"]],
         variants: [
             defaultVariantConfig
         ],
@@ -963,10 +885,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "阴阳师",
         gameName: "阴阳师",
-        keyTypes: ["generic_3x7"],
-        keyLocators: new Map([
-            ["generic_3x7", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["generic_3x7"]],
         variants: [
             defaultVariantConfig
         ],
@@ -976,10 +895,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "摩尔庄园",
         gameName: "摩尔庄园",
-        keyTypes: ["hpma_yinterleaved3x12"],
-        keyLocators: new Map([
-            ["hpma_yinterleaved3x12", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["hpma_yinterleaved3x12"]],
         variants: [
             defaultVariantConfig
         ],
@@ -989,10 +905,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "明日之后",
         gameName: "明日之后",
-        keyTypes: ["mrzh_3x12"],
-        keyLocators: new Map([
-            ["mrzh_3x12", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["mrzh_3x12"]],
         variants: [
             defaultVariantConfig
         ],
@@ -1002,10 +915,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "元梦之星",
         gameName: "元梦之星",
-        keyTypes: ["generic_3x7"],
-        keyLocators: new Map([
-            ["generic_3x7", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["generic_3x7"]],
         variants: [
             defaultVariantConfig
         ],
@@ -1015,11 +925,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "自定义1",
         gameName: "自定义1",
-        keyTypes: ["generic_3x7", "generic_3x12"],
-        keyLocators: new Map([
-            ["generic_3x7", [[0, 0], [0, 0]]],
-            ["generic_3x12", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["generic_3x7"], keyLayouts["generic_3x12"]],
         variants: [
             defaultVariantConfig
         ],
@@ -1029,11 +935,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "自定义2",
         gameName: "自定义2",
-        keyTypes: ["generic_3x7", "generic_3x12"],
-        keyLocators: new Map([
-            ["generic_3x7", [[0, 0], [0, 0]]],
-            ["generic_3x12", [[0, 0], [0, 0]]],
-        ]),
+        keyTypes: [keyLayouts["generic_3x7"], keyLayouts["generic_3x12"]],
         variants: [
             defaultVariantConfig
         ],
@@ -1063,6 +965,15 @@ function GameProfile() {
     var currentKeyTypeName = "";
     //当前生效的变体名
     var currentVariantType = "";
+    //当前生效的游戏类型-键位布局名, 用于在keyLocators中查找键位配置
+    var currentGameTypeKeyTypeName = "";
+
+    /**
+     * @type {Map<string,Array<pos2d>>}
+     * @description 所有游戏的键位配置(gameType-keyTypeName , pos1, pos2)
+     */
+    var keyLocators = new Map();
+
 
     /**
      * @type {Array<pos2d>?}
@@ -1203,6 +1114,22 @@ function GameProfile() {
         });
     }
 
+    /**
+     * 获取所有键位配置
+     * @returns {Map<string,Array<pos2d>>} 键位配置
+     */
+    this.getKeyLocators = function () {
+        return keyLocators;
+    }
+
+    /**
+     * 设置所有键位配置 
+     * @param {Map<string,Array<pos2d>>} keyLocators 键位配置
+     */
+    this.setKeyLocators = function (keyLocators) {
+        this.keyLocators = keyLocators;
+    }
+
     this.getCurrentConfig = function () {
         return currentGameConfig;
     }
@@ -1303,12 +1230,14 @@ function GameProfile() {
             return false;
         }
         if (keyTypes.find(function (keyType) {
-            return keyType == keyTypeName;
+            return keyType.name == keyTypeName;
         }) == undefined) {
             return false;
         }
         currentKeyTypeName = keyTypeName;
+        currentGameTypeKeyTypeName = `${currentGameConfig.gameType}-${currentKeyTypeName}`;
     }
+
     this.getCurrentKeyLayout = function () {
         return keyLayouts[currentKeyTypeName];
     }
@@ -1317,7 +1246,8 @@ function GameProfile() {
         if (currentGameConfig == undefined) {
             return;
         }
-        currentKeyTypeName = currentGameConfig.keyTypes[0];
+        currentKeyTypeName = currentGameConfig.keyTypes[0].name;
+        currentGameTypeKeyTypeName = `${currentGameConfig.gameType}-${currentKeyTypeName}`;
     }
 
     this.getCurrentKeyLayoutDisplayName = function () {
@@ -1355,7 +1285,7 @@ function GameProfile() {
         if (currentGameConfig == undefined) {
             return false;
         }
-        currentGameConfig.keyLocators[currentKeyTypeName] = [pos1, pos2];
+        keyLocators[currentGameTypeKeyTypeName] = [pos1, pos2];
         return true;
     }
 
@@ -1363,10 +1293,10 @@ function GameProfile() {
         if (currentGameConfig == undefined) {
             return false;
         }
-        if (currentGameConfig.keyLocators[currentKeyTypeName] == undefined) {
+        if (keyLocators[currentGameTypeKeyTypeName] == undefined) {
             return false;
         }
-        let pos = currentGameConfig.keyLocators[currentKeyTypeName];
+        let pos = keyLocators[currentGameTypeKeyTypeName];
         if (pos[0][0] == 0 && pos[0][1] == 0 && pos[1][0] == 0 && pos[1][1] == 0) {
             return false;
         }
@@ -1383,8 +1313,8 @@ function GameProfile() {
                 let leftTop = 0;
                 let rightBottom = 0;
                 if (currentLayout.locator == KeyLocatorTypes.left_top_right_bottom) {
-                    leftTop = currentGameConfig.keyLocators[currentKeyTypeName][0];
-                    rightBottom = currentGameConfig.keyLocators[currentKeyTypeName][1];
+                    leftTop = keyLocators[currentGameTypeKeyTypeName][0];
+                    rightBottom = keyLocators[currentGameTypeKeyTypeName][1];
                 } else {
                     console.log("TODO:unsupported key locator type: " + currentLayout.locator);
                 }
@@ -1405,6 +1335,7 @@ function GameProfile() {
                         keyPos.push([Math.round(x), Math.round(y)]);
                     }
                 }
+                //@ts-ignore
                 cachedKeyPos = keyPos;
                 console.log("generated key position: " + JSON.stringify(keyPos));
                 return true;
@@ -1413,8 +1344,8 @@ function GameProfile() {
                 let leftTop = 0;
                 let rightBottom = 0;
                 if (currentLayout.locator == KeyLocatorTypes.left_top_right_bottom) {
-                    leftTop = currentGameConfig.keyLocators[currentKeyTypeName][0];
-                    rightBottom = currentGameConfig.keyLocators[currentKeyTypeName][1];
+                    leftTop = keyLocators[currentGameTypeKeyTypeName][0];
+                    rightBottom = keyLocators[currentGameTypeKeyTypeName][1];
                 } else {
                     console.log("TODO:unsupported key locator type: " + currentLayout.locator);
                 }
@@ -1431,6 +1362,7 @@ function GameProfile() {
                     let y = leftTop[1] + currentLayout.relativeKeyPosition[i][1] * height;
                     keyPos.push([Math.round(x), Math.round(y)]);
                 }
+                //@ts-ignore
                 cachedKeyPos = keyPos;
                 console.log("generated key position: " + JSON.stringify(keyPos));
                 return true;
@@ -1493,8 +1425,8 @@ function GameProfile() {
                 let leftTopAbsolutePos = [0, 0];
                 let rightBottomAbsolutePos = [0, 0];
                 if (currentLayout.locator == KeyLocatorTypes.left_top_right_bottom) {
-                    leftTopAbsolutePos = currentGameConfig.keyLocators[currentKeyTypeName][0];
-                    rightBottomAbsolutePos = currentGameConfig.keyLocators[currentKeyTypeName][1];
+                    leftTopAbsolutePos = keyLocators[currentGameTypeKeyTypeName][0];
+                    rightBottomAbsolutePos = keyLocators[currentGameTypeKeyTypeName][1];
                 } else {
                     console.log("TODO:unsupported key locator type: " + currentLayout.locator);
                 }
@@ -1506,6 +1438,7 @@ function GameProfile() {
                 let keyAbsolutePoss = keyRelativePoss.map(function (keyRelativePos) {
                     return [keyRelativePos[0] * xScale + xTranslate, keyRelativePos[1] * yScale + yTranslate];
                 })
+                //@ts-ignore
                 cachedKeyPos = keyAbsolutePoss;
                 console.log("generated key position: " + JSON.stringify(cachedKeyPos));
                 return true;

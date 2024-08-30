@@ -36,6 +36,18 @@ function MidiPitch() {
                 throw new Error('Invalid note name: ' + name);
         }
     }
+    /**
+     * 将 MIDI 音高值转换为对应的音符名称。
+     * @param {number} midiPitch - 要转换的 MIDI 音高值。
+     * @returns {string} 音符名称，例如 C4、C#4 等。
+     */
+    this.midiPitchToName = function (midiPitch) {
+        const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const octave = Math.floor(midiPitch / 12) - 1;
+        const noteIndex = midiPitch % 12;
+        return noteNames[noteIndex] + octave;
+    }
+
 
     /**
      * 返回MIDI音高值是否是半音 (实际上, 黑键?)

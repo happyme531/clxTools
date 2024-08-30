@@ -94,12 +94,19 @@ const MusicLoaderDataType = {
 function loadConfiguration() {
     try {
         // TODO: 自定义配置
-        let userGameProfile = readGlobalConfig("userGameProfile", null);
-        if (userGameProfile != null) {
-            gameProfile.loadGameConfigs(userGameProfile);
-        } else {
-            gameProfile.loadDefaultGameConfigs();
-        }
+        // let userGameProfile = readGlobalConfig("userGameProfile", null);
+        // if (userGameProfile != null) {
+        //     gameProfile.loadGameConfigs(userGameProfile);
+        // } else {
+        //     gameProfile.loadDefaultGameConfigs();
+        // }
+        gameProfile.loadDefaultGameConfigs();
+        let keyLocators = readGlobalConfig("keyLocators",null);
+        if(keyLocators == null)
+            gameProfile.setKeyLocators(new Map());
+        else
+            gameProfile.setKeyLocators(keyLocators);
+
         let lastConfigName = readGlobalConfig("lastConfigName", "");
         //尝试加载用户设置的游戏配置
         let activeConfigName = readGlobalConfig("activeConfigName", null);
@@ -383,8 +390,11 @@ function sec2timeStr(timeSec) {
 
 
 function saveUserGameProfile() {
-    let profile = gameProfile.getGameConfigs();
-    setGlobalConfig("userGameProfile", profile);
+    // let profile = gameProfile.getGameConfigs();
+    // setGlobalConfig("userGameProfile", profile);
+    let keyLocators = gameProfile.getKeyLocators();
+    setGlobalConfig("keyLocators", keyLocators);
+    console.log("keyLocators: " + JSON.stringify(keyLocators));
     console.log("保存用户游戏配置成功");
     toast("保存用户游戏配置成功");
 };
