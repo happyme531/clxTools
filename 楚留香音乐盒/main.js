@@ -1316,14 +1316,13 @@ function main() {
                     gameProfile.setCurrentKeyLayoutDefault();
                     setGlobalConfig("lastKeyTypeName", gameProfile.getCurrentKeyLayoutTypeName());
                 } else {
-                    let allKeyLayoutList = gameProfile.getAllKeyLayouts();
-                    let nameList = keyLayoutList.map((keyLayout) => allKeyLayoutList[keyLayout].displayName);
+                    let nameList = keyLayoutList.map((keyLayout) => keyLayout.displayName);
                     let sel = /** @type {Number} */ (dialogs.select("选择目标键位...", nameList));
                     if (sel == -1) {
                         toastLog("设置没有改变");
                         break;
                     }
-                    let typeName = keyLayoutList[sel];
+                    let typeName = keyLayoutList[sel].type;
                     gameProfile.setCurrentKeyLayoutByTypeName(typeName);
                     setGlobalConfig("lastKeyTypeName", typeName);
                     console.log("目标键位已设置为: " + typeName);

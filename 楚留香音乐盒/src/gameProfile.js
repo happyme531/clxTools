@@ -92,6 +92,11 @@ const noteKeyMaps = {
         endPitch: "B5",
         haveSemitone: false,
     }),
+    "generic_2x7": generateNoteKeyMap({
+        startPitch: "C4",
+        endPitch: "B5",
+        haveSemitone: false,
+    }),
     "sky_3x5": {
         // C3 D3 E3 F3 G3 
         // A3 B3 C4 D4 E4 
@@ -311,6 +316,16 @@ const noteKeyMaps = {
         endPitch: "B4",
         haveSemitone: false,
     }),
+    "generic_3x7_1": generateNoteKeyMap({
+        startPitch: "C3",
+        endPitch: "C5",
+        haveSemitone: false,
+    }),
+    "generic_3x12_1": generateNoteKeyMap({
+        startPitch: "C3",
+        endPitch: "C5",
+        haveSemitone: true,
+    }),
 }
 
 
@@ -345,6 +360,15 @@ const keyLayouts = {
         relativeKeyPosition: undefined,
         //音高与按键的映射, 左下角开始, 从左到右, 从下到上
         noteKeyMap: noteKeyMaps.generic_3x7,
+    },
+    "generic_2x7": {
+        name: "generic_2x7",
+        displayName: "2x7",
+        type: KeyLayoutTypes.grid,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: 2,
+        column: 7,
+        noteKeyMap: noteKeyMaps.generic_2x7,
     },
     "sky_3x5": {   //光遇3x5
         name: "sky_3x5",
@@ -432,6 +456,20 @@ const keyLayouts = {
         ],
         noteKeyMap: noteKeyMaps.generic_3x7,
     },
+    "speedmobile_interleaved3x7_1": { //qq飞车 交错的3x7+1
+        name: "speedmobile_interleaved3x7_1",
+        displayName: "22键",
+        type: KeyLayoutTypes.arbitrary,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: undefined,
+        column: undefined,
+        relativeKeyPosition: [
+            [0, 1], [1 / 6, 1], [2 / 6, 1], [3 / 6, 1], [4 / 6, 1], [5 / 6, 1], [6 / 6, 1],
+            [0 + 1 / 12, 1 / 2], [1 / 6 + 1 / 12, 1 / 2], [2 / 6 + 1 / 12, 1 / 2], [3 / 6 + 1 / 12, 1 / 2], [4 / 6 + 1 / 12, 1 / 2], [5 / 6 + 1 / 12, 1 / 2], [6 / 6 + 1 / 12, 1 / 2],
+            [0, 0], [1 / 6, 0], [2 / 6, 0], [3 / 6, 0], [4 / 6, 0], [5 / 6, 0], [6 / 6, 0], [7 / 6, 0],
+        ],
+        noteKeyMap: noteKeyMaps.generic_3x7_1,
+    },
     "dzpd_7_8": { //蛋仔派对 7+8
         name: "dzpd_7_8",
         displayName: "15键",
@@ -443,6 +481,19 @@ const keyLayouts = {
         x x x x x x x x
          x x x x x x x 
         */
+        relativeKeyPosition: [
+            [1/13,1],[3/13,1],[5/13,1],[7/13,1],[9/13,1],[11/13,1],[13/13,1],
+            [0,0],[2/13,0],[4/13,0],[6/13,0],[8/13,0],[10/13,0],[12/13,0],[14/13,0],
+        ],
+        noteKeyMap: noteKeyMaps.dzpd_7_8,
+    },
+    "xdxz_7_8": { //心动小镇 7+8, 其实和上面那个是一样的
+        name: "xdxz_7_8",
+        displayName: "7+8",
+        type: KeyLayoutTypes.arbitrary,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: undefined,
+        column: undefined,
         relativeKeyPosition: [
             [1/13,1],[3/13,1],[5/13,1],[7/13,1],[9/13,1],[11/13,1],[13/13,1],
             [0,0],[2/13,0],[4/13,0],[6/13,0],[8/13,0],[10/13,0],[12/13,0],[14/13,0],
@@ -507,7 +558,7 @@ const keyLayouts = {
         ],
         noteKeyMap: noteKeyMaps.abd_8_7,
     },
-    "hpma_yinterleaved3x12": { //哈利波特魔法觉醒 y交错的3x12 aka专业模式
+    "hpma_yinterleaved3x12": { //哈利波特魔法觉醒 y交错的3x12 aka专业模式. 比蛋仔派对的那个高
         name: "hpma_yinterleaved3x12",
         displayName: "专业模式",
         type: KeyLayoutTypes.arbitrary,
@@ -545,10 +596,94 @@ const keyLayouts = {
         type: KeyLayoutTypes.grid,
         locator: KeyLocatorTypes.left_top_right_bottom,
         row: 3,
-        column: 13,
+        column: 12,
         noteKeyMap: noteKeyMaps.mrzh_3x12,
     },
+    "xdxz_7_7_8":{
+        name: "xdxz_7_7_8",
+        displayName: "22键",
+        type: KeyLayoutTypes.arbitrary,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: undefined,
+        column: undefined,
+        relativeKeyPosition: [
+            [0.08,1],[0.23,1],[0.39,1],[0.54,1],[0.69,1],[0.84,1],[1,1],
+            [0.08,0.5],[0.23,0.5],[0.39,0.5],[0.54,0.5],[0.69,0.5],[0.84,0.5],[1,0.5],
+            [0,0],[0.15,0],[0.31,0],[0.46,0],[0.61,0],[0.76,0],[0.91,0],[1.08,0],
+        ],
+        noteKeyMap: noteKeyMaps.generic_3x7_1,
+    },
+    "xdxz_7_7_8_half": {
+        name: "xdxz_7_7_8_half",
+        displayName: "22键带半音",
+        type: KeyLayoutTypes.arbitrary,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: undefined,
+        column: undefined,
+        relativeKeyPosition: [
+            [0.08,1],[0.15,0.90],[0.23,1],[0.31,0.90],[0.39,1],[0.54,1],[0.61,0.90],[0.69,1],[0.76,0.90],[0.84,1],[0.91,0.90],[1,1],
+            [0.08,0.5],[0.15,0.4],[0.23,0.5],[0.31,0.4],[0.39,0.5],[0.54,0.5],[0.61,0.4],[0.69,0.5],[0.76,0.4],[0.84,0.5],[0.91,0.4],[1,0.5],
+            [0,0],[0.08,-0.1],[0.15,0],[0.22,-0.1],[0.31,0],[0.46,0],[0.54,-0.1],[0.61,0],[0.69,-0.1],[0.76,0],[0.84,-0.1],[0.91,0],[1.08,0],
 
+        ],
+        noteKeyMap: noteKeyMaps.generic_3x12_1,
+    },
+    "speedmobile_interleaved3x12_1": {
+        name: "speedmobile_interleaved3x12_1",
+        displayName: "37键",
+        type: KeyLayoutTypes.arbitrary,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: undefined,
+        column: undefined,
+        relativeKeyPosition: [
+            [0,1],[0.08,1],[0.16,1],[0.24,1],[0.33,1],[0.5,1],[0.58,1],[0.66,1],[0.74,1],[0.83,1],[0.91,1],[1,1],
+            [0.08,0.5],[0.16,0.5],[0.24,0.5],[0.33,0.5],[0.41,0.5],[0.58,0.5],[0.66,0.5],[0.74,0.5],[0.83,0.5],[0.91,0.5],[1,0.5],[1.08,0.5],
+            [0,0],[0.08,0],[0.16,0],[0.24,0],[0.33,0],[0.5,0],[0.58,0],[0.66,0],[0.74,0],[0.83,0],[0.91,0],[1,0],[1.16,0],
+        ],
+        noteKeyMap: noteKeyMaps.generic_3x12_1,
+    },
+    "mhls_curved3x7": {  //猫和老鼠
+        name: "mhls_curved3x7",
+        displayName: "21键(弧形)",
+        type: KeyLayoutTypes.arbitrary,
+        locator: KeyLocatorTypes.left_top_right_bottom,  //FIXME: 这个没办法简单的确定！
+        row: undefined,
+        column: undefined,
+        relativeKeyPosition: [
+            [-0.29,0.49],[-0.12,1.01],[0.15,1.34],[0.43,1.50],[0.74,1.34],[0.99,1.01],[1.18,0.49],
+            [-0.15,0.26],[-0.00,0.64],[0.22,0.91],[0.43,0.99],[0.67,0.91],[0.88,0.64],[1.03,0.26],
+            [0,0],[0.11,0.30],[0.28,0.44],[0.43,0.49],[0.6,0.44],[0.77,0.3],[0.89,-0.06],
+        ],
+        noteKeyMap: noteKeyMaps.generic_3x7,
+    },
+    "yjwj_curved3x7":{  //永劫无间
+        name: "yjwj_curved3x7",
+        displayName: "21键(弧形)",
+        type: KeyLayoutTypes.arbitrary,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: undefined,
+        column: undefined,
+        relativeKeyPosition: [
+           [0,1],[0.17,1.04],[0.33,1.08],[0.50,1.09],[0.66,1.08],[0.83,1.04],[1,1],
+           [0,0.5],[0.17,0.54],[0.33,0.58],[0.50,0.59],[0.66,0.58],[0.83,0.54],[1,0.5],
+           [0,0],[0.17,0.05],[0.33,0.08],[0.50,0.09],[0.66,0.08],[0.83,0.05],[1,0],
+        ],
+        noteKeyMap: noteKeyMaps.generic_3x7,
+    },
+    "jw3_sloped3x7": {
+        name: "jw3_sloped3x7",
+        displayName: "21键(倾斜)",
+        type: KeyLayoutTypes.arbitrary,
+        locator: KeyLocatorTypes.left_top_right_bottom,
+        row: undefined,
+        column: undefined,
+        relativeKeyPosition: [
+            [0.1,1],[0.24,1],[0.4,1],[0.56,1],[0.70,1],[0.85,1],[1,1],
+            [0.05,0.5],[0.20,0.5],[0.35,0.5],[0.50,0.5],[0.65,0.5],[0.80,0.5],[0.95,0.5],
+            [0,0],[0.15,0],[0.30,0],[0.45,0],[0.60,0],[0.75,0],[0.90,0],
+        ],
+        noteKeyMap: noteKeyMaps.generic_3x7,
+    },
 };
 
 //光遇: 乐曲调式对应的地图所在位置
@@ -758,7 +893,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "原神",
         gameName: "原神",
-        keyTypes: [keyLayouts["generic_3x7"]],
+        keyTypes: [keyLayouts["generic_3x7"], keyLayouts["generic_2x7"]],
         variants: [
             new VariantConfig({
                 variantType: "风物之诗琴",
@@ -766,6 +901,14 @@ const PreDefinedGameConfigs = [
                 availableNoteRange: undefined,
                 noteKeyMap: undefined,
                 noteDurationImplementionType: NoteDurationImplementionTypes.none,
+                sameKeyMinInterval: undefined,
+            }),
+            new VariantConfig({
+                variantType: "晚风圆号",
+                variantName: "晚风圆号",
+                availableNoteRange: undefined,
+                noteKeyMap: undefined,
+                noteDurationImplementionType: NoteDurationImplementionTypes.native,
                 sameKeyMinInterval: undefined,
             }),
             new VariantConfig({
@@ -835,17 +978,36 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "蛋仔派对",
         gameName: "蛋仔派对",
-        keyTypes: [keyLayouts["dzpd_interleaved3x7"], keyLayouts["dzpd_yinterleaved36"], keyLayouts["dzpd_7_8"]],
+        keyTypes: [keyLayouts["dzpd_interleaved3x7"], keyLayouts["dzpd_yinterleaved36"], keyLayouts["dzpd_7_8"]], //TODO: 架子鼓
         variants: [
             defaultVariantConfig 
         ],
         sameKeyMinInterval: 20,
         packageNamePart: ["party"],
     }),
+    //永劫无间
+    new GameConfig({
+        gameType: "永劫无间",
+        gameName: "永劫无间",
+        keyTypes: [keyLayouts["yjwj_curved3x7"]],
+        variants: [
+            defaultVariantConfig,
+            new VariantConfig({
+                variantType: "笛子",
+                variantName: "笛子",
+                availableNoteRange: ["G3", "B5"],
+                noteKeyMap: undefined,
+                noteDurationImplementionType: NoteDurationImplementionTypes.none,
+                sameKeyMinInterval: undefined,
+            }),
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["netease.l22"],
+    }),
     new GameConfig({
         gameType: "黎明觉醒",
         gameName: "黎明觉醒",
-        keyTypes: [keyLayouts["generic_3x7"]],
+        keyTypes: [keyLayouts["generic_3x7"]], //TODO: 钢琴
         variants: [
             defaultVariantConfig 
         ],
@@ -875,9 +1037,17 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "第五人格",
         gameName: "第五人格",
-        keyTypes: [keyLayouts["generic_3x7"]],
+        keyTypes: [keyLayouts["generic_3x7"], keyLayouts["hpma_yinterleaved3x12"]],
         variants: [
-            defaultVariantConfig
+            defaultVariantConfig,
+            new VariantConfig({
+                variantType: "玉箫",
+                variantName: "玉箫",
+                availableNoteRange: ["C3", "B4"],
+                noteKeyMap: undefined,
+                noteDurationImplementionType: NoteDurationImplementionTypes.none,
+                sameKeyMinInterval: undefined,
+            }),
         ],
         sameKeyMinInterval: 20,
         packageNamePart: ["dwrg"],
@@ -895,7 +1065,7 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "摩尔庄园",
         gameName: "摩尔庄园",
-        keyTypes: [keyLayouts["hpma_yinterleaved3x12"]],
+        keyTypes: [keyLayouts["generic_3x7"], keyLayouts["hpma_yinterleaved3x12"]],
         variants: [
             defaultVariantConfig
         ],
@@ -915,13 +1085,149 @@ const PreDefinedGameConfigs = [
     new GameConfig({
         gameType: "元梦之星",
         gameName: "元梦之星",
-        keyTypes: [keyLayouts["generic_3x7"]],
+        keyTypes: [keyLayouts["generic_3x7"], keyLayouts["hpma_yinterleaved36"]],
         variants: [
-            defaultVariantConfig
+            defaultVariantConfig,
+            new VariantConfig({
+                variantType: "唢呐",
+                variantName: "唢呐",
+                availableNoteRange: ["E3", "B5"],
+                noteKeyMap: undefined,
+                noteDurationImplementionType: NoteDurationImplementionTypes.none,
+                sameKeyMinInterval: undefined,
+            }),
         ],
         sameKeyMinInterval: 20,
         packageNamePart: ["com.tencent.letsgo"],
     }),
+    new GameConfig({
+        gameType: "心动小镇",
+        gameName: "心动小镇",
+        //双排15键, 三排15键, 22键, 22键+半音
+        keyTypes: [keyLayouts["xdxz_7_8"], keyLayouts["sky_3x5"], keyLayouts["xdxz_7_7_8"], keyLayouts["xdxz_7_7_8_half"]],
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: [], //TODO:
+    }),
+    new GameConfig({
+        gameType: "射雕英雄传",
+        gameName: "射雕英雄传",
+        keyTypes: [keyLayouts["generic_3x7"]],
+        variants: [  //TODO: 这个游戏应该是有长音按钮的
+            defaultVariantConfig,
+            new VariantConfig({
+                variantType: "竹笛",
+                variantName: "竹笛",
+                availableNoteRange: ["G3", "A5"],
+                noteKeyMap: undefined,
+                noteDurationImplementionType: NoteDurationImplementionTypes.none,
+                sameKeyMinInterval: undefined,
+            }),
+            new VariantConfig({
+                variantType: "洞箫",
+                variantName: "洞箫",
+                availableNoteRange: ["C3", "B4"],
+                noteKeyMap: undefined,
+                noteDurationImplementionType: NoteDurationImplementionTypes.none,
+                sameKeyMinInterval: undefined,
+            }),
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["sdyxz"], 
+    }),
+    //qq飞车
+    new GameConfig({
+        gameType: "qq飞车",
+        gameName: "qq飞车",
+        keyTypes: [keyLayouts["speedmobile_interleaved3x7_1"], keyLayouts["speedmobile_interleaved3x12_1"]],
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["speedmobile"],
+    }),
+    //创造与魔法
+    new GameConfig({
+        gameType: "创造与魔法",
+        gameName: "创造与魔法",
+        keyTypes: [keyLayouts["sky_3x5"]],
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["hero.sm"],
+    }),
+    //妄想山海
+    new GameConfig({
+        gameType: "妄想山海",
+        gameName: "妄想山海",
+        keyTypes: [keyLayouts["generic_3x7"]],  //TODO: 钢琴
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["tmgp.djsy"],
+    }),
+    //我的世界
+    new GameConfig({
+        gameType: "我的世界",
+        gameName: "我的世界",
+        keyTypes: [keyLayouts["generic_3x7"]],  //TODO: 钢琴
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["netease.mc","netease.x19"],
+    }),
+    //迷你世界
+    new GameConfig({
+        gameType: "迷你世界",
+        gameName: "迷你世界",
+        keyTypes: [keyLayouts["generic_3x7"], keyLayouts["dzpd_yinterleaved36"]],
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["miniworld"],
+    }),
+    //猫和老鼠
+    new GameConfig({
+        gameType: "猫和老鼠",
+        gameName: "猫和老鼠",
+        keyTypes: [keyLayouts["mhls_curved3x7"]],
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["tom"],
+    }),
+    //宅时光
+    new GameConfig({
+        gameType: "宅时光",
+        gameName: "宅时光",
+        keyTypes: [keyLayouts["hpma_yinterleaved3x12"]],
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["housetime"],
+    }),
+    //剑网3
+    new GameConfig({
+        gameType: "剑网3",
+        gameName: "剑网3",
+        keyTypes: [keyLayouts["mhls_curved3x7"], keyLayouts["jw3_sloped3x7"]],  //这个弧形键位不一定能用，管他呢，有人报bug再说
+        variants: [
+            defaultVariantConfig
+        ],
+        sameKeyMinInterval: 20,
+        packageNamePart: ["tmgp.jx3m"],
+    }),
+    //TODO: 以闪亮之名
+    //
+    //自定义1
     new GameConfig({
         gameType: "自定义1",
         gameName: "自定义1",
