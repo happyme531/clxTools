@@ -37,7 +37,7 @@ try {
 }
 
 const musicDir = configuration.getMusicDir();
-const scriptVersion = 25;
+const scriptVersion = 27;
 
 //如果遇到奇怪的问题, 可以将下面这行代码前面两个斜杠去掉, 之后再次运行脚本, 即可清除当前的配置文件。
 //setGlobalConfig("userGameProfile", null);
@@ -101,7 +101,8 @@ function loadConfiguration() {
         //     gameProfile.loadDefaultGameConfigs();
         // }
         gameProfile.loadDefaultGameConfigs();
-        let keyLocators = readGlobalConfig("keyLocators",null);
+        let keyLocators = readGlobalConfig("keyLocators2",null);
+        console.log("keyLocators2: " + JSON.stringify(keyLocators));
         if(keyLocators == null)
             gameProfile.setKeyLocators(new Map());
         else
@@ -393,8 +394,8 @@ function saveUserGameProfile() {
     // let profile = gameProfile.getGameConfigs();
     // setGlobalConfig("userGameProfile", profile);
     let keyLocators = gameProfile.getKeyLocators();
-    setGlobalConfig("keyLocators", keyLocators);
-    console.log("keyLocators: " + JSON.stringify(keyLocators));
+    setGlobalConfig("keyLocators2", keyLocators);
+    console.log("keyLocators2: " + JSON.stringify(Object.fromEntries(keyLocators)));
     console.log("保存用户游戏配置成功");
     toast("保存用户游戏配置成功");
 };
@@ -1225,7 +1226,7 @@ function main() {
             return;
         }
         //加载可视化窗口
-        const layout = gameProfile.getKeyLayout()
+        const layout = gameProfile.getCurrentKeyLayout()
         if(layout.row != null && layout.column != null){
             visualizer.setKeyLayout(layout.row, layout.column);
             visualizer.loadNoteData(data.packedKeyList);
@@ -1322,7 +1323,7 @@ function main() {
                         toastLog("设置没有改变");
                         break;
                     }
-                    let typeName = keyLayoutList[sel].type;
+                    let typeName = keyLayoutList[sel].name;
                     gameProfile.setCurrentKeyLayoutByTypeName(typeName);
                     setGlobalConfig("lastKeyTypeName", typeName);
                     console.log("目标键位已设置为: " + typeName);
@@ -1621,10 +1622,10 @@ function main() {
             player.setClickPositionDeviationPx(clickPositionDeviationPx);
         //是否显示可视化窗口
         let visualizationEnabled = readGlobalConfig("visualizationEnabled", false);
-        if (visualizationEnabled && gameProfile.getKeyLayout().type === "grid") { //TODO: 其它类型的键位布局也可以显示可视化窗口
-            visualizerWindow = createVisualizerWindow();
-            toast("单击可视化窗口调整大小与位置, 双击重置");
-        };
+        // if (visualizationEnabled && gameProfile.getKeyLayout().type === "grid") { //TODO: 其它类型的键位布局也可以显示可视化窗口
+        //     visualizerWindow = createVisualizerWindow();
+        //     toast("单击可视化窗口调整大小与位置, 双击重置");
+        // };
         for (let player of selectedPlayers) {
             player.start();
             player.pause();
