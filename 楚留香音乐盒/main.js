@@ -7,10 +7,7 @@ try {
      * @type {import("../shared/runtimes.js")}
      */
     var runtimes = requireShared("runtimes.js");
-    /**
-     * @type {import("../shared/getPosInteractive.js")}
-     */
-    var getPosInteractive = requireShared("getPosInteractive.js");
+    var calibrateLayout = require("./src/ui/calibrateLayout.js");
     var MusicFormats = require("./src/musicFormats.js");
     var MidiDeviceManager = require("./src/midiDeviceManager.js");
     var GameProfile = require("./src/gameProfile.js");
@@ -391,14 +388,14 @@ function sec2timeStr(timeSec) {
 
 
 function saveUserGameProfile() {
-    // let profile = gameProfile.getGameConfigs();
-    // setGlobalConfig("userGameProfile", profile);
     let keyLocators = gameProfile.getKeyLocators();
     setGlobalConfig("keyLocators2", keyLocators);
-    console.log("keyLocators2: " + JSON.stringify(Object.fromEntries(keyLocators)));
+
+    
+    console.log("keyLocators2: " + JSON.stringify(keyLocators));
     console.log("保存用户游戏配置成功");
     toast("保存用户游戏配置成功");
-};
+}
 
 function debugDump(obj, name) {
     console.log("====================" + name + "====================");
@@ -664,12 +661,18 @@ function preAnalyzeFile(fileName){
 }
 
 function runClickPosSetup() {
-    let pos1 = getPosInteractive("最上面那行按键中最左侧的按键中心");
-    let pos2 = getPosInteractive("最下面那行按键中最右侧的按键中心");
+    let pos = calibrateLayout("请拖动定位点调整按键位置", 
+        gameProfile.getNormalizedKeyPositions()
+    );
 
-    console.log("自定义坐标:左上[" + pos1.x + "," + pos1.y + "],右下[" + pos2.x + "," + pos2.y + "]");
+    if (pos == null) {
+        toast("校准取消");
+        return;
+    }
 
-    gameProfile.setKeyPosition([pos1.x, pos1.y], [pos2.x, pos2.y]);
+    console.log("自定义坐标:左上[" + pos[0][0] + "," + pos[0][1] + "],右下[" + pos[1][0] + "," + pos[1][1] + "]");
+
+    gameProfile.setKeyPosition([pos[0][0], pos[0][1]], [pos[1][0], pos[1][1]]);
     saveUserGameProfile();
 }
 
