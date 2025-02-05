@@ -17,7 +17,6 @@ function CreateRoundButtonView(name, mGlobal) {
     function init() {
         view = ui.inflate(<widget-RoundButton />, null, null);
         view.setLayoutParams(new android.widget.LinearLayout.LayoutParams(mGlobal.size, mGlobal.size));
-        viewPost(() => {
             let value;
             view.setPadding(mGlobal.padding, mGlobal.padding, mGlobal.padding, mGlobal.padding);
             view.on('click', () => {
@@ -47,7 +46,6 @@ function CreateRoundButtonView(name, mGlobal) {
                     }, mGlobal.time.autoCloseMenu);
                 }
             });
-        });
     }
 
     this.getView = () => view;
@@ -146,7 +144,8 @@ function CreateRoundButtonView(name, mGlobal) {
     }
 
     function viewPost(action) {
-        ui.run(action);
+        // ui.run(action);
+        action();
     }
 
     init();

@@ -257,7 +257,7 @@ let FloatButton = function () {
         mWindows.menu = floaty.rawWindow(<frame id='content' w='*' h='*' visibility='invisible' />);
         mWindows.logo = floaty.rawWindow(<frame id='content' w='auto' h='auto' />);
         //修复 更新悬浮窗LayoutParams 报错
-        ui.run(() => {
+        // ui.run(() => {
             mWindows.logo.setSize(-2, -2);
             mWindows.menu.setSize(-2, -2);
             mWindows.logo.setTouchable(false);
@@ -269,7 +269,7 @@ let FloatButton = function () {
             mViewUtils.logo.getView().attr('alpha', mConfig.logoAlpha);
             let mx = (mConfig.state.direction ? mConfig.size : -mConfig.size);
             mViewUtils.logo.getView().setTranslationX(mx);
-        });
+        // });
         //Logo悬浮窗更新
         updateLogoWindow();
         createTouchListener(mWindows.logo);
@@ -298,13 +298,13 @@ let FloatButton = function () {
         let x = (mConfig.state.direction ? w - w1 - size + mConfig.padding : -mConfig.padding + size);
         let y = y1 - mConfig.menuRadius;
         let mGravity = 'center_vertical' + (mConfig.state.direction ? '|right' : '');
-        ui.run(() => {
+        // ui.run(() => {
             let view;
             for (i in mMenuViews) {
                 view = mMenuViews[i];
                 view.attr('layout_gravity', mGravity)
             }
-        });
+        // });
         mWindows.menu.setPosition(x, y);
     }
 
@@ -347,7 +347,8 @@ let FloatButton = function () {
     }
 
     function postAction(action) {
-        mConfig.isInit ? ui.run(action) : mActions.push(() => ui.run(action));
+        // mConfig.isInit ? ui.run(action) : mActions.push(() => ui.run(action));
+        mConfig.isInit ?action() : mActions.push(() =>action());
     }
 
     function createTouchListener(win) {

@@ -34,7 +34,7 @@ function Anim(gd) {
 
     this.show = function (action) {
         action = action || new Function();
-        ui.run(() => {
+        // ui.run(() => {
             data.state.anim = true;
             fb.getView('logo').attr("visibility", "visible");
             var mx = data.state.direction ? [data.size, 0] : [-data.size, 0];
@@ -46,7 +46,7 @@ function Anim(gd) {
                 data.isShow = true;
                 action()
             })
-        });
+        // });
     }
 
     this.hide = function (action) {
